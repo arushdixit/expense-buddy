@@ -1,73 +1,161 @@
-# Welcome to your Lovable project
+# Expense Buddy
 
-## Project info
+A personal expense tracking application with a React frontend and Express.js backend.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- 📊 Track expenses across multiple categories (Rent, Groceries, Shopping, Entertainment, etc.)
+- 🏷️ Organize expenses with subcategories
+- 📅 View expenses by month with detailed breakdowns
+- 📈 Compare spending across different months
+- 💾 Persistent data storage with SQLite database
+- 🎨 Beautiful, mobile-friendly UI with Tailwind CSS
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd expense-buddy
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Running the Application
+
+#### Option 1: Run Both Frontend and Backend (Recommended)
+```sh
+npm run dev:fullstack
+```
+This starts:
+- Frontend on http://localhost:8080
+- Backend API on http://localhost:3001
+
+#### Option 2: Run Separately
+
+**Backend only:**
+```sh
+npm run server
+```
+
+**Frontend only:**
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Other Commands
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+# Build for production
+npm run build
 
-**Use GitHub Codespaces**
+# Build backend for production
+npm run server:build
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Run linting
+npm run lint
 
-## What technologies are used for this project?
+# Preview production build
+npm run preview
+```
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Technology Stack
 
-## How can I deploy this project?
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **shadcn-ui** - UI component library
+- **Framer Motion** - Animations
+- **React Router** - Routing
+- **date-fns** - Date utilities
+- **Recharts** - Data visualization
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Backend
+- **Express.js** - REST API server
+- **SQLite** - Database (via better-sqlite3)
+- **TypeScript** - Type safety
+- **CORS** - Cross-origin resource sharing
 
-## Can I connect a custom domain to my Lovable project?
+## Project Structure
 
-Yes, you can!
+```
+expense-buddy/
+├── src/                    # Frontend source code
+│   ├── components/        # React components
+│   │   ├── ui/           # shadcn-ui components
+│   │   └── views/        # Main view components
+│   ├── context/          # React Context (state management)
+│   ├── lib/              # Utilities and API client
+│   ├── pages/            # Page components
+│   └── App.tsx           # Root component
+├── server/                # Backend source code
+│   ├── src/
+│   │   ├── database.ts   # Database initialization
+│   │   └── index.ts      # Express server and API routes
+│   ├── expenses.db       # SQLite database (generated)
+│   └── README.md         # API documentation
+├── public/               # Static assets
+└── package.json          # Dependencies and scripts
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## API Documentation
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+See [server/README.md](server/README.md) for complete API documentation.
+
+## Integration Guide
+
+See [INTEGRATION.md](INTEGRATION.md) for details on how the frontend and backend are connected.
+
+## Database Schema
+
+### expenses
+```sql
+CREATE TABLE expenses (
+  id TEXT PRIMARY KEY,
+  amount REAL NOT NULL,
+  category TEXT NOT NULL,
+  subcategory TEXT,
+  date TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+### subcategories
+```sql
+CREATE TABLE subcategories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  name TEXT NOT NULL,
+  UNIQUE(category, name)
+)
+```
+
+## Environment Variables
+
+Create a `.env` file in the root directory:
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:3001/api
+```
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
+
+## License
+
+MIT

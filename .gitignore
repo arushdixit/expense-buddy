@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Server
+server/dist
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#Vibe coding documentation
+INTEGRATION.md
+WARP.md

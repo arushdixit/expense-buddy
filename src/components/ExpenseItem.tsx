@@ -37,14 +37,14 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
     setShowActions(true);
   };
 
-  const handleDelete = () => {
-    deleteExpense(expense.id);
-    toast({
-      title: "Expense deleted",
-      description: `${formatCurrency(expense.amount)} removed from ${category.name}`,
-    });
-    setShowDeleteDialog(false);
-    setShowActions(false);
+  const handleDelete = async () => {
+    try {
+      await deleteExpense(expense.id);
+      setShowDeleteDialog(false);
+      setShowActions(false);
+    } catch (error) {
+      // Error is already toasted by the context
+    }
   };
 
   return (

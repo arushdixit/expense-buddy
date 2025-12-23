@@ -77,13 +77,17 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setStep(3);
   };
 
-  const handleAddNewSubcategory = () => {
+  const handleAddNewSubcategory = async () => {
     if (newSubcategory.trim() && selectedCategory) {
-      addCustomSubcategory(selectedCategory.id, newSubcategory.trim());
-      setSelectedSubcategory(newSubcategory.trim());
-      setNewSubcategory("");
-      setShowNewSubcategoryInput(false);
-      setStep(3);
+      try {
+        await addCustomSubcategory(selectedCategory.id, newSubcategory.trim());
+        setSelectedSubcategory(newSubcategory.trim());
+        setNewSubcategory("");
+        setShowNewSubcategoryInput(false);
+        setStep(3);
+      } catch (error) {
+        // Error is already toasted by the context
+      }
     }
   };
 
@@ -102,7 +106,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setAmount(prev => prev.slice(0, -1));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedCategory || !amount || parseFloat(amount) === 0) {
       toast({
         title: "Invalid amount",
@@ -112,19 +116,18 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       return;
     }
 
-    addExpense({
-      categoryId: selectedCategory.id,
-      subcategory: selectedSubcategory || undefined,
-      amount: parseFloat(amount),
-      date: selectedDate.toISOString(),
-    });
+    try {
+      await addExpense({
+        categoryId: selectedCategory.id,
+        subcategory: selectedSubcategory || undefined,
+        amount: parseFloat(amount),
+        date: selectedDate.toISOString(),
+      });
 
-    toast({
-      title: "Expense added",
-      description: `${formatCurrency(parseFloat(amount))} added to ${selectedCategory.name}`,
-    });
-
-    handleClose();
+      handleClose();
+    } catch (error) {
+      // Error is already toasted by the context
+    }
   };
 
   const handleBack = () => {
