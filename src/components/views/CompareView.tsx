@@ -14,8 +14,10 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export const CompareView: React.FC = () => {
-  const { expenses } = useExpenses();
+  const { expenses, customCategories } = useExpenses();
   const now = new Date();
+
+  const allCategories = [...categories, ...customCategories];
   
   const [month1, setMonth1] = useState({
     month: now.getMonth() === 0 ? 11 : now.getMonth() - 1,
@@ -64,7 +66,7 @@ export const CompareView: React.FC = () => {
   };
 
   const CategoryComparison = ({ categoryId }: { categoryId: string }) => {
-    const cat = categories.find((c) => c.id === categoryId);
+    const cat = allCategories.find((c) => c.id === categoryId);
     if (!cat) return null;
 
     const val1 = totals1[categoryId] || 0;
@@ -237,7 +239,7 @@ export const CompareView: React.FC = () => {
       >
         <h3 className="font-semibold mb-4">By Category</h3>
         <Card className="p-4">
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <CategoryComparison key={cat.id} categoryId={cat.id} />
           ))}
         </Card>

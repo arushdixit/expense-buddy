@@ -1,6 +1,7 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { categories, formatCurrency, getCategoryById } from "@/lib/data";
+import { categories, formatCurrency, Category } from "@/lib/data";
+import { useExpenses } from "@/context/ExpenseContext";
 
 interface CategoryPieChartProps {
   categoryTotals: Record<string, number>;
@@ -9,7 +10,10 @@ interface CategoryPieChartProps {
 export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   categoryTotals,
 }) => {
-  const data = categories
+  const { customCategories } = useExpenses();
+  const allCategories = [...categories, ...customCategories];
+  
+  const data = allCategories
     .map((cat) => ({
       name: cat.name,
       value: categoryTotals[cat.id] || 0,
