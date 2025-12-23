@@ -34,3 +34,7 @@ server/dist
 #Vibe coding documentation
 INTEGRATION.md
 WARP.md
+
+#env
+.env
+.env.example
