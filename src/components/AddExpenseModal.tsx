@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Check, ChevronLeft, Calendar } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, Calendar, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { categories, Category, formatCurrency } from "@/lib/data";
 import { useExpenses } from "@/context/ExpenseContext";
@@ -18,6 +18,14 @@ interface AddExpenseModalProps {
 
 type Step = 1 | 2 | 3;
 
+const CATEGORY_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isOpen,
   onClose,
@@ -27,11 +35,15 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [newSubcategory, setNewSubcategory] = useState("");
   const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  const { addExpense, customSubcategories, addCustomSubcategory } = useExpenses();
+  const { addExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
   const { toast } = useToast();
+
+  const allCategories = [...categories, ...customCategories];
 
   const resetForm = () => {
     setStep(1);
@@ -39,6 +51,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setSelectedSubcategory(null);
     setNewSubcategory("");
     setShowNewSubcategoryInput(false);
+    setShowNewCategoryInput(false);
+    setNewCategoryName("");
     setAmount("");
     setSelectedDate(new Date());
   };
@@ -50,7 +64,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
-    if (category.subcategories && category.subcategories.length > 0) {
+    // All categories except Rent can have subcategories
+    if (category.id !== "rent") {
       setStep(2);
     } else {
       setStep(3);
@@ -117,7 +132,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setSelectedSubcategory(null);
       setStep(1);
     } else if (step === 3) {
-      if (selectedCategory?.subcategories && selectedCategory.subcategories.length > 0) {
+      // All categories except Rent have subcategory step
+      if (selectedCategory?.id !== "rent") {
         setStep(2);
       } else {
         setStep(1);
@@ -187,7 +203,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   Select Category
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {categories.map((category) => {
+                  {allCategories.map((category) => {
                     const Icon = category.icon;
                     return (
                       <button
@@ -208,7 +224,60 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       </button>
                     );
                   })}
+                  {!showNewCategoryInput && (
+                    <button
+                      onClick={() => setShowNewCategoryInput(true)}
+                      className="category-card h-28 border-2 border-dashed border-primary/30"
+                    >
+                      <div className="h-12 w-12 rounded-full flex items-center justify-center bg-primary/10">
+                        <Plus className="h-6 w-6 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium text-primary">Add Category</span>
+                    </button>
+                  )}
                 </div>
+                {showNewCategoryInput && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-2 mt-4"
+                  >
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="New category name"
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      onClick={() => {
+                        if (newCategoryName.trim()) {
+                          const colorIndex = customCategories.length % CATEGORY_COLORS.length;
+                          addCustomCategory(newCategoryName.trim(), CATEGORY_COLORS[colorIndex]);
+                          setNewCategoryName("");
+                          setShowNewCategoryInput(false);
+                          toast({
+                            title: "Category added",
+                            description: `${newCategoryName.trim()} has been added`,
+                          });
+                        }
+                      }}
+                      size="icon"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setShowNewCategoryInput(false);
+                        setNewCategoryName("");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </motion.div>
+                )}
               </motion.div>
             )}
 
@@ -252,10 +321,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   {!showNewSubcategoryInput && (
                     <button
                       onClick={() => setShowNewSubcategoryInput(true)}
-                      className="subcategory-chip border-2 border-dashed border-primary/30 text-primary"
+                      className="subcategory-chip border-2 border-dashed border-primary/30 text-primary inline-flex items-center whitespace-nowrap"
                     >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
+                      <Plus className="h-4 w-4 mr-1 flex-shrink-0" />
+                      <span>Add</span>
                     </button>
                   )}
                 </div>

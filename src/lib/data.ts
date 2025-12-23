@@ -157,8 +157,9 @@ export const generateMockExpenses = (): Expense[] => {
   return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
-export const getCategoryById = (id: string): Category | undefined => {
-  return categories.find(cat => cat.id === id);
+export const getCategoryById = (id: string, customCategories: Category[] = []): Category | undefined => {
+  const allCategories = [...categories, ...customCategories];
+  return allCategories.find(cat => cat.id === id);
 };
 
 export const calculateCategoryTotals = (expenses: Expense[]): Record<string, number> => {

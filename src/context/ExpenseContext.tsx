@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Expense, generateMockExpenses, categories } from "@/lib/data";
+import { Expense, generateMockExpenses, categories, Category } from "@/lib/data";
+import { Layers } from "lucide-react";
 
 interface ExpenseContextType {
   expenses: Expense[];
@@ -8,6 +9,8 @@ interface ExpenseContextType {
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   customSubcategories: Record<string, string[]>;
   addCustomSubcategory: (categoryId: string, subcategory: string) => void;
+  customCategories: Category[];
+  addCustomCategory: (name: string, color: string) => void;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -29,6 +32,14 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     return {};
   });
 
+  const [customCategories, setCustomCategories] = useState<Category[]>(() => {
+    const saved = localStorage.getItem("customCategories");
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return [];
+  });
+
   useEffect(() => {
     localStorage.setItem("expenses", JSON.stringify(expenses));
   }, [expenses]);
@@ -36,6 +47,10 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     localStorage.setItem("customSubcategories", JSON.stringify(customSubcategories));
   }, [customSubcategories]);
+
+  useEffect(() => {
+    localStorage.setItem("customCategories", JSON.stringify(customCategories));
+  }, [customCategories]);
 
   const addExpense = (expense: Omit<Expense, "id">) => {
     const newExpense: Expense = {
@@ -62,6 +77,16 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     }));
   };
 
+  const addCustomCategory = (name: string, color: string) => {
+    const newCategory: Category = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      icon: Layers,
+      color,
+    };
+    setCustomCategories(prev => [...prev, newCategory]);
+  };
+
   return (
     <ExpenseContext.Provider
       value={{
@@ -71,6 +96,8 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         updateExpense,
         customSubcategories,
         addCustomSubcategory,
+        customCategories,
+        addCustomCategory,
       }}
     >
       {children}

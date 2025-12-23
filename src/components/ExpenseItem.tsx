@@ -24,10 +24,10 @@ interface ExpenseItemProps {
 export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { deleteExpense } = useExpenses();
+  const { deleteExpense, customCategories } = useExpenses();
   const { toast } = useToast();
 
-  const category = getCategoryById(expense.categoryId);
+  const category = getCategoryById(expense.categoryId, customCategories);
   if (!category) return null;
 
   const Icon = category.icon;

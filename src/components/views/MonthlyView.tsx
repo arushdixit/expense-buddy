@@ -22,16 +22,18 @@ import {
 } from "recharts";
 
 export const MonthlyView: React.FC = () => {
-  const { expenses } = useExpenses();
+  const { expenses, customCategories } = useExpenses();
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
+
+  const allCategories = [...categories, ...customCategories];
 
   const monthlyExpenses = getExpensesByMonth(expenses, currentYear, currentMonth);
   const categoryTotals = calculateCategoryTotals(monthlyExpenses);
   const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const chartData = categories
+  const chartData = allCategories
     .map((cat) => ({
       name: cat.name.substring(0, 4),
       fullName: cat.name,

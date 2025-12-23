@@ -6,18 +6,19 @@ import {
   getMonthName, 
   calculateCategoryTotals, 
   getExpensesByMonth,
-  categories,
-  getCategoryById
+  categories
 } from "@/lib/data";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import { ExpenseItem } from "@/components/ExpenseItem";
 import { Card } from "@/components/ui/card";
 
 export const DashboardView: React.FC = () => {
-  const { expenses } = useExpenses();
+  const { expenses, customCategories } = useExpenses();
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+
+  const allCategories = [...categories, ...customCategories];
 
   const monthlyExpenses = getExpensesByMonth(expenses, currentYear, currentMonth);
   const categoryTotals = calculateCategoryTotals(monthlyExpenses);
@@ -25,7 +26,7 @@ export const DashboardView: React.FC = () => {
   
   const recentExpenses = monthlyExpenses.slice(0, 5);
 
-  const sortedCategories = categories
+  const sortedCategories = allCategories
     .map(cat => ({ ...cat, total: categoryTotals[cat.id] || 0 }))
     .filter(cat => cat.total > 0)
     .sort((a, b) => b.total - a.total);
