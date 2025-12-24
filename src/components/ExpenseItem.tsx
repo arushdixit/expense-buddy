@@ -96,9 +96,8 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
           <div className="font-medium truncate">{category.name}</div>
           <div className="text-sm text-muted-foreground">
             {expense.subcategory && (
-              <span className="mr-2">{expense.subcategory}</span>
+              <span>{expense.subcategory}</span>
             )}
-            <span>{format(expenseDate, "MMM d")}</span>
           </div>
         </div>
         <div className="text-right">

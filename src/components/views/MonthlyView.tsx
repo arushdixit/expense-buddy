@@ -6,9 +6,11 @@ import {
   formatCurrency,
   getMonthName,
   calculateCategoryTotals,
+  calculateSubcategoryTotals,
   getExpensesByMonth,
   categories,
 } from "@/lib/data";
+import { format, isToday, isYesterday } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,14 +54,25 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
   const categoryTotals = calculateCategoryTotals(monthlyExpenses);
   const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const chartData = allCategories
-    .map((cat) => ({
-      name: cat.name,
-      value: categoryTotals[cat.id] || 0,
-      color: cat.color,
-    }))
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
+  const selectedCategory = allCategories.find(c => c.id === selectedCategoryId);
+
+  const chartData = selectedCategoryId
+    ? Object.entries(calculateSubcategoryTotals(monthlyExpenses.filter(e => e.categoryId === selectedCategoryId)))
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: selectedCategory?.color || "hsl(var(--primary))",
+      }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+    : allCategories
+      .map((cat) => ({
+        name: cat.name,
+        value: categoryTotals[cat.id] || 0,
+        color: cat.color,
+      }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
 
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
@@ -130,15 +143,19 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
         {/* Bar Chart */}
         {chartData.length > 0 && (
           <Card className="p-4 mb-6">
-            <h3 className="font-semibold mb-4">Spending by Category</h3>
-            <div className="h-[200px]">
+            <h3 className="font-semibold mb-4 text-primary italic">
+              {selectedCategoryId
+                ? `Spending by ${selectedCategory?.name} Subcategories`
+                : "Spending by Category"}
+            </h3>
+            <div style={{ height: `${chartData.length * 32}px`, minHeight: chartData.length > 0 ? '60px' : '0px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
                   margin={{ right: 0, left: 0 }}
                 >
-                  <XAxis type="number" hide domain={[(dataMin: number) => -totalSpent * 0.02, 'dataMax' as any]} />
+                  <XAxis type="number" hide domain={[0, "dataMax"]} />
                   <YAxis
                     type="category"
                     dataKey="name"
@@ -147,6 +164,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                     tickMargin={10}
                     axisLine={false}
                     tickLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 0.7 }}
+                    interval={0}
                   />
 
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
@@ -239,33 +257,36 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                 </DrawerHeader>
                 <div className="p-4 max-h-[60vh] overflow-y-auto">
                   <div className="grid grid-cols-1 gap-2">
-                    {allCategories.map((cat) => (
-                      <DrawerClose key={cat.id} asChild>
-                        <button
-                          onClick={() => setSelectedCategoryId(cat.id)}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl transition-colors text-left",
-                            selectedCategoryId === cat.id ? "bg-primary/10" : "hover:bg-secondary"
-                          )}
-                        >
-                          <div
-                            className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: `${cat.color}20` }}
+                    {allCategories
+                      .map(cat => ({ ...cat, total: categoryTotals[cat.id] || 0 }))
+                      .sort((a, b) => b.total - a.total)
+                      .map((cat) => (
+                        <DrawerClose key={cat.id} asChild>
+                          <button
+                            onClick={() => setSelectedCategoryId(cat.id)}
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-xl transition-colors text-left",
+                              selectedCategoryId === cat.id ? "bg-primary/10" : "hover:bg-secondary"
+                            )}
                           >
-                            <cat.icon className="h-5 w-5" style={{ color: cat.color }} />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="font-medium text-foreground">{cat.name}</p>
-                            <p className="text-xs text-muted-foreground dirham-symbol">
-                              {formatCurrency(categoryTotals[cat.id] || 0)} spent
-                            </p>
-                          </div>
-                          {selectedCategoryId === cat.id && (
-                            <div className="h-2 w-2 rounded-full bg-primary" />
-                          )}
-                        </button>
-                      </DrawerClose>
-                    ))}
+                            <div
+                              className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: `${cat.color}20` }}
+                            >
+                              <cat.icon className="h-5 w-5" style={{ color: cat.color }} />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className="font-medium text-foreground">{cat.name}</p>
+                              <p className="text-xs text-muted-foreground dirham-symbol">
+                                {formatCurrency(cat.total)} spent
+                              </p>
+                            </div>
+                            {selectedCategoryId === cat.id && (
+                              <div className="h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </button>
+                        </DrawerClose>
+                      ))}
                   </div>
                 </div>
                 <div className="p-4 border-t">
@@ -284,12 +305,41 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
               <p className="text-muted-foreground">No expenses this month</p>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {(selectedCategoryId
-                ? monthlyExpenses.filter(exp => exp.categoryId === selectedCategoryId)
-                : monthlyExpenses).map((expense) => (
-                  <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
-                ))}
+            <div className="space-y-6">
+              {Object.entries(
+                (selectedCategoryId
+                  ? monthlyExpenses.filter(exp => exp.categoryId === selectedCategoryId)
+                  : monthlyExpenses
+                ).reduce((groups, expense) => {
+                  const date = format(new Date(expense.date), "yyyy-MM-dd");
+                  if (!groups[date]) groups[date] = [];
+                  groups[date].push(expense);
+                  return groups;
+                }, {} as Record<string, Expense[]>)
+              )
+                .sort((a, b) => b[0].localeCompare(a[0])) // Sort dates descending
+                .map(([dateStr, items]) => {
+                  const date = new Date(dateStr);
+                  let dateHeader = format(date, "EEEE, d MMM");
+                  if (isToday(date)) dateHeader = "Today";
+                  else if (isYesterday(date)) dateHeader = "Yesterday";
+
+                  return (
+                    <div key={dateStr} className="space-y-2">
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground/60 uppercase">
+                          {dateHeader}
+                        </span>
+                        <div className="h-[1px] flex-1 bg-border/40" />
+                      </div>
+                      <div className="space-y-1">
+                        {items.map((expense) => (
+                          <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>

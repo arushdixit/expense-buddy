@@ -175,6 +175,14 @@ export const calculateCategoryTotals = (expenses: Expense[]): Record<string, num
   }, {} as Record<string, number>);
 };
 
+export const calculateSubcategoryTotals = (expenses: Expense[]): Record<string, number> => {
+  return expenses.reduce((acc, expense) => {
+    const key = expense.subcategory || "Other";
+    acc[key] = (acc[key] || 0) + expense.amount;
+    return acc;
+  }, {} as Record<string, number>);
+};
+
 export const getExpensesByMonth = (expenses: Expense[], year: number, month: number): Expense[] => {
   return expenses.filter(expense => {
     const date = new Date(expense.date);
