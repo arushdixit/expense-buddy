@@ -19,6 +19,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 
 import { Expense } from "@/lib/data";
@@ -41,8 +42,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
 
   const chartData = allCategories
     .map((cat) => ({
-      name: cat.name.substring(0, 4),
-      fullName: cat.name,
+      name: cat.name,
       value: categoryTotals[cat.id] || 0,
       color: cat.color,
     }))
@@ -138,7 +138,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={45}
+                    width={80}
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -146,6 +146,12 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
+                    <LabelList
+                      dataKey="value"
+                      position="right"
+                      formatter={(value: number) => `AED ${value.toLocaleString()}`}
+                      style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--foreground))' }}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

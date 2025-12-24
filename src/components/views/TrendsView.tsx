@@ -24,7 +24,7 @@ export const TrendsView: React.FC = () => {
   const now = new Date();
 
   // Get last 6 months data
-  const monthlyData = [];
+  let monthlyData = [];
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthExpenses = getExpensesByMonth(
@@ -41,10 +41,15 @@ export const TrendsView: React.FC = () => {
     });
   }
 
+  // Filter out months with no data
+  monthlyData = monthlyData.filter(m => m.count > 0);
+
   const avgSpending =
-    monthlyData.reduce((sum, m) => sum + m.total, 0) / monthlyData.length;
-  const maxSpending = Math.max(...monthlyData.map((m) => m.total));
-  const minSpending = Math.min(...monthlyData.map((m) => m.total));
+    monthlyData.length > 0
+      ? monthlyData.reduce((sum, m) => sum + m.total, 0) / monthlyData.length
+      : 0;
+  const maxSpending = monthlyData.length > 0 ? Math.max(...monthlyData.map((m) => m.total)) : 0;
+  const minSpending = monthlyData.length > 0 ? Math.min(...monthlyData.map((m) => m.total)) : 0;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
