@@ -133,13 +133,16 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
             <h3 className="font-semibold mb-4">Spending by Category</h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ right: 60, left: 10 }}>
-                  <XAxis type="number" hide domain={[0, 'dataMax' as any]} />
+                <BarChart data={chartData} layout="vertical" margin={{ right: 0, left: 0 }}>
+                  <XAxis type="number" hide domain={[(dataMin: number) => -totalSpent * 0.02, 'dataMax' as any]} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     width={100}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 0.7 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
