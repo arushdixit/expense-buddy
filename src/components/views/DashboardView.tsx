@@ -59,7 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onEdit }) => {
       >
         <Card className="stat-card mb-6">
           <p className="text-sm opacity-80 mb-1">Total Spent</p>
-          <p className="text-3xl font-bold">{formatCurrency(totalSpent)}</p>
+          <p className="text-3xl font-bold dirham-symbol">{formatCurrency(totalSpent)}</p>
           <p className="text-sm opacity-70 mt-2">
             {monthlyExpenses.length} expenses this month
           </p>

@@ -18,12 +18,12 @@ export const CompareView: React.FC = () => {
   const now = new Date();
 
   const allCategories = [...categories, ...customCategories];
-  
+
   const [month1, setMonth1] = useState({
     month: now.getMonth() === 0 ? 11 : now.getMonth() - 1,
     year: now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear(),
   });
-  
+
   const [month2, setMonth2] = useState({
     month: now.getMonth(),
     year: now.getFullYear(),
@@ -31,13 +31,13 @@ export const CompareView: React.FC = () => {
 
   const expenses1 = getExpensesByMonth(expenses, month1.year, month1.month);
   const expenses2 = getExpensesByMonth(expenses, month2.year, month2.month);
-  
+
   const totals1 = calculateCategoryTotals(expenses1);
   const totals2 = calculateCategoryTotals(expenses2);
-  
+
   const total1 = expenses1.reduce((sum, exp) => sum + exp.amount, 0);
   const total2 = expenses2.reduce((sum, exp) => sum + exp.amount, 0);
-  
+
   const totalDiff = total2 - total1;
   const totalDiffPercent = total1 > 0 ? ((total2 - total1) / total1) * 100 : 0;
 
@@ -71,7 +71,7 @@ export const CompareView: React.FC = () => {
 
     const val1 = totals1[categoryId] || 0;
     const val2 = totals2[categoryId] || 0;
-    
+
     if (val1 === 0 && val2 === 0) return null;
 
     const diff = val2 - val1;
@@ -93,9 +93,9 @@ export const CompareView: React.FC = () => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium">{cat.name}</div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground dirham-symbol">
             <span>{formatCurrency(val1)}</span>
-            <span>→</span>
+            <span className="font-sans">→</span>
             <span>{formatCurrency(val2)}</span>
           </div>
         </div>
@@ -117,7 +117,7 @@ export const CompareView: React.FC = () => {
           </div>
           <div
             className={cn(
-              "text-sm",
+              "text-sm dirham-symbol",
               diff > 0 ? "text-destructive" : diff < 0 ? "text-success" : "text-muted-foreground"
             )}
           >
@@ -198,7 +198,7 @@ export const CompareView: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm text-muted-foreground">Total Difference</p>
-              <p className="text-2xl font-bold">{formatCurrency(Math.abs(totalDiff))}</p>
+              <p className="text-2xl font-bold dirham-symbol">{formatCurrency(Math.abs(totalDiff))}</p>
             </div>
             <div
               className={cn(
@@ -206,8 +206,8 @@ export const CompareView: React.FC = () => {
                 totalDiff > 0
                   ? "bg-destructive/10 text-destructive"
                   : totalDiff < 0
-                  ? "bg-success/10 text-success"
-                  : "bg-muted text-muted-foreground"
+                    ? "bg-success/10 text-success"
+                    : "bg-muted text-muted-foreground"
               )}
             >
               {totalDiff > 0 ? (
@@ -223,9 +223,9 @@ export const CompareView: React.FC = () => {
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-sm text-muted-foreground dirham-symbol">
             <span>{getShortMonthName(month1.month)}: {formatCurrency(total1)}</span>
-            <span>→</span>
+            <span className="font-sans">→</span>
             <span>{getShortMonthName(month2.month)}: {formatCurrency(total2)}</span>
           </div>
         </Card>

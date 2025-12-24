@@ -79,7 +79,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
       return (
         <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg">
           <p className="font-medium">{payload[0].payload.fullName}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground dirham-symbol">
             {formatCurrency(payload[0].value)}
           </p>
         </div>
@@ -124,7 +124,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
       >
         <Card className="stat-card mb-6">
           <p className="text-sm opacity-80 mb-1">Monthly Total</p>
-          <p className="text-3xl font-bold">{formatCurrency(totalSpent)}</p>
+          <p className="text-3xl font-bold dirham-symbol">{formatCurrency(totalSpent)}</p>
         </Card>
 
         {/* Bar Chart */}
@@ -133,24 +133,43 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
             <h3 className="font-semibold mb-4">Spending by Category</h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical">
-                  <XAxis type="number" hide />
+                <BarChart data={chartData} layout="vertical" margin={{ right: 60, left: 10 }}>
+                  <XAxis type="number" hide domain={[0, 'dataMax' as any]} />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={80}
+                    width={100}
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                     <LabelList
                       dataKey="value"
-                      position="right"
-                      formatter={(value: number) => `AED ${value.toLocaleString()}`}
-                      style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--foreground))' }}
+                      content={(props: any) => {
+                        const { x, y, width, height, value } = props;
+                        const formattedValue = `ê ${Math.round(value).toLocaleString()}`;
+                        // If the bar is long (at least 60% of max width), put label inside
+                        const isLong = width > 120;
+                        return (
+                          <text
+                            x={isLong ? x + width - 8 : x + width + 8}
+                            y={y + height / 2}
+                            fill={isLong ? "#fff" : "hsl(var(--foreground))"}
+                            textAnchor={isLong ? "end" : "start"}
+                            dominantBaseline="middle"
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              fontFamily: "UAESymbol, sans-serif"
+                            }}
+                          >
+                            {formattedValue}
+                          </text>
+                        );
+                      }}
                     />
                   </Bar>
                 </BarChart>

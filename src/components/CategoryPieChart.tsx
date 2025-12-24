@@ -12,7 +12,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
 }) => {
   const { customCategories } = useExpenses();
   const allCategories = [...categories, ...customCategories];
-  
+
   const data = allCategories
     .map((cat) => ({
       name: cat.name,
@@ -34,7 +34,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
       return (
         <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg">
           <p className="font-medium">{payload[0].name}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground dirham-symbol">
             {formatCurrency(payload[0].value)}
           </p>
         </div>

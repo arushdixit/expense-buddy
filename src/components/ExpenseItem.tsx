@@ -102,7 +102,7 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
           </div>
         </div>
         <div className="text-right">
-          <div className="font-semibold">{formatCurrency(expense.amount)}</div>
+          <div className="font-semibold dirham-symbol">{formatCurrency(expense.amount)}</div>
         </div>
 
         {showActions && (
@@ -143,7 +143,7 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Expense</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this {formatCurrency(expense.amount)} expense from {category.name}? This action cannot be undone.
+              Are you sure you want to delete this <span className="dirham-symbol">{formatCurrency(expense.amount)}</span> expense from {category.name}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

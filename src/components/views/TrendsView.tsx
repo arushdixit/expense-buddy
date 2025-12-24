@@ -103,17 +103,17 @@ export const TrendsView: React.FC = () => {
       >
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Average</p>
-          <p className="font-bold text-sm">{formatCurrency(avgSpending)}</p>
+          <p className="font-bold text-sm dirham-symbol">{formatCurrency(avgSpending)}</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Highest</p>
-          <p className="font-bold text-sm text-destructive">
+          <p className="font-bold text-sm text-destructive dirham-symbol">
             {formatCurrency(maxSpending)}
           </p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Lowest</p>
-          <p className="font-bold text-sm text-success">
+          <p className="font-bold text-sm text-success dirham-symbol">
             {formatCurrency(minSpending)}
           </p>
         </Card>
@@ -188,7 +188,7 @@ export const TrendsView: React.FC = () => {
                     {month.count} expenses
                   </p>
                 </div>
-                <p className="font-bold text-lg">{formatCurrency(month.total)}</p>
+                <p className="font-bold text-lg dirham-symbol">{formatCurrency(month.total)}</p>
               </div>
               <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
                 <motion.div

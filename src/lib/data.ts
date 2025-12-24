@@ -83,7 +83,10 @@ export const categories: Category[] = [
 ];
 
 export const formatCurrency = (amount: number): string => {
-  return `AED ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const isNegative = amount < 0;
+  const absAmount = Math.abs(amount);
+  const formattedAmount = Math.round(absAmount).toLocaleString('en-US');
+  return `${isNegative ? '-' : ''}ê ${formattedAmount}`;
 };
 
 export const getMonthName = (monthIndex: number): string => {
@@ -100,19 +103,19 @@ export const getShortMonthName = (monthIndex: number): string => {
 export const generateMockExpenses = (): Expense[] => {
   const expenses: Expense[] = [];
   const now = new Date();
-  
+
   for (let m = 0; m < 6; m++) {
     const date = new Date(now.getFullYear(), now.getMonth() - m, 1);
     const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    
+
     // Generate 15-25 expenses per month
     const numExpenses = Math.floor(Math.random() * 11) + 15;
-    
+
     for (let i = 0; i < numExpenses; i++) {
       const category = categories[Math.floor(Math.random() * categories.length)];
       const day = Math.floor(Math.random() * daysInMonth) + 1;
       const expenseDate = new Date(date.getFullYear(), date.getMonth(), day);
-      
+
       let amount: number;
       switch (category.id) {
         case "rent":
@@ -142,11 +145,11 @@ export const generateMockExpenses = (): Expense[] => {
         default:
           amount = 100 + Math.random() * 500;
       }
-      
-      const subcategory = category.subcategories 
+
+      const subcategory = category.subcategories
         ? category.subcategories[Math.floor(Math.random() * category.subcategories.length)]
         : undefined;
-      
+
       expenses.push({
         id: `exp-${m}-${i}`,
         categoryId: category.id,
@@ -156,7 +159,7 @@ export const generateMockExpenses = (): Expense[] => {
       });
     }
   }
-  
+
   return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
