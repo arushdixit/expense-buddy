@@ -14,6 +14,13 @@ import { format } from "date-fns";
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  expenseToEdit?: {
+    id: string;
+    categoryId: string;
+    subcategory?: string;
+    amount: number;
+    date: string;
+  };
 }
 
 type Step = 1 | 2 | 3;
@@ -29,6 +36,7 @@ const CATEGORY_COLORS = [
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isOpen,
   onClose,
+  expenseToEdit,
 }) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -39,9 +47,22 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  
-  const { addExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
+
+  const { addExpense, updateExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (isOpen && expenseToEdit) {
+      const category = allCategories.find(c => c.id === expenseToEdit.categoryId) || null;
+      setSelectedCategory(category);
+      setSelectedSubcategory(expenseToEdit.subcategory || null);
+      setAmount(Math.abs(expenseToEdit.amount).toString());
+      setSelectedDate(new Date(expenseToEdit.date));
+      setStep(3); // Go straight to amount step for editing
+    } else if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen, expenseToEdit]);
 
   const allCategories = [...categories, ...customCategories];
 
@@ -116,13 +137,37 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       return;
     }
 
+    let finalAmount = parseFloat(amount);
+    if (selectedSubcategory === "Refund") {
+      finalAmount = -Math.abs(finalAmount);
+    } else {
+      finalAmount = Math.abs(finalAmount);
+    }
+
     try {
-      await addExpense({
-        categoryId: selectedCategory.id,
-        subcategory: selectedSubcategory || undefined,
-        amount: parseFloat(amount),
-        date: selectedDate.toISOString(),
-      });
+      if (expenseToEdit) {
+        await updateExpense(expenseToEdit.id, {
+          categoryId: selectedCategory.id,
+          subcategory: selectedSubcategory || undefined,
+          amount: finalAmount,
+          date: selectedDate.toISOString(),
+        });
+        toast({
+          title: "Expense updated",
+          description: "Your expense has been updated successfully",
+        });
+      } else {
+        await addExpense({
+          categoryId: selectedCategory.id,
+          subcategory: selectedSubcategory || undefined,
+          amount: finalAmount,
+          date: selectedDate.toISOString(),
+        });
+        toast({
+          title: "Expense added",
+          description: "Your expense has been added successfully",
+        });
+      }
 
       handleClose();
     } catch (error) {
@@ -169,7 +214,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 <ChevronLeft className="h-6 w-6" />
               </button>
             )}
-            <h2 className="text-lg font-semibold">Add Expense</h2>
+            <h2 className="text-lg font-semibold">{expenseToEdit ? "Edit Expense" : "Add Expense"}</h2>
           </div>
           <button onClick={handleClose} className="touch-target p-2 -mr-2">
             <X className="h-6 w-6" />
@@ -443,7 +488,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   className="w-full mt-6 h-14 text-lg font-semibold gradient-teal"
                   disabled={!amount || parseFloat(amount) === 0}
                 >
-                  Add Expense
+                  {expenseToEdit ? "Update Expense" : "Add Expense"}
                 </Button>
               </motion.div>
             )}

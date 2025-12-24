@@ -21,7 +21,13 @@ import {
   Cell,
 } from "recharts";
 
-export const MonthlyView: React.FC = () => {
+import { Expense } from "@/lib/data";
+
+interface MonthlyViewProps {
+  onEdit?: (expense: Expense) => void;
+}
+
+export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
   const { expenses, customCategories } = useExpenses();
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -103,9 +109,8 @@ export const MonthlyView: React.FC = () => {
         </div>
         <button
           onClick={goToNextMonth}
-          className={`touch-target p-2 rounded-full hover:bg-secondary transition-colors ${
-            isCurrentMonth ? "opacity-30 pointer-events-none" : ""
-          }`}
+          className={`touch-target p-2 rounded-full hover:bg-secondary transition-colors ${isCurrentMonth ? "opacity-30 pointer-events-none" : ""
+            }`}
         >
           <ChevronRight className="h-6 w-6" />
         </button>
@@ -158,7 +163,7 @@ export const MonthlyView: React.FC = () => {
           ) : (
             <div className="space-y-2">
               {monthlyExpenses.map((expense) => (
-                <ExpenseItem key={expense.id} expense={expense} />
+                <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
               ))}
             </div>
           )}

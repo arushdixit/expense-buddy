@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Download, FileUp } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import {
   formatCurrency,
@@ -62,16 +63,30 @@ export const TrendsView: React.FC = () => {
     return null;
   };
 
+  const handleExport = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    window.open(`${apiUrl.replace('/api', '')}/api/export`, '_blank');
+  };
+
   return (
     <div className="pb-24 px-4">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="py-6"
+        className="py-6 flex items-center justify-between"
       >
-        <h1 className="text-2xl font-bold">Spending Trends</h1>
-        <p className="text-muted-foreground">Last 6 months overview</p>
+        <div>
+          <h1 className="text-2xl font-bold">Spending Trends</h1>
+          <p className="text-muted-foreground">Last 6 months overview</p>
+        </div>
+        <button
+          onClick={handleExport}
+          className="touch-target p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          title="Export CSV"
+        >
+          <Download className="h-6 w-6" />
+        </button>
       </motion.div>
 
       {/* Stats Cards */}

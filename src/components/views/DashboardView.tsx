@@ -1,10 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
-import { 
-  formatCurrency, 
-  getMonthName, 
-  calculateCategoryTotals, 
+import {
+  formatCurrency,
+  getMonthName,
+  calculateCategoryTotals,
   getExpensesByMonth,
   categories
 } from "@/lib/data";
@@ -12,7 +12,13 @@ import { CategoryPieChart } from "@/components/CategoryPieChart";
 import { ExpenseItem } from "@/components/ExpenseItem";
 import { Card } from "@/components/ui/card";
 
-export const DashboardView: React.FC = () => {
+import { Expense } from "@/lib/data";
+
+interface DashboardViewProps {
+  onEdit?: (expense: Expense) => void;
+}
+
+export const DashboardView: React.FC<DashboardViewProps> = ({ onEdit }) => {
   const { expenses, customCategories } = useExpenses();
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -23,13 +29,15 @@ export const DashboardView: React.FC = () => {
   const monthlyExpenses = getExpensesByMonth(expenses, currentYear, currentMonth);
   const categoryTotals = calculateCategoryTotals(monthlyExpenses);
   const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  
+
   const recentExpenses = monthlyExpenses.slice(0, 5);
 
   const sortedCategories = allCategories
     .map(cat => ({ ...cat, total: categoryTotals[cat.id] || 0 }))
     .filter(cat => cat.total > 0)
     .sort((a, b) => b.total - a.total);
+
+  const positiveTotal = sortedCategories.reduce((sum, cat) => sum + cat.total, 0);
 
   return (
     <div className="pb-24 px-4">
@@ -72,7 +80,7 @@ export const DashboardView: React.FC = () => {
             <div className="flex-1 space-y-2">
               {sortedCategories.slice(0, 4).map((cat) => {
                 const Icon = cat.icon;
-                const percentage = totalSpent > 0 ? (cat.total / totalSpent) * 100 : 0;
+                const percentage = positiveTotal > 0 ? (cat.total / positiveTotal) * 100 : 0;
                 return (
                   <div key={cat.id} className="flex items-center gap-2">
                     <div
@@ -110,7 +118,7 @@ export const DashboardView: React.FC = () => {
         ) : (
           <div className="space-y-2">
             {recentExpenses.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} />
+              <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
             ))}
           </div>
         )}

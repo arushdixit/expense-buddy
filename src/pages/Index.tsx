@@ -8,23 +8,30 @@ import { MonthlyView } from "@/components/views/MonthlyView";
 import { CompareView } from "@/components/views/CompareView";
 import { TrendsView } from "@/components/views/TrendsView";
 import { AnimatePresence, motion } from "framer-motion";
+import { Expense } from "@/lib/data";
 
 const Index: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+
+  const handleEdit = (expense: Expense) => {
+    setExpenseToEdit(expense);
+    setIsAddModalOpen(true);
+  };
 
   const renderView = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardView />;
+        return <DashboardView onEdit={handleEdit} />;
       case "monthly":
-        return <MonthlyView />;
+        return <MonthlyView onEdit={handleEdit} />;
       case "compare":
         return <CompareView />;
       case "trends":
         return <TrendsView />;
       default:
-        return <DashboardView />;
+        return <DashboardView onEdit={handleEdit} />;
     }
   };
 
@@ -43,11 +50,18 @@ const Index: React.FC = () => {
           </motion.div>
         </AnimatePresence>
 
-        <FloatingActionButton onClick={() => setIsAddModalOpen(true)} />
+        <FloatingActionButton onClick={() => {
+          setExpenseToEdit(null);
+          setIsAddModalOpen(true);
+        }} />
         <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         <AddExpenseModal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setExpenseToEdit(null);
+          }}
+          expenseToEdit={expenseToEdit || undefined}
         />
       </div>
     </ExpenseProvider>

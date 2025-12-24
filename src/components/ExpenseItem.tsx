@@ -19,9 +19,10 @@ import {
 
 interface ExpenseItemProps {
   expense: Expense;
+  onEdit?: (expense: Expense) => void;
 }
 
-export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
+export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteExpense, customCategories } = useExpenses();
@@ -32,6 +33,8 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
 
   const Icon = category.icon;
   const expenseDate = new Date(expense.date);
+
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 
   const handleLongPress = () => {
     setShowActions(true);
@@ -47,6 +50,21 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
     }
   };
 
+  const startPress = () => {
+    const t = setTimeout(() => {
+      handleLongPress();
+      setTimer(null);
+    }, 600);
+    setTimer(t);
+  };
+
+  const cancelPress = () => {
+    if (timer) {
+      clearTimeout(timer);
+      setTimer(null);
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -58,10 +76,12 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
           e.preventDefault();
           handleLongPress();
         }}
-        onTouchStart={() => {
-          const timer = setTimeout(handleLongPress, 500);
-          return () => clearTimeout(timer);
-        }}
+        onTouchStart={startPress}
+        onTouchEnd={cancelPress}
+        onTouchMove={cancelPress}
+        onMouseDown={startPress}
+        onMouseUp={cancelPress}
+        onMouseLeave={cancelPress}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         layout
@@ -91,6 +111,16 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense }) => {
             animate={{ opacity: 1, scale: 1 }}
             className="absolute inset-0 bg-card/95 backdrop-blur-sm rounded-xl flex items-center justify-center gap-4"
           >
+            <button
+              onClick={() => {
+                if (onEdit) onEdit(expense);
+                setShowActions(false);
+              }}
+              className="touch-target flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground"
+            >
+              <Edit2 className="h-4 w-4" />
+              Edit
+            </button>
             <button
               onClick={() => setShowDeleteDialog(true)}
               className="touch-target flex items-center gap-2 px-4 py-2 rounded-full bg-destructive text-destructive-foreground"

@@ -44,7 +44,7 @@ app.get('/api/expenses', (req: Request, res: Response) => {
 app.get('/api/expenses/range', (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     if (!startDate || !endDate) {
       return res.status(400).json({ error: 'startDate and endDate are required' });
     }
@@ -52,7 +52,7 @@ app.get('/api/expenses/range', (req: Request, res: Response) => {
     const expenses = db.prepare(
       'SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC'
     ).all(startDate, endDate);
-    
+
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses by range:', error);
@@ -67,7 +67,7 @@ app.get('/api/expenses/category/:category', (req: Request, res: Response) => {
     const expenses = db.prepare(
       'SELECT * FROM expenses WHERE category = ? ORDER BY date DESC'
     ).all(category);
-    
+
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses by category:', error);
@@ -80,11 +80,11 @@ app.get('/api/expenses/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
-    
+
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
-    
+
     res.json(expense);
   } catch (error) {
     console.error('Error fetching expense:', error);
@@ -99,17 +99,17 @@ app.post('/api/expenses', (req: Request, res: Response) => {
 
     // Validation
     if (!amount || !category || !date) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: amount, category, and date are required' 
+      return res.status(400).json({
+        error: 'Missing required fields: amount, category, and date are required'
       });
     }
 
-    if (typeof amount !== 'number' || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
+    if (typeof amount !== 'number' || amount === 0) {
+      return res.status(400).json({ error: 'Amount must be a non-zero number' });
     }
 
     const id = randomUUID();
-    
+
     const stmt = db.prepare(`
       INSERT INTO expenses (id, amount, category, subcategory, date, note)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -142,8 +142,8 @@ app.put('/api/expenses/:id', (req: Request, res: Response) => {
     }
 
     // Validation
-    if (amount !== undefined && (typeof amount !== 'number' || amount <= 0)) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
+    if (amount !== undefined && (typeof amount !== 'number' || amount === 0)) {
+      return res.status(400).json({ error: 'Amount must be a non-zero number' });
     }
 
     const stmt = db.prepare(`
@@ -216,7 +216,7 @@ app.get('/api/subcategories/:category', (req: Request, res: Response) => {
     const subcategories = db.prepare(
       'SELECT * FROM subcategories WHERE category = ? ORDER BY name'
     ).all(category);
-    
+
     res.json(subcategories);
   } catch (error) {
     console.error('Error fetching subcategories:', error);
@@ -230,8 +230,8 @@ app.post('/api/subcategories', (req: Request, res: Response) => {
     const { category, name } = req.body;
 
     if (!category || !name) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: category and name are required' 
+      return res.status(400).json({
+        error: 'Missing required fields: category and name are required'
       });
     }
 
@@ -241,16 +241,16 @@ app.post('/api/subcategories', (req: Request, res: Response) => {
 
     try {
       const result = stmt.run(category, name);
-      
+
       const newSubcategory = db.prepare(
         'SELECT * FROM subcategories WHERE id = ?'
       ).get(result.lastInsertRowid);
-      
+
       res.status(201).json(newSubcategory);
     } catch (err: any) {
       if (err.code === 'SQLITE_CONSTRAINT') {
-        return res.status(409).json({ 
-          error: 'Subcategory already exists for this category' 
+        return res.status(409).json({
+          error: 'Subcategory already exists for this category'
         });
       }
       throw err;
@@ -286,7 +286,7 @@ app.delete('/api/subcategories/:id', (req: Request, res: Response) => {
 app.get('/api/stats/by-category', (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     let query = `
       SELECT 
         category,
@@ -297,15 +297,15 @@ app.get('/api/stats/by-category', (req: Request, res: Response) => {
         MAX(amount) as max
       FROM expenses
     `;
-    
+
     const params: string[] = [];
     if (startDate && endDate) {
       query += ' WHERE date BETWEEN ? AND ?';
       params.push(startDate as string, endDate as string);
     }
-    
+
     query += ' GROUP BY category ORDER BY total DESC';
-    
+
     const stats = db.prepare(query).all(...params);
     res.json(stats);
   } catch (error) {
@@ -326,11 +326,42 @@ app.get('/api/stats/monthly', (req: Request, res: Response) => {
       GROUP BY strftime('%Y-%m', date)
       ORDER BY month DESC
     `).all();
-    
+
     res.json(stats);
   } catch (error) {
     console.error('Error fetching monthly stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// GET export all expenses as CSV
+app.get('/api/export', (req: Request, res: Response) => {
+  try {
+    const expenses = db.prepare('SELECT * FROM expenses ORDER BY date DESC').all() as Expense[];
+
+    // Create CSV header
+    let csv = 'ID,Date,Amount,Category,Subcategory,Note,CreatedAt\n';
+
+    // Add rows
+    expenses.forEach(exp => {
+      const row = [
+        exp.id,
+        exp.date,
+        exp.amount,
+        `"${exp.category.replace(/"/g, '""')}"`,
+        exp.subcategory ? `"${exp.subcategory.replace(/"/g, '""')}"` : '',
+        exp.note ? `"${exp.note.replace(/"/g, '""')}"` : '',
+        exp.created_at || ''
+      ].join(',');
+      csv += row + '\n';
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('expenses-export.csv');
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting expenses:', error);
+    res.status(500).json({ error: 'Failed to export expenses' });
   }
 });
 

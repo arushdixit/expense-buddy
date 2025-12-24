@@ -6,10 +6,32 @@ A personal expense tracking application with a React frontend and Express.js bac
 
 - 📊 Track expenses across multiple categories (Rent, Groceries, Shopping, Entertainment, etc.)
 - 🏷️ Organize expenses with subcategories
+- 🔄 **Edit and delete existing expenses** (Long-press on any expense to see actions)
+- 💸 **Refund support** (Add a "Refund" subcategory to automatically record negative amounts)
 - 📅 View expenses by month with detailed breakdowns
 - 📈 Compare spending across different months
+- 📥 **Export expenses to CSV** via the Trends view
+- 📤 **One-time CSV import** for historical data transfer
 - 💾 Persistent data storage with SQLite database
 - 🎨 Beautiful, mobile-friendly UI with Tailwind CSS
+
+## Data Import & Export
+
+### Exporting Data
+You can export all your expense data to a CSV file by clicking the **Download Icon** in the header of the **Spending Trends** view. This will download a file named `expenses-export.csv`.
+
+### Importing Historical Data (One-time)
+If you have historical data in a CSV file, you can import it directly into the database using the provided import script.
+
+1. Prepare your CSV file with the following headers (or in this order):
+   `date,amount,category,subcategory,note`
+   Example: `2023-12-01,150.50,Groceries,Carrefour,Weekly groceries`
+
+2. Run the import command:
+   ```sh
+   npx tsx server/src/import-csv.ts path/to/your/file.csv
+   ```
+
 
 ## Getting Started
 

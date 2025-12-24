@@ -52,31 +52,41 @@ export function initializeDatabase() {
     { category: 'Groceries', name: 'Grandiose' },
     { category: 'Groceries', name: 'Spinneys' },
     { category: 'Groceries', name: 'Madhoor' },
-    
+
+    { category: 'Groceries', name: 'Refund' },
+
     // Shopping
     { category: 'Shopping', name: 'Clothes' },
     { category: 'Shopping', name: 'Skincare' },
     { category: 'Shopping', name: 'Accessories' },
     { category: 'Shopping', name: 'Miscellaneous' },
-    
+    { category: 'Shopping', name: 'Refund' },
+
     // Entertainment
     { category: 'Entertainment', name: 'Dine-out' },
     { category: 'Entertainment', name: 'Food Delivery' },
     { category: 'Entertainment', name: 'Activities' },
-    
+    { category: 'Entertainment', name: 'Refund' },
+
     // Utilities
     { category: 'Utilities', name: 'Cook Salary' },
     { category: 'Utilities', name: 'Internet' },
     { category: 'Utilities', name: 'DEWA' },
     { category: 'Utilities', name: 'Mobile Recharge' },
     { category: 'Utilities', name: 'Chiller' },
-    
+    { category: 'Utilities', name: 'Refund' },
+
     // Grooming
     { category: 'Grooming', name: 'Haircut' },
-    
+    { category: 'Grooming', name: 'Refund' },
+
     // Transport
     { category: 'Transport', name: 'Nol Card' },
     { category: 'Transport', name: 'Taxi' },
+    { category: 'Transport', name: 'Refund' },
+
+    // Luxury
+    { category: 'Luxury', name: 'Refund' },
   ];
 
   const insertMany = db.transaction((items: Array<{ category: string; name: string }>) => {
