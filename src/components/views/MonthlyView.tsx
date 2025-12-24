@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, FilterX } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import {
   formatCurrency,
@@ -10,6 +10,16 @@ import {
   categories,
 } from "@/lib/data";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { ExpenseItem } from "@/components/ExpenseItem";
 import {
   BarChart,
@@ -33,6 +43,8 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const allCategories = [...categories, ...customCategories];
 
@@ -74,19 +86,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
   const isCurrentMonth =
     currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg">
-          <p className="font-medium">{payload[0].payload.fullName}</p>
-          <p className="text-sm text-muted-foreground dirham-symbol">
-            {formatCurrency(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   return (
     <div className="pb-24 px-4">
@@ -133,7 +133,11 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
             <h3 className="font-semibold mb-4">Spending by Category</h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ right: 0, left: 0 }}>
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{ right: 0, left: 0 }}
+                >
                   <XAxis type="number" hide domain={[(dataMin: number) => -totalSpent * 0.02, 'dataMax' as any]} />
                   <YAxis
                     type="category"
@@ -144,7 +148,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                     axisLine={false}
                     tickLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 0.7 }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -182,17 +186,110 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
         )}
 
         {/* Expenses List */}
-        <div>
-          <h3 className="font-semibold mb-4">All Expenses</h3>
-          {monthlyExpenses.length === 0 ? (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">All Expenses</h3>
+
+            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (selectedCategoryId) {
+                    setSelectedCategoryId(null);
+                  } else {
+                    setIsDrawerOpen(true);
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full border transition-colors touch-target bg-background",
+                  selectedCategoryId
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "border-border text-foreground hover:bg-secondary"
+                )}
+              >
+                {selectedCategoryId ? (
+                  <>
+                    <FilterX className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {allCategories.find(c => c.id === selectedCategoryId)?.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Filter className="h-4 w-4" />
+                    <span className="text-sm font-medium">Filter</span>
+                  </>
+                )}
+              </motion.button>
+              <DrawerContent>
+                <DrawerHeader className="border-b pb-4">
+                  <div className="flex items-center justify-between">
+                    <DrawerTitle>Filter by Category</DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCategoryId(null)}
+                        className="text-primary font-medium"
+                      >
+                        Clear All
+                      </Button>
+                    </DrawerClose>
+                  </div>
+                </DrawerHeader>
+                <div className="p-4 max-h-[60vh] overflow-y-auto">
+                  <div className="grid grid-cols-1 gap-2">
+                    {allCategories.map((cat) => (
+                      <DrawerClose key={cat.id} asChild>
+                        <button
+                          onClick={() => setSelectedCategoryId(cat.id)}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl transition-colors text-left",
+                            selectedCategoryId === cat.id ? "bg-primary/10" : "hover:bg-secondary"
+                          )}
+                        >
+                          <div
+                            className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${cat.color}20` }}
+                          >
+                            <cat.icon className="h-5 w-5" style={{ color: cat.color }} />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="font-medium text-foreground">{cat.name}</p>
+                            <p className="text-xs text-muted-foreground dirham-symbol">
+                              {formatCurrency(categoryTotals[cat.id] || 0)} spent
+                            </p>
+                          </div>
+                          {selectedCategoryId === cat.id && (
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                          )}
+                        </button>
+                      </DrawerClose>
+                    ))}
+                  </div>
+                </div>
+                <div className="p-4 border-t">
+                  <DrawerClose asChild>
+                    <Button className="w-full py-6 rounded-xl text-lg font-semibold">Done</Button>
+                  </DrawerClose>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
+
+          {(selectedCategoryId
+            ? monthlyExpenses.filter(exp => exp.categoryId === selectedCategoryId)
+            : monthlyExpenses).length === 0 ? (
             <Card className="p-8 text-center">
               <p className="text-muted-foreground">No expenses this month</p>
             </Card>
           ) : (
             <div className="space-y-2">
-              {monthlyExpenses.map((expense) => (
-                <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
-              ))}
+              {(selectedCategoryId
+                ? monthlyExpenses.filter(exp => exp.categoryId === selectedCategoryId)
+                : monthlyExpenses).map((expense) => (
+                  <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
+                ))}
             </div>
           )}
         </div>
