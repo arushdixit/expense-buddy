@@ -461,7 +461,11 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   <div className="text-sm text-muted-foreground mb-1">Amount</div>
                   <div className="text-4xl font-bold">
                     <span className="dirham-symbol mr-1">ê</span>
-                    {amount ? Math.round(parseFloat(amount)).toLocaleString() : "0"}
+                    {amount ? (
+                      amount.includes(".")
+                        ? parseInt(amount.split(".")[0] || "0").toLocaleString() + "." + amount.split(".")[1]
+                        : parseInt(amount).toLocaleString()
+                    ) : "0"}
                   </div>
                 </div>
 
