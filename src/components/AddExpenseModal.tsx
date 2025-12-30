@@ -64,6 +64,17 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     }
   }, [isOpen, expenseToEdit]);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   const allCategories = [...categories, ...customCategories];
 
   const resetForm = () => {
@@ -204,7 +215,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background"
+        className="fixed inset-0 z-[60] bg-background flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -236,7 +247,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 pb-24 overscroll-contain">
           <AnimatePresence mode="wait">
             {/* Step 1: Category Selection */}
             {step === 1 && (
@@ -250,40 +261,61 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 <h3 className="text-sm font-medium text-muted-foreground mb-4">
                   Select Category
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <motion.div
+                  className="grid grid-cols-2 gap-2"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: {
+                      opacity: 1,
+                      transition: {
+                        staggerChildren: 0.03
+                      }
+                    }
+                  }}
+                >
                   {allCategories.map((category) => {
                     const Icon = category.icon;
                     return (
-                      <button
+                      <motion.button
                         key={category.id}
+                        variants={{
+                          hidden: { opacity: 0, y: 8 },
+                          visible: { opacity: 1, y: 0 }
+                        }}
                         onClick={() => handleCategorySelect(category)}
                         className={cn(
-                          "category-card h-28",
+                          "category-card h-16 flex-row justify-start gap-3 px-3",
                           selectedCategory?.id === category.id && "category-card-selected"
                         )}
                       >
                         <div
-                          className="h-12 w-12 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${category.color}20` }}
+                          className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${category.color}15` }}
                         >
-                          <Icon className="h-6 w-6" style={{ color: category.color }} />
+                          <Icon className="h-5 w-5" style={{ color: category.color }} />
                         </div>
-                        <span className="text-sm font-medium">{category.name}</span>
-                      </button>
+                        <span className="text-[14px] font-semibold truncate text-left">{category.name}</span>
+                      </motion.button>
                     );
                   })}
                   {!showNewCategoryInput && (
-                    <button
+                    <motion.button
+                      variants={{
+                        hidden: { opacity: 0, y: 8 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
                       onClick={() => setShowNewCategoryInput(true)}
-                      className="category-card h-28 border-2 border-dashed border-primary/30"
+                      className="category-card h-16 flex-row justify-start gap-3 px-3 border-dashed border-2 border-muted-foreground/20 bg-transparent shadow-none"
                     >
-                      <div className="h-12 w-12 rounded-full flex items-center justify-center bg-primary/10">
-                        <Plus className="h-6 w-6 text-primary" />
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-muted/50 shrink-0">
+                        <Plus className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <span className="text-sm font-medium text-primary">Add Category</span>
-                    </button>
+                      <span className="text-[14px] font-medium text-muted-foreground">Add New</span>
+                    </motion.button>
                   )}
-                </div>
+                </motion.div>
                 {showNewCategoryInput && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -338,17 +370,20 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-secondary/30 border border-border/50">
                   <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center"
+                    className="h-10 w-10 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${selectedCategory.color}20` }}
                   >
                     <selectedCategory.icon
-                      className="h-4 w-4"
+                      className="h-5 w-5"
                       style={{ color: selectedCategory.color }}
                     />
                   </div>
-                  <span className="font-medium">{selectedCategory.name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground leading-none mb-1">Category</span>
+                    <span className="font-semibold leading-none">{selectedCategory.name}</span>
+                  </div>
                 </div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-4">
                   Select Subcategory
@@ -416,23 +451,24 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-secondary/30 border border-border/50">
                   <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center"
+                    className="h-10 w-10 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${selectedCategory.color}20` }}
                   >
                     <selectedCategory.icon
-                      className="h-4 w-4"
+                      className="h-5 w-5"
                       style={{ color: selectedCategory.color }}
                     />
                   </div>
-                  <span className="font-medium">{selectedCategory.name}</span>
-                  {selectedSubcategory && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{selectedSubcategory}</span>
-                    </>
-                  )}
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground leading-none mb-1">
+                      {selectedCategory.name}
+                    </span>
+                    <span className="font-semibold leading-none">
+                      {selectedSubcategory || "General"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Date Picker */}
