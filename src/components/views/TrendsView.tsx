@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, FileUp } from "lucide-react";
+import { Download, FileUp, Layers } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import {
   formatCurrency,
   getShortMonthName,
   getExpensesByMonth,
+  categories,
 } from "@/lib/data";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
@@ -20,15 +22,23 @@ import {
 } from "recharts";
 
 export const TrendsView: React.FC = () => {
-  const { expenses } = useExpenses();
+  const { expenses, customCategories } = useExpenses();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const now = new Date();
+
+  const allCategories = [...categories, ...customCategories];
+
+  // Filter expenses by category if one is selected
+  const filteredExpenses = selectedCategoryId
+    ? expenses.filter((exp) => exp.categoryId === selectedCategoryId)
+    : expenses;
 
   // Get last 6 months data
   let monthlyData = [];
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthExpenses = getExpensesByMonth(
-      expenses,
+      filteredExpenses,
       date.getFullYear(),
       date.getMonth()
     );
@@ -51,7 +61,7 @@ export const TrendsView: React.FC = () => {
   const maxSpending = monthlyData.length > 0 ? Math.max(...monthlyData.map((m) => m.total)) : 0;
   const minSpending = monthlyData.length > 0 ? Math.min(...monthlyData.map((m) => m.total)) : 0;
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg">
@@ -92,6 +102,53 @@ export const TrendsView: React.FC = () => {
         >
           <Download className="h-6 w-6" />
         </button>
+      </motion.div>
+
+      {/* Category Filter */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex overflow-x-auto pb-4 gap-2 no-scrollbar -mx-4 px-4"
+      >
+        <button
+          onClick={() => setSelectedCategoryId(null)}
+          className={cn(
+            "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all",
+            !selectedCategoryId
+              ? "bg-primary text-primary-foreground shadow-md scale-105"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          )}
+        >
+          All
+        </button>
+        {allCategories.map((category) => {
+          const Icon = category.icon;
+          const isSelected = selectedCategoryId === category.id;
+          return (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategoryId(category.id)}
+              className={cn(
+                "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                isSelected
+                  ? "shadow-md scale-105"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              )}
+              style={
+                isSelected
+                  ? {
+                    backgroundColor: category.color,
+                    color: "white",
+                  }
+                  : {}
+              }
+            >
+              <Icon className="h-4 w-4" />
+              {category.name}
+            </button>
+          );
+        })}
       </motion.div>
 
       {/* Stats Cards */}
