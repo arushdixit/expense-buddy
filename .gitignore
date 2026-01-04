@@ -38,3 +38,4 @@ WARP.md
 #env
 .env
 .env.example
+server/expenses.db.backup-20260104_213036

@@ -4,7 +4,7 @@ import db from './database.js';
 import { randomUUID } from 'crypto';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // Middleware
 app.use(cors());
@@ -371,7 +371,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://192.168.3.27:${PORT}`);
+  console.log(`📊 API endpoints available at http://192.168.3.27:${PORT}/api`);
 });
+

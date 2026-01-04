@@ -12,7 +12,9 @@
     "server": "tsx watch server/src/index.ts",
     "server:build": "tsc -p server/tsconfig.json",
     "server:start": "node server/dist/index.js",
-    "dev:fullstack": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:fullstack": "concurrently \"npm run dev\" \"npm run server\"",
+    "pwa": "npm run build && vite preview --host 0.0.0.0 --port 8080",
+    "pwa:fullstack": "npm run build && concurrently \"vite preview --host 0.0.0.0 --port 8080\" \"npm run server\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -50,6 +52,7 @@
     "cmdk": "^1.1.1",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
+    "dexie": "^4.2.1",
     "embla-carousel-react": "^8.6.0",
     "express": "^5.2.1",
     "framer-motion": "^12.23.26",
@@ -67,7 +70,9 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.9",
+    "vite-plugin-pwa": "^1.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -79,6 +84,7 @@
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",

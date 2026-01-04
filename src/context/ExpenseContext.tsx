@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById } from "@/lib/data";
-import { expenseApi, subcategoryApi, ApiExpense } from "@/lib/api";
+import { syncApi, initializeLocalData } from "@/lib/sync";
+import { LocalExpense, LocalSubcategory } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
+import { useSync } from "@/context/SyncContext";
 
 interface ExpenseContextType {
   expenses: Expense[];
+  isLoading: boolean;
   addExpense: (expense: Omit<Expense, "id">) => void;
   deleteExpense: (id: string) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
@@ -13,6 +16,7 @@ interface ExpenseContextType {
   addCustomSubcategory: (categoryId: string, subcategory: string) => void;
   customCategories: Category[];
   addCustomCategory: (name: string, color: string) => void;
+  refreshExpenses: () => Promise<void>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -23,27 +27,30 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Helper function to convert API expense to frontend format
-  const apiExpenseToExpense = (apiExpense: ApiExpense): Expense => {
+  // Access sync context for refreshing after sync
+  const { refreshStatus } = useSync();
+
+  // Helper function to convert local expense to frontend format
+  const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
     // Find category by name
-    const category = categories.find(cat => 
-      cat.name.toLowerCase() === apiExpense.category.toLowerCase()
+    const category = categories.find(cat =>
+      cat.name.toLowerCase() === localExpense.category.toLowerCase()
     );
-    
+
     return {
-      id: apiExpense.id,
-      categoryId: category?.id || apiExpense.category.toLowerCase(),
-      subcategory: apiExpense.subcategory,
-      amount: apiExpense.amount,
-      date: apiExpense.date,
-      note: apiExpense.note,
+      id: localExpense.id,
+      categoryId: category?.id || localExpense.category.toLowerCase(),
+      subcategory: localExpense.subcategory,
+      amount: localExpense.amount,
+      date: localExpense.date,
+      note: localExpense.note,
     };
   };
 
-  // Helper function to convert frontend expense to API format
-  const expenseToApiExpense = (expense: Omit<Expense, "id">): Omit<ApiExpense, "id" | "created_at"> => {
+  // Helper function to convert frontend expense to sync API format
+  const expenseToLocalData = (expense: Omit<Expense, "id">) => {
     const category = getCategoryById(expense.categoryId);
-    
+
     return {
       amount: expense.amount,
       category: category?.name || expense.categoryId,
@@ -53,58 +60,74 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   };
 
-  // Load initial data from API
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Load expenses
-        const apiExpenses = await expenseApi.getAll();
-        const mappedExpenses = apiExpenses.map(apiExpenseToExpense);
-        setExpenses(mappedExpenses);
+  // Load data from IndexedDB
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        // Load subcategories and group by category
-        const apiSubcategories = await subcategoryApi.getAll();
-        const subcategoriesMap: Record<string, string[]> = {};
-        
-        apiSubcategories.forEach(sub => {
-          // Find the category ID for this category name
-          const category = categories.find(cat => 
-            cat.name.toLowerCase() === sub.category.toLowerCase()
-          );
-          const categoryId = category?.id || sub.category.toLowerCase();
-          
-          if (!subcategoriesMap[categoryId]) {
-            subcategoriesMap[categoryId] = [];
-          }
-          
-          // Only add if not already in predefined subcategories
-          const predefinedSubs = category?.subcategories || [];
-          if (!predefinedSubs.includes(sub.name)) {
-            subcategoriesMap[categoryId].push(sub.name);
-          }
-        });
-        
-        setCustomSubcategories(subcategoriesMap);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        toast.error('Failed to load data from server');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      // Initialize local data (will sync from server if first time)
+      await initializeLocalData();
 
-    loadData();
+      // Load expenses from IndexedDB
+      const localExpenses = await syncApi.getAllExpenses();
+      const mappedExpenses = localExpenses.map(localExpenseToExpense);
+      setExpenses(mappedExpenses);
+
+      // Load subcategories and group by category
+      const localSubcategories = await syncApi.getAllSubcategories();
+      const subcategoriesMap: Record<string, string[]> = {};
+
+      localSubcategories.forEach((sub: LocalSubcategory) => {
+        // Find the category ID for this category name
+        const category = categories.find(cat =>
+          cat.name.toLowerCase() === sub.category.toLowerCase()
+        );
+        const categoryId = category?.id || sub.category.toLowerCase();
+
+        if (!subcategoriesMap[categoryId]) {
+          subcategoriesMap[categoryId] = [];
+        }
+
+        // Only add if not already in predefined subcategories
+        const predefinedSubs = category?.subcategories || [];
+        if (!predefinedSubs.includes(sub.name)) {
+          subcategoriesMap[categoryId].push(sub.name);
+        }
+      });
+
+      setCustomSubcategories(subcategoriesMap);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Refresh expenses (called after sync or data changes)
+  const refreshExpenses = useCallback(async () => {
+    try {
+      const localExpenses = await syncApi.getAllExpenses();
+      const mappedExpenses = localExpenses.map(localExpenseToExpense);
+      setExpenses(mappedExpenses);
+    } catch (error) {
+      console.error('Failed to refresh expenses:', error);
+    }
+  }, []);
+
+  // Load initial data
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const addExpense = async (expense: Omit<Expense, "id">) => {
     try {
-      const apiExpenseData = expenseToApiExpense(expense);
-      const createdExpense = await expenseApi.create(apiExpenseData);
-      const mappedExpense = apiExpenseToExpense(createdExpense);
+      const localData = expenseToLocalData(expense);
+      const createdExpense = await syncApi.createExpense(localData);
+      const mappedExpense = localExpenseToExpense(createdExpense);
       setExpenses(prev => [mappedExpense, ...prev]);
-      toast.success('Expense added successfully');
+      await refreshStatus(); // Update pending count
+      toast.success('Expense added');
     } catch (error) {
       console.error('Failed to add expense:', error);
       toast.error('Failed to add expense');
@@ -114,9 +137,10 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteExpense = async (id: string) => {
     try {
-      await expenseApi.delete(id);
+      await syncApi.deleteExpense(id);
       setExpenses(prev => prev.filter(exp => exp.id !== id));
-      toast.success('Expense deleted successfully');
+      await refreshStatus(); // Update pending count
+      toast.success('Expense deleted');
     } catch (error) {
       console.error('Failed to delete expense:', error);
       toast.error('Failed to delete expense');
@@ -126,24 +150,26 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateExpense = async (id: string, updates: Partial<Expense>) => {
     try {
-      // Convert updates to API format
-      const apiUpdates: Partial<ApiExpense> = {};
-      if (updates.amount !== undefined) apiUpdates.amount = updates.amount;
-      if (updates.date !== undefined) apiUpdates.date = updates.date;
-      if (updates.note !== undefined) apiUpdates.note = updates.note;
-      if (updates.subcategory !== undefined) apiUpdates.subcategory = updates.subcategory;
+      // Convert updates to local format
+      const localUpdates: Record<string, unknown> = {};
+      if (updates.amount !== undefined) localUpdates.amount = updates.amount;
+      if (updates.date !== undefined) localUpdates.date = updates.date;
+      if (updates.note !== undefined) localUpdates.note = updates.note;
+      if (updates.subcategory !== undefined) localUpdates.subcategory = updates.subcategory;
       if (updates.categoryId !== undefined) {
         const category = getCategoryById(updates.categoryId);
-        apiUpdates.category = category?.name || updates.categoryId;
+        localUpdates.category = category?.name || updates.categoryId;
       }
 
-      const updatedApiExpense = await expenseApi.update(id, apiUpdates);
-      const mappedExpense = apiExpenseToExpense(updatedApiExpense);
-      
-      setExpenses(prev =>
-        prev.map(exp => (exp.id === id ? mappedExpense : exp))
-      );
-      toast.success('Expense updated successfully');
+      const updatedExpense = await syncApi.updateExpense(id, localUpdates);
+      if (updatedExpense) {
+        const mappedExpense = localExpenseToExpense(updatedExpense);
+        setExpenses(prev =>
+          prev.map(exp => (exp.id === id ? mappedExpense : exp))
+        );
+        await refreshStatus(); // Update pending count
+        toast.success('Expense updated');
+      }
     } catch (error) {
       console.error('Failed to update expense:', error);
       toast.error('Failed to update expense');
@@ -152,22 +178,12 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const addCustomSubcategory = async (categoryId: string, subcategory: string) => {
-    try {
-      const category = getCategoryById(categoryId);
-      const categoryName = category?.name || categoryId;
-      
-      await subcategoryApi.create(categoryName, subcategory);
-      
-      setCustomSubcategories(prev => ({
-        ...prev,
-        [categoryId]: [...(prev[categoryId] || []), subcategory],
-      }));
-      toast.success('Subcategory added successfully');
-    } catch (error) {
-      console.error('Failed to add subcategory:', error);
-      toast.error('Failed to add subcategory');
-      throw error;
-    }
+    // For now, just add locally. Will sync when adding expense with this subcategory
+    setCustomSubcategories(prev => ({
+      ...prev,
+      [categoryId]: [...(prev[categoryId] || []), subcategory],
+    }));
+    toast.success('Subcategory added');
   };
 
   const addCustomCategory = (name: string, color: string) => {
@@ -184,6 +200,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     <ExpenseContext.Provider
       value={{
         expenses,
+        isLoading,
         addExpense,
         deleteExpense,
         updateExpense,
@@ -191,6 +208,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         addCustomSubcategory,
         customCategories,
         addCustomCategory,
+        refreshExpenses,
       }}
     >
       {children}

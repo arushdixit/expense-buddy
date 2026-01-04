@@ -22,9 +22,24 @@ export function initializeDatabase() {
       subcategory TEXT,
       date TEXT NOT NULL,
       note TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
     )
   `);
+
+  // Migration: Add updated_at column if it doesn't exist (for existing databases)
+  try {
+    const tableInfo = db.prepare('PRAGMA table_info(expenses)').all() as Array<{ name: string }>;
+    const hasUpdatedAt = tableInfo.some(col => col.name === 'updated_at');
+    if (!hasUpdatedAt) {
+      db.exec(`ALTER TABLE expenses ADD COLUMN updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)`);
+      // Set updated_at for existing records
+      db.exec(`UPDATE expenses SET updated_at = strftime('%s', 'now') * 1000 WHERE updated_at IS NULL`);
+      console.log('Migration: Added updated_at column to expenses table');
+    }
+  } catch (err) {
+    // Column might already exist, ignore
+  }
 
   // Create subcategories table for dynamic subcategory additions
   db.exec(`

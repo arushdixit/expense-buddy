@@ -1,6 +1,7 @@
 import React from "react";
 import { LayoutDashboard, Calendar, ArrowLeftRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SyncStatus } from "./SyncStatus";
 
 export type TabId = "dashboard" | "monthly" | "compare" | "trends";
 
@@ -42,6 +43,11 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           </button>
         );
       })}
+      {/* Sync Status Indicator */}
+      <div className="flex items-center justify-center">
+        <SyncStatus />
+      </div>
     </nav>
   );
 };
+
