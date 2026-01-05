@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Dynamic API URL: uses env var if set, otherwise uses current hostname
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' ? `http://${window.location.hostname}:3001/api` : 'http://localhost:3001/api');
 
 export interface ApiExpense {
   id: string;

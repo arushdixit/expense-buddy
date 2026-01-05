@@ -26,14 +26,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     });
 
     const refreshStatus = useCallback(async () => {
-        const status = await syncApi.getSyncStatus();
-        const serverReachable = await checkServerConnection();
-        setState(prev => ({
-            ...prev,
-            isOnline: status.isOnline && serverReachable,
-            pendingCount: status.pendingCount,
-            lastSyncTime: status.lastSyncTime,
-        }));
+        try {
+            const status = await syncApi.getSyncStatus();
+            const serverReachable = await checkServerConnection();
+            setState(prev => ({
+                ...prev,
+                isOnline: status.isOnline && serverReachable,
+                pendingCount: status.pendingCount,
+                lastSyncTime: status.lastSyncTime,
+            }));
+        } catch (error) {
+            console.error('Failed to refresh sync status:', error);
+        }
     }, []);
 
     const triggerSync = useCallback(async () => {

@@ -1,7 +1,9 @@
 import { db, LocalExpense, LocalSubcategory, now, setLastSyncTime, getLastSyncTime, getPendingCount } from './db';
 import { ApiExpense, ApiSubcategory } from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Dynamic API URL: uses env var if set, otherwise uses current hostname
+const API_BASE_URL = import.meta.env.VITE_API_URL
+    || (typeof window !== 'undefined' ? `http://${window.location.hostname}:3001/api` : 'http://localhost:3001/api');
 
 // Connection status
 let isOnline = navigator.onLine;
@@ -17,10 +19,15 @@ export const getIsOnline = () => isOnline;
 // Check if server is reachable (more accurate than navigator.onLine)
 export const checkServerConnection = async (): Promise<boolean> => {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
         const response = await fetch(`${API_BASE_URL}/health`, {
             method: 'GET',
-            signal: AbortSignal.timeout(3000), // 3 second timeout
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
         return response.ok;
     } catch {
         return false;
@@ -180,7 +187,13 @@ export const syncApi = {
 
     // Create expense (writes to IndexedDB, syncs later)
     async createExpense(expense: Omit<ApiExpense, 'id' | 'created_at'>): Promise<LocalExpense> {
-        const id = crypto.randomUUID();
+        // Use crypto.randomUUID if available, fallback for insecure contexts (HTTP over IP)
+        const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
         const timestamp = now();
 
         const newExpense: LocalExpense = {

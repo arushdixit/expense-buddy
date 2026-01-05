@@ -54,9 +54,16 @@ export const db = new ExpenseDatabase();
 // Helper to get current timestamp
 export const now = () => Date.now();
 
-// Helper to generate UUID (client-side)
+// Helper to generate UUID (client-side) - with fallback for insecure contexts
 export const generateId = (): string => {
-    return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // Fallback for HTTP over IP (insecure context)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 };
 
 // Get last sync time
