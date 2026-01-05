@@ -218,7 +218,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         className="fixed inset-0 z-[60] bg-background flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             {step > 1 && (
               <button onClick={handleBack} className="touch-target p-2 -ml-2">
@@ -233,7 +233,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         </div>
 
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center gap-2 py-4">
+        <div className="flex items-center justify-center gap-2 py-2 shrink-0">
           {[1, 2, 3].map((s) => (
             <div
               key={s}
@@ -247,7 +247,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-24 overscroll-contain">
+        <div className="flex-1 overflow-y-auto px-4 pb-20 overscroll-contain">
           <AnimatePresence mode="wait">
             {/* Step 1: Category Selection */}
             {step === 1 && (
@@ -258,7 +258,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Select Category
                 </h3>
                 <motion.div
@@ -286,7 +286,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         }}
                         onClick={() => handleCategorySelect(category)}
                         className={cn(
-                          "category-card h-16 flex-row justify-start gap-3 px-3",
+                          "category-card h-14 flex-row justify-start gap-3 px-3",
                           selectedCategory?.id === category.id && "category-card-selected"
                         )}
                       >
@@ -307,7 +307,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         visible: { opacity: 1, y: 0 }
                       }}
                       onClick={() => setShowNewCategoryInput(true)}
-                      className="category-card h-16 flex-row justify-start gap-3 px-3 border-dashed border-2 border-muted-foreground/20 bg-transparent shadow-none"
+                      className="category-card h-14 flex-row justify-start gap-3 px-3 border-dashed border-2 border-muted-foreground/20 bg-transparent shadow-none"
                     >
                       <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-muted/50 shrink-0">
                         <Plus className="h-5 w-5 text-muted-foreground" />
@@ -370,7 +370,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-secondary/30 border border-border/50">
+                <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl bg-secondary/30 border border-border/50">
                   <div
                     className="h-10 w-10 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${selectedCategory.color}20` }}
@@ -385,7 +385,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     <span className="font-semibold leading-none">{selectedCategory.name}</span>
                   </div>
                 </div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Select Subcategory
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -451,7 +451,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-secondary/30 border border-border/50">
+                <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl bg-secondary/30 border border-border/50">
                   <div
                     className="h-10 w-10 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${selectedCategory.color}20` }}
@@ -472,10 +472,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 </div>
 
                 {/* Date Picker */}
-                <div className="mb-6">
+                <div className="mb-4">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start h-10">
                         <Calendar className="mr-2 h-4 w-4" />
                         {format(selectedDate, "PPP")}
                       </Button>
@@ -493,9 +493,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 </div>
 
                 {/* Amount Display */}
-                <div className="text-center mb-8">
-                  <div className="text-sm text-muted-foreground mb-1">Amount</div>
-                  <div className="text-4xl font-bold">
+                <div className="text-center mb-4">
+                  <div className="text-xs text-muted-foreground mb-0.5">Amount</div>
+                  <div className="text-3xl font-bold">
                     <span className="dirham-symbol mr-1">ê</span>
                     {amount ? (
                       amount.includes(".")
@@ -514,7 +514,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         onClick={() =>
                           key === "⌫" ? handleBackspace() : handleNumberPress(key)
                         }
-                        className="numeric-key h-16"
+                        className="numeric-key h-12 text-xl"
                       >
                         {key}
                       </button>
@@ -525,7 +525,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 {/* Submit Button */}
                 <Button
                   onClick={handleSubmit}
-                  className="w-full mt-6 h-14 text-lg font-semibold gradient-teal"
+                  className="w-full mt-4 h-12 text-base font-semibold gradient-teal"
                   disabled={!amount || parseFloat(amount) === 0}
                 >
                   {expenseToEdit ? "Update Expense" : "Add Expense"}
