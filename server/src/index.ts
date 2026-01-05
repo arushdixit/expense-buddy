@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import db from './database.js';
 import { randomUUID } from 'crypto';
+import os from 'os';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -29,10 +30,20 @@ interface Subcategory {
 
 // ============= EXPENSE ENDPOINTS =============
 
-// GET all expenses
+// GET all expenses (with optional since parameter for incremental sync)
 app.get('/api/expenses', (req: Request, res: Response) => {
   try {
-    const expenses = db.prepare('SELECT * FROM expenses ORDER BY date DESC').all();
+    const { since } = req.query;
+    let query = 'SELECT * FROM expenses';
+    const params: any[] = [];
+
+    if (since) {
+      query += ' WHERE updated_at > ?';
+      params.push(Number(since));
+    }
+
+    query += ' ORDER BY date DESC';
+    const expenses = db.prepare(query).all(...params);
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses:', error);
@@ -111,11 +122,11 @@ app.post('/api/expenses', (req: Request, res: Response) => {
     const id = randomUUID();
 
     const stmt = db.prepare(`
-      INSERT INTO expenses (id, amount, category, subcategory, date, note)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO expenses (id, amount, category, subcategory, date, note, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(id, amount, category, subcategory || null, date, note || null);
+    const result = stmt.run(id, amount, category, subcategory || null, date, note || null, Date.now());
 
     if (result.changes === 0) {
       return res.status(500).json({ error: 'Failed to create expense' });
@@ -152,7 +163,8 @@ app.put('/api/expenses/:id', (req: Request, res: Response) => {
           category = COALESCE(?, category),
           subcategory = ?,
           date = COALESCE(?, date),
-          note = ?
+          note = ?,
+          updated_at = ?
       WHERE id = ?
     `);
 
@@ -162,6 +174,7 @@ app.put('/api/expenses/:id', (req: Request, res: Response) => {
       subcategory !== undefined ? subcategory : (existing as any).subcategory,
       date || null,
       note !== undefined ? note : (existing as any).note,
+      Date.now(),
       id
     );
 
@@ -370,9 +383,28 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Helper to get local IP and hostname
+function getLocalIp() {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]!) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+const localIp = getLocalIp();
+const hostname = os.hostname().split('.')[0];
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://192.168.3.27:${PORT}`);
-  console.log(`📊 API endpoints available at http://192.168.3.27:${PORT}/api`);
+  console.log(`🚀 Server running on:`);
+  console.log(`   Local:   http://localhost:${PORT}`);
+  console.log(`   Network: http://${localIp}:${PORT}`);
+  console.log(`   mDNS:    http://${hostname}.local:${PORT}`);
+  console.log(`\n📊 API endpoints available at http://${localIp}:${PORT}/api`);
 });
 

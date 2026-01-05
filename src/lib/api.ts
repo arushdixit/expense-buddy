@@ -8,6 +8,7 @@ export interface ApiExpense {
   date: string;
   note?: string;
   created_at?: string;
+  updated_at?: number;
 }
 
 export interface ApiSubcategory {
@@ -125,7 +126,7 @@ export const statsApi = {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const url = `${API_BASE_URL}/stats/by-category${params.toString() ? '?' + params.toString() : ''}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch statistics');
