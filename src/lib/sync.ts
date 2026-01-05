@@ -95,32 +95,20 @@ export async function syncWithServer(): Promise<SyncResult> {
             }
         }
 
-        // Helper to safely fetch and verify array response
-        async function fetchArray<T>(url: string): Promise<T[]> {
-            const response = await fetch(url);
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`Server returned ${response.status}: ${text}`);
-            }
-            const data = await response.json();
-            if (!Array.isArray(data)) {
-                console.error("Expected array from server, got:", data);
-                return [];
-            }
-            return data;
-        }
+        // 3. Pull all from server (full sync for simplicity)
+        const serverExpenses = await fetch(`${API_BASE_URL}/expenses`).then(r => r.json()) as ApiExpense[];
 
-        // 3. Pull updates from server (Incremental Sync)
-        const lastSync = await getLastSyncTime();
-        const pullUrl = lastSync
-            ? `${API_BASE_URL}/expenses?since=${lastSync}`
-            : `${API_BASE_URL}/expenses`;
+        // Get local expense IDs that are synced (not pending)
+        const localSyncedIds = new Set(
+            (await db.expenses.where('syncStatus').equals('synced').primaryKeys())
+        );
 
-        const serverExpenses = await fetchArray<ApiExpense>(pullUrl);
-
+        // Update/insert server expenses
         for (const serverExp of serverExpenses) {
             const local = await db.expenses.get(serverExp.id);
+
             if (!local || local.syncStatus === 'synced') {
+                // No local changes, update from server
                 await db.expenses.put({
                     ...serverExp,
                     syncStatus: 'synced',
@@ -128,33 +116,30 @@ export async function syncWithServer(): Promise<SyncResult> {
                 });
                 result.pulled++;
             }
+            // If local has pending changes, keep local version (last-write-wins on next push)
         }
 
-        // 4. Handle Deletions (Full cleanup occasionally)
-        if (!lastSync || Math.random() < 0.1) {
-            const allServerExpenses = await fetchArray<ApiExpense>(`${API_BASE_URL}/expenses`);
-            const serverIds = new Set(allServerExpenses.map(e => e.id));
-            const localSyncedIds = await db.expenses.where('syncStatus').equals('synced').primaryKeys();
-            for (const localId of localSyncedIds) {
-                if (!serverIds.has(localId)) {
-                    await db.expenses.delete(localId);
-                }
+        // Remove locally synced items that no longer exist on server
+        const serverIds = new Set(serverExpenses.map(e => e.id));
+        for (const localId of localSyncedIds) {
+            if (!serverIds.has(localId)) {
+                await db.expenses.delete(localId);
             }
         }
 
-        // 5. Sync subcategories
-        const serverSubcategories = await fetchArray<ApiSubcategory>(`${API_BASE_URL}/subcategories`);
-        if (serverSubcategories.length > 0) {
-            await db.subcategories.clear();
-            await db.subcategories.bulkPut(
-                serverSubcategories.map(sub => ({ ...sub, syncStatus: 'synced' as const }))
-            );
-        }
+        // 4. Sync subcategories (read-only from server)
+        const serverSubcategories = await fetch(`${API_BASE_URL}/subcategories`).then(r => r.json()) as ApiSubcategory[];
+        await db.subcategories.clear();
+        await db.subcategories.bulkPut(
+            serverSubcategories.map(sub => ({ ...sub, syncStatus: 'synced' as const }))
+        );
 
+        // Update last sync time
         await setLastSyncTime(now());
+
         result.success = true;
     } catch (err) {
-        result.errors.push(`Sync failed: ${err instanceof Error ? err.message : String(err)}`);
+        result.errors.push(`Sync failed: ${err}`);
     }
 
     return result;
