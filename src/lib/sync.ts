@@ -36,6 +36,17 @@ export const checkServerConnection = async (): Promise<boolean> => {
 
 // ----- SYNC ENGINE -----
 
+// Helper to check if two expense records are equal (excluding sync metadata)
+const areExpensesEqual = (local: LocalExpense, server: ApiExpense): boolean => {
+    return (
+        local.amount === server.amount &&
+        local.category === server.category &&
+        local.subcategory === server.subcategory &&
+        local.date === server.date &&
+        local.note === server.note
+    );
+};
+
 interface SyncResult {
     success: boolean;
     pushed: number;
@@ -110,18 +121,29 @@ export async function syncWithServer(): Promise<SyncResult> {
             (await db.expenses.where('syncStatus').equals('synced').primaryKeys())
         );
 
-        // Update/insert server expenses
+        // Update/insert server expenses (only if they are new or changed)
         for (const serverExp of serverExpenses) {
             const local = await db.expenses.get(serverExp.id);
 
-            if (!local || local.syncStatus === 'synced') {
-                // No local changes, update from server
+            if (!local) {
+                // New expense from server - insert it
                 await db.expenses.put({
                     ...serverExp,
                     syncStatus: 'synced',
                     updatedAt: now(),
                 });
                 result.pulled++;
+            } else if (local.syncStatus === 'synced') {
+                // Record exists locally and is synced - only update if actually different
+                if (!areExpensesEqual(local, serverExp)) {
+                    await db.expenses.put({
+                        ...serverExp,
+                        syncStatus: 'synced',
+                        updatedAt: now(),
+                    });
+                    result.pulled++;
+                }
+                // If equal, skip update (no change needed)
             }
             // If local has pending changes, keep local version (last-write-wins on next push)
         }

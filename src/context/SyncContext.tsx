@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { syncWithServer, initializeLocalData, syncApi, checkServerConnection } from '@/lib/sync';
 
 interface SyncState {
@@ -9,9 +9,14 @@ interface SyncState {
     lastSyncResult: { success: boolean; message: string } | null;
 }
 
+// Callback type for sync completion notification
+type SyncCompleteCallback = () => void;
+
 interface SyncContextType extends SyncState {
     triggerSync: () => Promise<void>;
     refreshStatus: () => Promise<void>;
+    registerSyncCallback: (callback: SyncCompleteCallback) => void;
+    unregisterSyncCallback: (callback: SyncCompleteCallback) => void;
 }
 
 const SyncContext = createContext<SyncContextType | null>(null);
@@ -24,6 +29,30 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         lastSyncTime: null,
         lastSyncResult: null,
     });
+
+    // Store registered callbacks for sync completion
+    const syncCallbacksRef = useRef<Set<SyncCompleteCallback>>(new Set());
+    // Track if initial auto-sync has been done
+    const hasInitialSync = useRef(false);
+
+    const registerSyncCallback = useCallback((callback: SyncCompleteCallback) => {
+        syncCallbacksRef.current.add(callback);
+    }, []);
+
+    const unregisterSyncCallback = useCallback((callback: SyncCompleteCallback) => {
+        syncCallbacksRef.current.delete(callback);
+    }, []);
+
+    // Notify all registered callbacks that sync is complete
+    const notifySyncComplete = useCallback(() => {
+        syncCallbacksRef.current.forEach(callback => {
+            try {
+                callback();
+            } catch (err) {
+                console.error('Sync callback error:', err);
+            }
+        });
+    }, []);
 
     const refreshStatus = useCallback(async () => {
         try {
@@ -57,6 +86,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
                         : result.errors.join(', '),
                 },
             }));
+
+            // Notify registered callbacks after successful sync
+            if (result.success) {
+                notifySyncComplete();
+            }
         } catch (err) {
             setState(prev => ({
                 ...prev,
@@ -69,16 +103,45 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
 
         await refreshStatus();
-    }, [refreshStatus]);
+    }, [refreshStatus, notifySyncComplete]);
 
-    // Initialize on mount
+    // Initialize on mount and trigger auto-sync
     useEffect(() => {
         const init = async () => {
             await initializeLocalData();
             await refreshStatus();
+
+            // Auto-sync on app open if server is available (but only once)
+            if (!hasInitialSync.current) {
+                hasInitialSync.current = true;
+                const serverAvailable = await checkServerConnection();
+                if (serverAvailable) {
+                    // Small delay to let UI render first
+                    setTimeout(async () => {
+                        setState(prev => ({ ...prev, isSyncing: true }));
+                        try {
+                            const result = await syncWithServer();
+                            setState(prev => ({
+                                ...prev,
+                                isSyncing: false,
+                                pendingCount: result.success ? 0 : prev.pendingCount,
+                                lastSyncTime: result.success ? Date.now() : prev.lastSyncTime,
+                                lastSyncResult: null, // Don't show result for auto-sync
+                            }));
+                            // Notify callbacks after auto-sync
+                            if (result.success) {
+                                notifySyncComplete();
+                            }
+                        } catch {
+                            setState(prev => ({ ...prev, isSyncing: false }));
+                        }
+                        await refreshStatus();
+                    }, 500);
+                }
+            }
         };
         init();
-    }, [refreshStatus]);
+    }, [refreshStatus, notifySyncComplete]);
 
     // Listen for online/offline changes
     useEffect(() => {
@@ -101,7 +164,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }, [refreshStatus]);
 
     return (
-        <SyncContext.Provider value={{ ...state, triggerSync, refreshStatus }}>
+        <SyncContext.Provider value={{ ...state, triggerSync, refreshStatus, registerSyncCallback, unregisterSyncCallback }}>
             {children}
         </SyncContext.Provider>
     );

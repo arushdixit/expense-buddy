@@ -28,7 +28,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   // Access sync context for refreshing after sync
-  const { refreshStatus } = useSync();
+  const { refreshStatus, registerSyncCallback, unregisterSyncCallback } = useSync();
 
   // Helper function to convert local expense to frontend format
   const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
@@ -119,6 +119,14 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Register for sync completion notifications to refresh expenses
+  useEffect(() => {
+    registerSyncCallback(refreshExpenses);
+    return () => {
+      unregisterSyncCallback(refreshExpenses);
+    };
+  }, [refreshExpenses, registerSyncCallback, unregisterSyncCallback]);
 
   const addExpense = async (expense: Omit<Expense, "id">) => {
     try {
