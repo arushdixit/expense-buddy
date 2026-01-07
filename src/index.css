@@ -129,7 +129,7 @@
   }
 
   .fab {
-    @apply fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30 flex items-center justify-center transition-all duration-200 active:scale-95 hover:shadow-xl hover:shadow-accent/40;
+    @apply fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30 flex items-center justify-center active:scale-95;
   }
 
   .category-card {
@@ -192,7 +192,9 @@
   }
 
   .chart-container {
-    @apply w-full aspect-square max-w-[200px] mx-auto;
+    @apply w-full max-w-[220px] mx-auto;
+    height: 200px;
+    overflow: visible;
   }
 
   .comparison-indicator-up {

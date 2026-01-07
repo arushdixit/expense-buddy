@@ -6,10 +6,17 @@ import { categories, Category, formatCurrency } from "@/lib/data";
 import { useExpenses } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+
+// Default amounts for specific subcategories
+const DEFAULT_AMOUNTS: Record<string, number> = {
+  "rent": 7833,        // Rent category
+  "Cook Salary": 1100, // Utilities > Cook Salary
+  "Internet": 419,     // Utilities > Internet
+};
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -49,7 +56,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const { addExpense, updateExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
-  const { toast } = useToast();
 
   React.useEffect(() => {
     if (isOpen && expenseToEdit) {
@@ -100,12 +106,26 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     if (category.id !== "rent") {
       setStep(2);
     } else {
+      // For Rent, set default amount if not editing
+      if (!expenseToEdit) {
+        const defaultAmount = DEFAULT_AMOUNTS["rent"];
+        if (defaultAmount) {
+          setAmount(defaultAmount.toString());
+        }
+      }
       setStep(3);
     }
   };
 
   const handleSubcategorySelect = (subcategory: string) => {
     setSelectedSubcategory(subcategory);
+    // Set default amount for specific subcategories if not editing
+    if (!expenseToEdit) {
+      const defaultAmount = DEFAULT_AMOUNTS[subcategory];
+      if (defaultAmount) {
+        setAmount(defaultAmount.toString());
+      }
+    }
     setStep(3);
   };
 
@@ -140,11 +160,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
   const handleSubmit = async () => {
     if (!selectedCategory || !amount || parseFloat(amount) === 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid amount",
-        variant: "destructive",
-      });
+      toast.error("Please enter a valid amount");
       return;
     }
 
@@ -163,20 +179,12 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           amount: finalAmount,
           date: selectedDate.toISOString(),
         });
-        toast({
-          title: "Expense updated",
-          description: "Your expense has been updated successfully",
-        });
       } else {
         await addExpense({
           categoryId: selectedCategory.id,
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
           date: selectedDate.toISOString(),
-        });
-        toast({
-          title: "Expense added",
-          description: "Your expense has been added successfully",
         });
       }
 
@@ -334,12 +342,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         if (newCategoryName.trim()) {
                           const colorIndex = customCategories.length % CATEGORY_COLORS.length;
                           addCustomCategory(newCategoryName.trim(), CATEGORY_COLORS[colorIndex]);
+                          toast.success(`${newCategoryName.trim()} has been added`);
                           setNewCategoryName("");
                           setShowNewCategoryInput(false);
-                          toast({
-                            title: "Category added",
-                            description: `${newCategoryName.trim()} has been added`,
-                          });
                         }
                       }}
                       size="icon"

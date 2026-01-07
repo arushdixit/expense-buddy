@@ -5,7 +5,6 @@ import { Expense, getCategoryById, formatCurrency } from "@/lib/data";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useExpenses } from "@/context/ExpenseContext";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +25,6 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
   const [showActions, setShowActions] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteExpense, customCategories } = useExpenses();
-  const { toast } = useToast();
 
   const category = getCategoryById(expense.categoryId, customCategories);
   if (!category) return null;

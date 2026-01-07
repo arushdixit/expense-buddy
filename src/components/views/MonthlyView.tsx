@@ -136,8 +136,18 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
         animate={{ opacity: 1, x: 0 }}
       >
         <Card className="stat-card mb-6">
-          <p className="text-sm opacity-80 mb-1">Monthly Total</p>
-          <p className="text-3xl font-bold dirham-symbol">{formatCurrency(totalSpent)}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm opacity-80 mb-1">Monthly Total</p>
+              <p className="text-2xl font-bold dirham-symbol">{formatCurrency(totalSpent)}</p>
+            </div>
+            <div className="border-l border-white/20 pl-4">
+              <p className="text-sm opacity-80 mb-1">Excl. Rent</p>
+              <p className="text-2xl font-bold dirham-symbol">
+                {formatCurrency(monthlyExpenses.filter(e => e.categoryId !== 'rent').reduce((sum, exp) => sum + exp.amount, 0))}
+              </p>
+            </div>
+          </div>
         </Card>
 
         {/* Bar Chart */}
