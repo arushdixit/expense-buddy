@@ -27,8 +27,40 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Access sync context for refreshing after sync
-  const { refreshStatus, registerSyncCallback, unregisterSyncCallback } = useSync();
+  // Access sync context for refreshing after sync and triggering auto-sync
+  const { refreshStatus, registerSyncCallback, unregisterSyncCallback, triggerSync, isOnline } = useSync();
+
+  // Auto-sync debounce timer
+  const autoSyncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Trigger auto-sync after a delay (debounced)
+  const scheduleAutoSync = useCallback(() => {
+    // Clear any existing timer
+    if (autoSyncTimerRef.current) {
+      clearTimeout(autoSyncTimerRef.current);
+    }
+
+    // Only schedule if online
+    if (isOnline) {
+      // Schedule sync after 2 seconds of inactivity
+      autoSyncTimerRef.current = setTimeout(async () => {
+        try {
+          await triggerSync();
+        } catch (error) {
+          console.error('Auto-sync failed:', error);
+        }
+      }, 2000);
+    }
+  }, [isOnline, triggerSync]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to convert local expense to frontend format
   const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
@@ -135,6 +167,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       const mappedExpense = localExpenseToExpense(createdExpense);
       setExpenses(prev => [mappedExpense, ...prev]);
       await refreshStatus(); // Update pending count
+      scheduleAutoSync(); // Trigger auto-sync
       toast.success('Expense added');
     } catch (error) {
       console.error('Failed to add expense:', error);
@@ -148,6 +181,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       await syncApi.deleteExpense(id);
       setExpenses(prev => prev.filter(exp => exp.id !== id));
       await refreshStatus(); // Update pending count
+      scheduleAutoSync(); // Trigger auto-sync
       toast.success('Expense deleted');
     } catch (error) {
       console.error('Failed to delete expense:', error);
@@ -176,6 +210,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
           prev.map(exp => (exp.id === id ? mappedExpense : exp))
         );
         await refreshStatus(); // Update pending count
+        scheduleAutoSync(); // Trigger auto-sync
         toast.success('Expense updated');
       }
     } catch (error) {
