@@ -4,16 +4,18 @@ A personal expense tracking application with a React frontend and Express.js bac
 
 ## Features
 
-- 📊 Track expenses across multiple categories (Rent, Groceries, Shopping, Entertainment, etc.)
-- 🏷️ Organize expenses with subcategories
-- 🔄 **Edit and delete existing expenses** (Long-press on any expense to see actions)
-- 💸 **Refund support** (Add a "Refund" subcategory to automatically record negative amounts)
-- 📅 View expenses by month with detailed breakdowns
-- 📈 Compare spending across different months
-- 📥 **Export expenses to CSV** via the Trends view
-- 📤 **One-time CSV import** for historical data transfer
-- 💾 Persistent data storage with SQLite database
-- 🎨 Beautiful, mobile-friendly UI with Tailwind CSS
+- 🔄 **Automatic Sync**: Changes are automatically synced to the server when online (debounced by 2s).
+- 📶 **Offline-First**: Works perfectly offline using IndexedDB; syncs changes when connection is restored.
+- 📊 **Expense Tracking**: Categorize spending across predefined and custom categories.
+- 🏷️ **Subcategories**: Organize expenses with granular subcategories for better insights.
+- 🔄 **Edit & Delete**: Long-press on any expense to modify or remove it.
+- 💸 **Refund Support**: Negative amount support for refunds and returns.
+- 📅 **Detailed Breakdowns**: View expenses by month with comparisons and trends.
+- 📈 **Visual Analytics**: Interactive charts showing spending habits.
+- 📥 **Export to CSV**: Download your data via the Trends view for external analysis.
+- 📤 **Historical Import**: One-time CSV import for bringing in existing data.
+- 💾 **Hybrid Storage**: Persistent SQLite on server + IndexedDB in the browser.
+- 🎨 **Premium UI**: Modern, responsive design with Tailwind CSS and Framer Motion.
 
 ## Data Import & Export
 
