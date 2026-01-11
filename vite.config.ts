@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "fonts/**/*", "icons/**/*"],
       manifest: false, // We use our own manifest.webmanifest
+      devOptions: {
+        enabled: true,
+      },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,manifest,webmanifest}"],
         cleanupOutdatedCaches: true,

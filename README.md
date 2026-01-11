@@ -2,32 +2,41 @@
 
 A personal expense tracking application with a React frontend and Express.js backend.
 
+## Screenshots
+
+<div align="center">
+  <img src="public/screenshots/dashboard.png" width="250" alt="Dashboard" />
+  <img src="public/screenshots/add_expense.png" width="250" alt="Add Expense" />
+  <img src="public/screenshots/trends.png" width="250" alt="Spending Trends" />
+</div>
+
 ## Features
 
-- 🔄 **Automatic Sync**: Changes are automatically synced to the server when online (debounced by 2s).
-- 📶 **Offline-First**: Works perfectly offline using IndexedDB; syncs changes when connection is restored.
-- 📊 **Expense Tracking**: Categorize spending across predefined and custom categories.
-- 🏷️ **Subcategories**: Organize expenses with granular subcategories for better insights.
-- 🔄 **Edit & Delete**: Long-press on any expense to modify or remove it.
-- 💸 **Refund Support**: Negative amount support for refunds and returns.
-- 📅 **Detailed Breakdowns**: View expenses by month with comparisons and trends.
-- 📈 **Visual Analytics**: Interactive charts showing spending habits.
-- 📥 **Export to CSV**: Download your data via the Trends view for external analysis.
-- 📤 **Historical Import**: One-time CSV import for bringing in existing data.
-- 💾 **Hybrid Storage**: Persistent SQLite on server + IndexedDB in the browser.
-- 🎨 **Premium UI**: Modern, responsive design with Tailwind CSS and Framer Motion.
+- Automatic Sync: Changes are automatically synced to the server when online (debounced by 2s).
+- Offline-First and Optimistic UI: Works perfectly offline with zero-lag interface; changes update locally instantly while syncing in the background.
+- Race-Condition Protection: Built-in duplicate submission prevention for network-intensive operations.
+- Expense Tracking: Categorize spending across predefined and custom categories.
+- Subcategories: Organize expenses with granular subcategories for better insights.
+- Edit and Delete: Long-press on any expense to modify or remove it.
+- Refund Support: Negative amount support for refunds and returns.
+- Detailed Breakdowns: View expenses by month with comparisons and trends.
+- Visual Analytics: Interactive charts showing spending habits.
+- Export to CSV: Download your data via the Trends view for external analysis.
+- Historical Import: One-time CSV import for bringing in existing data.
+- Hybrid Storage: Persistent SQLite on server + IndexedDB in the browser.
+- Premium UI: Modern, responsive design with Tailwind CSS and Framer Motion.
 
-## Data Import & Export
+## Data Import and Export
 
 ### Exporting Data
-You can export all your expense data to a CSV file by clicking the **Download Icon** in the header of the **Spending Trends** view. This will download a file named `expenses-export.csv`.
+You can export all your expense data to a CSV file by clicking the Download Icon in the header of the Spending Trends view. This will download a file named expenses-export.csv.
 
 ### Importing Historical Data (One-time)
 If you have historical data in a CSV file, you can import it directly into the database using the provided import script.
 
 1. Prepare your CSV file with the following headers (or in this order):
-   `date,amount,category,subcategory,note`
-   Example: `2023-12-01,150.50,Groceries,Carrefour,Weekly groceries`
+   date,amount,category,subcategory,note
+   Example: 2023-12-01,150.50,Groceries,Carrefour,Weekly groceries
 
 2. Run the import command:
    ```sh
@@ -39,7 +48,7 @@ If you have historical data in a CSV file, you can import it directly into the d
 
 ### Prerequisites
 
-- Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js and npm installed
 
 ### Installation
 
@@ -96,21 +105,21 @@ npm run preview
 ## Technology Stack
 
 ### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **shadcn-ui** - UI component library
-- **Framer Motion** - Animations
-- **React Router** - Routing
-- **date-fns** - Date utilities
-- **Recharts** - Data visualization
+- React 18 - UI framework
+- TypeScript - Type safety
+- Vite - Build tool and dev server
+- Tailwind CSS - Styling
+- shadcn-ui - UI component library
+- Framer Motion - Animations
+- React Router - Routing
+- date-fns - Date utilities
+- Recharts - Data visualization
 
 ### Backend
-- **Express.js** - REST API server
-- **SQLite** - Database (via better-sqlite3)
-- **TypeScript** - Type safety
-- **CORS** - Cross-origin resource sharing
+- Express.js - REST API server
+- SQLite - Database (via better-sqlite3)
+- TypeScript - Type safety
+- CORS - Cross-origin resource sharing
 
 ## Project Structure
 
@@ -141,6 +150,19 @@ See [server/README.md](server/README.md) for complete API documentation.
 ## Integration Guide
 
 See [INTEGRATION.md](INTEGRATION.md) for details on how the frontend and backend are connected.
+
+## Mobile and Safari Support (PWA)
+
+This app is designed to be used as a Progressive Web App (PWA).
+
+### Installing on iOS (Safari)
+1. Open the app in Safari on your iPhone/iPad.
+2. Tap the Share button (square with an up arrow).
+3. Scroll down and tap Add to Home Screen.
+4. Launch the app from your Home Screen for the full App experience and reliable offline support.
+
+### Note on Offline Mode
+The app uses Service Workers for offline support. In development mode, PWA features are enabled but may require a refresh to activate. For best results, use the production build (npm run build).
 
 ## Database Schema
 

@@ -57,12 +57,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const refreshStatus = useCallback(async () => {
         try {
             const status = await syncApi.getSyncStatus();
+
+            // Update local-only status first (snappier UI)
+            setState(prev => ({
+                ...prev,
+                pendingCount: status.pendingCount,
+                lastSyncTime: status.lastSyncTime,
+            }));
+
+            // Then check server reachable (can be slow)
             const serverReachable = await checkServerConnection();
             setState(prev => ({
                 ...prev,
                 isOnline: status.isOnline && serverReachable,
-                pendingCount: status.pendingCount,
-                lastSyncTime: status.lastSyncTime,
             }));
         } catch (error) {
             console.error('Failed to refresh sync status:', error);

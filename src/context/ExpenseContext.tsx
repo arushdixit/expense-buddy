@@ -166,7 +166,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       const createdExpense = await syncApi.createExpense(localData);
       const mappedExpense = localExpenseToExpense(createdExpense);
       setExpenses(prev => [mappedExpense, ...prev]);
-      await refreshStatus(); // Update pending count
+      refreshStatus(); // Update pending count in bg
       scheduleAutoSync(); // Trigger auto-sync
       toast.success('Expense added');
     } catch (error) {
@@ -180,7 +180,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       await syncApi.deleteExpense(id);
       setExpenses(prev => prev.filter(exp => exp.id !== id));
-      await refreshStatus(); // Update pending count
+      refreshStatus(); // Update pending count in bg
       scheduleAutoSync(); // Trigger auto-sync
       toast.success('Expense deleted');
     } catch (error) {
@@ -209,7 +209,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         setExpenses(prev =>
           prev.map(exp => (exp.id === id ? mappedExpense : exp))
         );
-        await refreshStatus(); // Update pending count
+        refreshStatus(); // Update pending count in bg
         scheduleAutoSync(); // Trigger auto-sync
         toast.success('Expense updated');
       }

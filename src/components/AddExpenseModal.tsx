@@ -54,6 +54,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { addExpense, updateExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
 
@@ -171,6 +172,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       finalAmount = Math.abs(finalAmount);
     }
 
+    setIsSubmitting(true);
     try {
       if (expenseToEdit) {
         await updateExpense(expenseToEdit.id, {
@@ -191,6 +193,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       handleClose();
     } catch (error) {
       // Error is already toasted by the context
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -531,9 +535,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 <Button
                   onClick={handleSubmit}
                   className="w-full mt-4 h-12 text-base font-semibold gradient-teal"
-                  disabled={!amount || parseFloat(amount) === 0}
+                  disabled={!amount || parseFloat(amount) === 0 || isSubmitting}
                 >
-                  {expenseToEdit ? "Update Expense" : "Add Expense"}
+                  {isSubmitting ? "Processing..." : (expenseToEdit ? "Update Expense" : "Add Expense")}
                 </Button>
               </motion.div>
             )}
