@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { syncWithServer, initializeLocalData, syncApi, checkServerConnection } from '@/lib/sync';
+import { useAuth } from './AuthContext';
 
 interface SyncState {
     isOnline: boolean;
@@ -22,6 +23,7 @@ interface SyncContextType extends SyncState {
 const SyncContext = createContext<SyncContextType | null>(null);
 
 export function SyncProvider({ children }: { children: ReactNode }) {
+    const { householdId } = useAuth();
     const [state, setState] = useState<SyncState>({
         isOnline: navigator.onLine,
         isSyncing: false,
@@ -80,7 +82,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, isSyncing: true, lastSyncResult: null }));
 
         try {
-            const result = await syncWithServer();
+            const result = await syncWithServer(householdId);
             setState(prev => ({
                 ...prev,
                 isSyncing: false,
@@ -110,7 +112,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
 
         await refreshStatus();
-    }, [refreshStatus, notifySyncComplete]);
+    }, [refreshStatus, notifySyncComplete, householdId]);
 
     // Initialize on mount and trigger auto-sync
     useEffect(() => {
@@ -119,7 +121,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             await refreshStatus();
 
             // Auto-sync on app open if server is available (but only once)
-            if (!hasInitialSync.current) {
+            if (!hasInitialSync.current && householdId) {
                 hasInitialSync.current = true;
                 const serverAvailable = await checkServerConnection();
                 if (serverAvailable) {
@@ -127,7 +129,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
                     setTimeout(async () => {
                         setState(prev => ({ ...prev, isSyncing: true }));
                         try {
-                            const result = await syncWithServer();
+                            const result = await syncWithServer(householdId);
                             setState(prev => ({
                                 ...prev,
                                 isSyncing: false,
@@ -148,7 +150,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             }
         };
         init();
-    }, [refreshStatus, notifySyncComplete]);
+    }, [refreshStatus, notifySyncComplete, householdId]);
 
     // Listen for online/offline changes
     useEffect(() => {

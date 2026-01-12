@@ -76,19 +76,24 @@ export const expenseApi = {
         return toApiExpense(data);
     },
 
-    async create(expense: Omit<ApiExpense, 'id' | 'created_at'>): Promise<ApiExpense> {
+    async create(expense: Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string }): Promise<ApiExpense> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Authentication required');
 
-        // Fetch user's household_id
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('household_id')
-            .eq('id', user.id)
-            .single();
+        let hId = expense.household_id;
+
+        // Only fetch if not provided
+        if (!hId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', user.id)
+                .maybeSingle();
+            hId = profile?.household_id || null;
+        }
 
         const newExpense = {
-            id: crypto.randomUUID(),
+            id: expense.id || crypto.randomUUID(),
             amount: expense.amount,
             category: expense.category,
             subcategory: expense.subcategory || null,
@@ -96,7 +101,7 @@ export const expenseApi = {
             note: expense.note || null,
             updated_at: Date.now(),
             user_id: user.id,
-            household_id: profile?.household_id || null
+            household_id: hId
         };
 
         const { data, error } = await supabase

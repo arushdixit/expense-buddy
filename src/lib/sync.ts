@@ -44,7 +44,7 @@ interface SyncResult {
 /**
  * Manual sync - pushes local changes to server and pulls updates
  */
-export async function syncWithServer(): Promise<SyncResult> {
+export async function syncWithServer(householdId?: string | null): Promise<SyncResult> {
     const result: SyncResult = { success: false, pushed: 0, pulled: 0, errors: [] };
 
     // Check availability
@@ -68,11 +68,12 @@ export async function syncWithServer(): Promise<SyncResult> {
                         await expenseApi.update(expense.id, expenseData);
                     }
                 } catch (err: any) {
-                    if (err.message?.includes('not found') || err.message?.includes('404')) {
-                        await expenseApi.create(expenseData);
-                    } else {
-                        throw err;
-                    }
+                    // Use original ID and householdId for creation
+                    await expenseApi.create({
+                        ...expenseData,
+                        id: expense.id,
+                        household_id: householdId || undefined
+                    });
                 }
 
                 // Mark as synced
