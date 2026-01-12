@@ -6,31 +6,18 @@
 
 import { supabase, DbExpense } from './supabase';
 import { generateId } from './db';
+import { BaseExpense, BaseSubcategory, BaseCategory } from './types';
 
-// ----- Types -----
+// ----- Types (extending base types) -----
 
-export interface ApiExpense {
-    id: string;
-    amount: number;
-    category: string;
+export interface ApiExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
     subcategory?: string;
-    date: string;
     note?: string;
-    created_at?: string;
-    updated_at?: number;
 }
 
-export interface ApiSubcategory {
-    id: number;
-    category: string;
-    name: string;
-}
+export interface ApiSubcategory extends BaseSubcategory { }
 
-export interface ApiCategory {
-    id: string;
-    name: string;
-    color: string;
-}
+export interface ApiCategory extends BaseCategory { }
 
 // ----- Helpers -----
 
@@ -55,6 +42,17 @@ export const expenseApi = {
             .order('date', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch expenses: ${error.message}`);
+        return (data || []).map(toApiExpense);
+    },
+
+    async getUpdatedSince(timestamp: number): Promise<ApiExpense[]> {
+        const { data, error } = await supabase
+            .from('expenses')
+            .select('*')
+            .gt('updated_at', timestamp)
+            .order('updated_at', { ascending: true });
+
+        if (error) throw new Error(`Failed to fetch updated expenses: ${error.message}`);
         return (data || []).map(toApiExpense);
     },
 

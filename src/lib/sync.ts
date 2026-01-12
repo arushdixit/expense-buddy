@@ -88,42 +88,65 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
             }
         }
 
-        // 3. Pull all
-        const serverExpenses = await expenseApi.getAll();
+        // 3. Pull updates from server (incremental sync)
+        const lastSync = await getLastSyncTime();
 
-        // Get local expense IDs that are synced (not pending)
-        const localSyncedIds = new Set(
-            (await db.expenses.where('syncStatus').equals('synced').primaryKeys())
-        );
+        if (lastSync) {
+            // Incremental sync: only fetch expenses updated since last sync
+            const updatedExpenses = await expenseApi.getUpdatedSince(lastSync);
 
-        // Update/insert server expenses
-        for (const serverExp of serverExpenses) {
-            const local = await db.expenses.get(serverExp.id);
+            for (const serverExp of updatedExpenses) {
+                const local = await db.expenses.get(serverExp.id);
 
-            if (!local) {
-                await db.expenses.put({
-                    ...serverExp,
-                    syncStatus: 'synced',
-                    updatedAt: now(),
-                });
-                result.pulled++;
-            } else if (local.syncStatus === 'synced') {
-                if (!areExpensesEqual(local, serverExp)) {
+                if (!local || local.syncStatus === 'synced') {
                     await db.expenses.put({
                         ...serverExp,
                         syncStatus: 'synced',
-                        updatedAt: now(),
+                        updatedAt: serverExp.updated_at || now(),
                     });
                     result.pulled++;
                 }
             }
-        }
 
-        // Remove local synced items that no longer exist on server
-        const serverIds = new Set(serverExpenses.map(e => e.id));
-        for (const localId of localSyncedIds) {
-            if (!serverIds.has(localId)) {
-                await db.expenses.delete(localId as string);
+            // Check for server-side deletions by comparing with full ID list
+            // Only do this periodically to save bandwidth (every 10th sync or so)
+            const syncCount = (await db.syncMeta.get('syncCount'))?.value as number || 0;
+            if (syncCount % 10 === 0) {
+                const serverExpenses = await expenseApi.getAll();
+                const serverIds = new Set(serverExpenses.map(e => e.id));
+                const localSyncedIds = await db.expenses.where('syncStatus').equals('synced').primaryKeys();
+
+                for (const localId of localSyncedIds) {
+                    if (!serverIds.has(localId as string)) {
+                        await db.expenses.delete(localId as string);
+                    }
+                }
+            }
+            await db.syncMeta.put({ key: 'syncCount', value: syncCount + 1 });
+        } else {
+            // First sync: pull everything
+            const serverExpenses = await expenseApi.getAll();
+
+            for (const serverExp of serverExpenses) {
+                const local = await db.expenses.get(serverExp.id);
+
+                if (!local) {
+                    await db.expenses.put({
+                        ...serverExp,
+                        syncStatus: 'synced',
+                        updatedAt: serverExp.updated_at || now(),
+                    });
+                    result.pulled++;
+                } else if (local.syncStatus === 'synced') {
+                    if (!areExpensesEqual(local, serverExp)) {
+                        await db.expenses.put({
+                            ...serverExp,
+                            syncStatus: 'synced',
+                            updatedAt: serverExp.updated_at || now(),
+                        });
+                        result.pulled++;
+                    }
+                }
             }
         }
 

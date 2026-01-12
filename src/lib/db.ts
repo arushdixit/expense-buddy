@@ -1,36 +1,24 @@
 import Dexie, { Table } from 'dexie';
+import { BaseExpense, BaseSubcategory, BaseCategory, SyncStatus } from './types';
 
-// Sync status for offline changes
-export type SyncStatus = 'synced' | 'pending' | 'deleted';
+// Re-export SyncStatus for backward compatibility
+export type { SyncStatus } from './types';
 
 // Local expense type with sync metadata
-export interface LocalExpense {
-    id: string;
-    amount: number;
-    category: string;
+export interface LocalExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
     subcategory?: string;
-    date: string;
     note?: string;
-    created_at?: string;
-    // Sync metadata
     syncStatus: SyncStatus;
-    updatedAt: number; // Unix timestamp for conflict resolution
+    updatedAt: number;
 }
 
 // Local subcategory type with sync metadata
-export interface LocalSubcategory {
-    id: number;
-    category: string;
-    name: string;
+export interface LocalSubcategory extends BaseSubcategory {
     syncStatus: SyncStatus;
 }
 
-// Local custom category (persisted locally, not synced to server)
-export interface LocalCategory {
-    id: string;
-    name: string;
-    color: string;
-}
+// Local custom category
+export interface LocalCategory extends BaseCategory { }
 
 // Sync metadata store
 export interface SyncMeta {
