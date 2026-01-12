@@ -179,7 +179,7 @@ export const subcategoryApi = {
             .from('profiles')
             .select('household_id')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         const { data, error } = await supabase
             .from('subcategories')
@@ -277,14 +277,4 @@ export const statsApi = {
             }))
             .sort((a, b) => b.month.localeCompare(a.month));
     },
-};
-
-// Health check - check Supabase connection
-export const healthCheck = async (): Promise<boolean> => {
-    try {
-        const { error } = await supabase.from('expenses').select('id').limit(1);
-        return !error;
-    } catch {
-        return false;
-    }
 };

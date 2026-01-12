@@ -26,32 +26,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
-            console.log('Fetching household for user:', userId);
-            let { data, error, status } = await supabase
+            let { data, error } = await supabase
                 .from('profiles')
                 .select('household_id')
                 .eq('id', userId)
                 .maybeSingle();
 
             if (error) {
-                console.error(`Error fetching profile (Status ${status}):`, error.message);
+                console.error('Error fetching profile:', error.message);
                 return;
             }
 
             if (!data) {
-                console.log('Profile missing in DB, checking for existing household...');
-
+                // Profile missing - create one
                 let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
                 let hId = household?.id;
 
                 if (!hId) {
-                    console.log('No household found, creating default...');
                     const { data: newH, error: hError } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
                     if (hError) console.error('Failed to create household:', hError.message);
                     hId = newH?.id;
                 }
 
-                console.log('Creating profile with household:', hId);
                 const { data: newProfile, error: createError } = await supabase
                     .from('profiles')
                     .insert({
@@ -68,11 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setHouseholdId(newProfile.household_id);
                 }
             } else {
-                console.log('Profile found! Household:', data.household_id);
                 setHouseholdId(data.household_id);
             }
         } catch (err) {
-            console.error('Unexpected error in fetchHouseholdId:', err);
+            console.error('Error in fetchHouseholdId:', err);
         }
     };
 

@@ -16,13 +16,6 @@ import * as expressApi from './api-express';
 // Export types
 export type { ApiExpense, ApiSubcategory } from './api-supabase';
 
-// Log which backend is being used
-if (useSupabase) {
-  console.log('🚀 Using Supabase backend');
-} else {
-  console.log('🔧 Using Express backend');
-}
-
 // Export the selected implementation
 export const expenseApi = useSupabase ? supabaseApi.expenseApi : expressApi.expenseApi;
 export const subcategoryApi = useSupabase ? supabaseApi.subcategoryApi : expressApi.subcategoryApi;
