@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById } from "@/lib/data";
-import { syncApi, initializeLocalData } from "@/lib/sync";
+import { syncApi } from "@/lib/sync";
 import { LocalExpense, LocalSubcategory } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
@@ -96,9 +96,6 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-
-      // Initialize local data (will sync from server if first time)
-      await initializeLocalData();
 
       // Load expenses from IndexedDB
       const localExpenses = await syncApi.getAllExpenses();

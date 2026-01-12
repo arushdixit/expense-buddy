@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
-import { syncWithServer, initializeLocalData, syncApi, checkServerConnection } from '@/lib/sync';
+import { syncWithServer, syncApi, checkServerConnection } from '@/lib/sync';
 import { useAuth } from './AuthContext';
 
 interface SyncState {
@@ -58,19 +58,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     const refreshStatus = useCallback(async () => {
         try {
-            const status = await syncApi.getSyncStatus();
+            const [status, serverReachable] = await Promise.all([
+                syncApi.getSyncStatus(),
+                checkServerConnection()
+            ]);
 
-            // Update local-only status first (snappier UI)
             setState(prev => ({
                 ...prev,
                 pendingCount: status.pendingCount,
                 lastSyncTime: status.lastSyncTime,
-            }));
-
-            // Then check server reachable (can be slow)
-            const serverReachable = await checkServerConnection();
-            setState(prev => ({
-                ...prev,
                 isOnline: status.isOnline && serverReachable,
             }));
         } catch (error) {
@@ -117,7 +113,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     // Initialize on mount and trigger auto-sync
     useEffect(() => {
         const init = async () => {
-            await initializeLocalData();
             await refreshStatus();
 
             // Auto-sync on app open if server is available (but only once)

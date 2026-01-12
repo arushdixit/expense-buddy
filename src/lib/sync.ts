@@ -266,15 +266,3 @@ export const syncApi = {
         };
     },
 };
-
-// Initial data load check - if IndexedDB is empty, try to sync from server
-export async function initializeLocalData(): Promise<void> {
-    const count = await db.expenses.count();
-    if (count === 0) {
-        // First time - try to pull from server
-        const serverAvailable = await checkServerConnection();
-        if (serverAvailable) {
-            await syncWithServer();
-        }
-    }
-}
