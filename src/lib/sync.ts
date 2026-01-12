@@ -1,9 +1,5 @@
 import { db, LocalExpense, LocalSubcategory, now, setLastSyncTime, getLastSyncTime, getPendingCount } from './db';
-import { ApiExpense, ApiSubcategory } from './api';
-
-// Dynamic API URL: uses env var if set, otherwise uses current hostname
-const API_BASE_URL = import.meta.env.VITE_API_URL
-    || (typeof window !== 'undefined' ? `http://${window.location.hostname}:3001/api` : 'http://localhost:3001/api');
+import { ApiExpense, ApiSubcategory, expenseApi, subcategoryApi, healthCheck } from './api';
 
 // Connection status
 let isOnline = navigator.onLine;
@@ -16,19 +12,10 @@ if (typeof window !== 'undefined') {
 
 export const getIsOnline = () => isOnline;
 
-// Check if server is reachable (more accurate than navigator.onLine)
+// Check if server is reachable (now using unified API)
 export const checkServerConnection = async (): Promise<boolean> => {
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-        const response = await fetch(`${API_BASE_URL}/health`, {
-            method: 'GET',
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        return response.ok;
+        return await healthCheck();
     } catch {
         return false;
     }
@@ -60,10 +47,10 @@ interface SyncResult {
 export async function syncWithServer(): Promise<SyncResult> {
     const result: SyncResult = { success: false, pushed: 0, pulled: 0, errors: [] };
 
-    // Check server availability
-    const serverAvailable = await checkServerConnection();
-    if (!serverAvailable) {
-        result.errors.push('Server is not reachable');
+    // Check availability
+    const available = await checkServerConnection();
+    if (!available) {
+        result.errors.push('Backend is not reachable');
         return result;
     }
 
@@ -74,23 +61,18 @@ export async function syncWithServer(): Promise<SyncResult> {
             try {
                 const { syncStatus, updatedAt, ...expenseData } = expense;
 
-                // Check if exists on server
-                const checkResponse = await fetch(`${API_BASE_URL}/expenses/${expense.id}`);
-
-                if (checkResponse.status === 404) {
-                    // Create new
-                    await fetch(`${API_BASE_URL}/expenses`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(expenseData),
-                    });
-                } else if (checkResponse.ok) {
-                    // Update existing
-                    await fetch(`${API_BASE_URL}/expenses/${expense.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(expenseData),
-                    });
+                try {
+                    // Check if exists
+                    const existing = await expenseApi.getById(expense.id);
+                    if (existing) {
+                        await expenseApi.update(expense.id, expenseData);
+                    }
+                } catch (err: any) {
+                    if (err.message?.includes('not found') || err.message?.includes('404')) {
+                        await expenseApi.create(expenseData);
+                    } else {
+                        throw err;
+                    }
                 }
 
                 // Mark as synced
@@ -105,7 +87,7 @@ export async function syncWithServer(): Promise<SyncResult> {
         const deleted = await db.expenses.where('syncStatus').equals('deleted').toArray();
         for (const expense of deleted) {
             try {
-                await fetch(`${API_BASE_URL}/expenses/${expense.id}`, { method: 'DELETE' });
+                await expenseApi.delete(expense.id);
                 await db.expenses.delete(expense.id);
                 result.pushed++;
             } catch (err) {
@@ -113,20 +95,19 @@ export async function syncWithServer(): Promise<SyncResult> {
             }
         }
 
-        // 3. Pull all from server (full sync for simplicity)
-        const serverExpenses = await fetch(`${API_BASE_URL}/expenses`).then(r => r.json()) as ApiExpense[];
+        // 3. Pull all
+        const serverExpenses = await expenseApi.getAll();
 
         // Get local expense IDs that are synced (not pending)
         const localSyncedIds = new Set(
             (await db.expenses.where('syncStatus').equals('synced').primaryKeys())
         );
 
-        // Update/insert server expenses (only if they are new or changed)
+        // Update/insert server expenses
         for (const serverExp of serverExpenses) {
             const local = await db.expenses.get(serverExp.id);
 
             if (!local) {
-                // New expense from server - insert it
                 await db.expenses.put({
                     ...serverExp,
                     syncStatus: 'synced',
@@ -134,7 +115,6 @@ export async function syncWithServer(): Promise<SyncResult> {
                 });
                 result.pulled++;
             } else if (local.syncStatus === 'synced') {
-                // Record exists locally and is synced - only update if actually different
                 if (!areExpensesEqual(local, serverExp)) {
                     await db.expenses.put({
                         ...serverExp,
@@ -143,29 +123,25 @@ export async function syncWithServer(): Promise<SyncResult> {
                     });
                     result.pulled++;
                 }
-                // If equal, skip update (no change needed)
             }
-            // If local has pending changes, keep local version (last-write-wins on next push)
         }
 
-        // Remove locally synced items that no longer exist on server
+        // Remove local synced items that no longer exist on server
         const serverIds = new Set(serverExpenses.map(e => e.id));
         for (const localId of localSyncedIds) {
             if (!serverIds.has(localId)) {
-                await db.expenses.delete(localId);
+                await db.expenses.delete(localId as string);
             }
         }
 
-        // 4. Sync subcategories (read-only from server)
-        const serverSubcategories = await fetch(`${API_BASE_URL}/subcategories`).then(r => r.json()) as ApiSubcategory[];
+        // 4. Sync subcategories
+        const serverSubcategories = await subcategoryApi.getAll();
         await db.subcategories.clear();
         await db.subcategories.bulkPut(
             serverSubcategories.map(sub => ({ ...sub, syncStatus: 'synced' as const }))
         );
 
-        // Update last sync time
         await setLastSyncTime(now());
-
         result.success = true;
     } catch (err) {
         result.errors.push(`Sync failed: ${err}`);
