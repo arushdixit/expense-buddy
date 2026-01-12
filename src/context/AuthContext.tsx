@@ -26,32 +26,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
-            // Use maybeSingle to avoid 406 error if record is missing
-            let { data, error } = await supabase
+            console.log('Fetching household for user:', userId);
+            let { data, error, status } = await supabase
                 .from('profiles')
                 .select('household_id')
                 .eq('id', userId)
                 .maybeSingle();
 
             if (error) {
-                console.error('Error fetching profile:', error.message);
+                console.error(`Error fetching profile (Status ${status}):`, error.message);
                 return;
             }
 
             if (!data) {
-                // Profile missing! Let's create it.
-                console.log('Profile missing, creating one...');
+                console.log('Profile missing in DB, checking for existing household...');
 
-                // Get first household or create one
                 let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
-
                 let hId = household?.id;
 
                 if (!hId) {
-                    const { data: newH } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
+                    console.log('No household found, creating default...');
+                    const { data: newH, error: hError } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
+                    if (hError) console.error('Failed to create household:', hError.message);
                     hId = newH?.id;
                 }
 
+                console.log('Creating profile with household:', hId);
                 const { data: newProfile, error: createError } = await supabase
                     .from('profiles')
                     .insert({
@@ -62,14 +62,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .select()
                     .maybeSingle();
 
-                if (!createError && newProfile) {
+                if (createError) {
+                    console.error('Failed to create profile:', createError.message);
+                } else if (newProfile) {
                     setHouseholdId(newProfile.household_id);
                 }
             } else {
+                console.log('Profile found! Household:', data.household_id);
                 setHouseholdId(data.household_id);
             }
         } catch (err) {
-            console.error('Error in fetchHouseholdId:', err);
+            console.error('Unexpected error in fetchHouseholdId:', err);
         }
     };
 
