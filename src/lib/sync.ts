@@ -1,16 +1,8 @@
-import { db, LocalExpense, LocalSubcategory, now, setLastSyncTime, getLastSyncTime, getPendingCount } from './db';
+import { db, LocalExpense, LocalSubcategory, now, setLastSyncTime, getLastSyncTime, getPendingCount, generateId } from './db';
 import { ApiExpense, ApiSubcategory, expenseApi, subcategoryApi, healthCheck } from './api';
 
-// Connection status
-let isOnline = navigator.onLine;
-
-// Update online status
-if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => { isOnline = true; });
-    window.addEventListener('offline', () => { isOnline = false; });
-}
-
-export const getIsOnline = () => isOnline;
+// Connection status - centralized in SyncContext, this is just a fallback
+export const getIsOnline = () => navigator.onLine;
 
 // Check if server is reachable (now using unified API)
 export const checkServerConnection = async (): Promise<boolean> => {
@@ -186,13 +178,7 @@ export const syncApi = {
 
     // Create expense (writes to IndexedDB, syncs later)
     async createExpense(expense: Omit<ApiExpense, 'id' | 'created_at'>): Promise<LocalExpense> {
-        // Use crypto.randomUUID if available, fallback for insecure contexts (HTTP over IP)
-        const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                const r = Math.random() * 16 | 0;
-                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-            });
+        const id = generateId();
         const timestamp = now();
 
         const newExpense: LocalExpense = {

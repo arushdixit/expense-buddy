@@ -5,6 +5,7 @@
  */
 
 import { supabase, DbExpense } from './supabase';
+import { generateId } from './db';
 
 // ----- Types -----
 
@@ -101,7 +102,7 @@ export const expenseApi = {
         }
 
         const newExpense = {
-            id: expense.id || crypto.randomUUID(),
+            id: expense.id || generateId(),
             amount: expense.amount,
             category: expense.category,
             subcategory: expense.subcategory || null,

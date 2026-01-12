@@ -19,6 +19,35 @@ interface ExpenseContextType {
   refreshExpenses: () => Promise<void>;
 }
 
+// Helper function to convert local expense to frontend format (outside component for performance)
+const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
+  const category = categories.find(cat =>
+    cat.name.toLowerCase() === localExpense.category.toLowerCase()
+  );
+
+  return {
+    id: localExpense.id,
+    categoryId: category?.id || localExpense.category.toLowerCase(),
+    subcategory: localExpense.subcategory,
+    amount: localExpense.amount,
+    date: localExpense.date,
+    note: localExpense.note,
+  };
+};
+
+// Helper function to convert frontend expense to sync API format
+const expenseToLocalData = (expense: Omit<Expense, "id">) => {
+  const category = getCategoryById(expense.categoryId);
+
+  return {
+    amount: expense.amount,
+    category: category?.name || expense.categoryId,
+    subcategory: expense.subcategory,
+    date: expense.date,
+    note: expense.note,
+  };
+};
+
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -61,36 +90,6 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     };
   }, []);
-
-  // Helper function to convert local expense to frontend format
-  const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
-    // Find category by name
-    const category = categories.find(cat =>
-      cat.name.toLowerCase() === localExpense.category.toLowerCase()
-    );
-
-    return {
-      id: localExpense.id,
-      categoryId: category?.id || localExpense.category.toLowerCase(),
-      subcategory: localExpense.subcategory,
-      amount: localExpense.amount,
-      date: localExpense.date,
-      note: localExpense.note,
-    };
-  };
-
-  // Helper function to convert frontend expense to sync API format
-  const expenseToLocalData = (expense: Omit<Expense, "id">) => {
-    const category = getCategoryById(expense.categoryId);
-
-    return {
-      amount: expense.amount,
-      category: category?.name || expense.categoryId,
-      subcategory: expense.subcategory,
-      date: expense.date,
-      note: expense.note,
-    };
-  };
 
   // Load data from IndexedDB
   const loadData = useCallback(async () => {

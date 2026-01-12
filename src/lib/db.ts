@@ -85,9 +85,3 @@ export const getPendingCount = async (): Promise<number> => {
         .count();
     return pending;
 };
-
-// Check if there are any pending changes
-export const hasPendingChanges = async (): Promise<boolean> => {
-    const count = await getPendingCount();
-    return count > 0;
-};
