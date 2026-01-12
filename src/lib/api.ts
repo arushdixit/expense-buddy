@@ -26,6 +26,12 @@ export interface ApiSubcategory {
     name: string;
 }
 
+export interface ApiCategory {
+    id: string;
+    name: string;
+    color: string;
+}
+
 // ----- Helpers -----
 
 const toApiExpense = (row: DbExpense): ApiExpense => ({
@@ -283,6 +289,59 @@ export const statsApi = {
                 total: stat.total,
             }))
             .sort((a, b) => b.month.localeCompare(a.month));
+    },
+};
+
+// ----- Category API -----
+
+export const categoryApi = {
+    async getAll(): Promise<ApiCategory[]> {
+        const { data, error } = await supabase
+            .from('categories')
+            .select('id, name, color')
+            .order('name');
+
+        if (error) throw new Error(`Failed to fetch categories: ${error.message}`);
+        return data || [];
+    },
+
+    async create(name: string, color: string): Promise<ApiCategory> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('household_id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        const { data, error } = await supabase
+            .from('categories')
+            .insert({
+                name,
+                color,
+                user_id: user.id,
+                household_id: profile?.household_id || null
+            })
+            .select()
+            .single();
+
+        if (error) {
+            if (error.code === '23505') {
+                throw new Error('Category already exists');
+            }
+            throw new Error(`Failed to create category: ${error.message}`);
+        }
+        return { id: data.id, name: data.name, color: data.color };
+    },
+
+    async delete(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('categories')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(`Failed to delete category: ${error.message}`);
     },
 };
 

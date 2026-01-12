@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById } from "@/lib/data";
 import { syncApi } from "@/lib/sync";
+import { categoryApi } from "@/lib/api";
 import { db, LocalExpense, LocalSubcategory, LocalCategory, generateId } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
@@ -236,19 +237,42 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const addCustomCategory = async (name: string, color: string) => {
-    const id = generateId();
-    const newCategory: Category = {
-      id,
-      name,
-      icon: Layers,
-      color,
-    };
+    try {
+      // Try to save to Supabase first (this also validates uniqueness)
+      const serverCategory = await categoryApi.create(name, color);
 
-    // Persist to IndexedDB
-    await db.customCategories.add({ id, name, color });
+      // Save to local IndexedDB for offline access
+      await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
 
-    setCustomCategories(prev => [...prev, newCategory]);
-    toast.success('Category added');
+      const newCategory: Category = {
+        id: serverCategory.id,
+        name: serverCategory.name,
+        icon: Layers,
+        color: serverCategory.color,
+      };
+
+      setCustomCategories(prev => [...prev, newCategory]);
+      toast.success('Category added');
+    } catch (error) {
+      // If offline or error, save locally only
+      if (!isOnline) {
+        const id = generateId();
+        await db.customCategories.add({ id, name, color });
+
+        const newCategory: Category = {
+          id,
+          name,
+          icon: Layers,
+          color,
+        };
+
+        setCustomCategories(prev => [...prev, newCategory]);
+        toast.success('Category saved locally (will sync when online)');
+      } else {
+        console.error('Failed to add category:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to add category');
+      }
+    }
   };
 
   return (

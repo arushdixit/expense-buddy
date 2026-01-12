@@ -1,5 +1,5 @@
 import { db, LocalExpense, LocalSubcategory, now, setLastSyncTime, getLastSyncTime, getPendingCount, generateId } from './db';
-import { ApiExpense, ApiSubcategory, expenseApi, subcategoryApi, healthCheck } from './api';
+import { ApiExpense, ApiSubcategory, expenseApi, subcategoryApi, categoryApi, healthCheck } from './api';
 
 // Connection status - centralized in SyncContext, this is just a fallback
 export const getIsOnline = () => navigator.onLine;
@@ -133,6 +133,11 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
         await db.subcategories.bulkPut(
             serverSubcategories.map(sub => ({ ...sub, syncStatus: 'synced' as const }))
         );
+
+        // 5. Sync custom categories
+        const serverCategories = await categoryApi.getAll();
+        await db.customCategories.clear();
+        await db.customCategories.bulkPut(serverCategories);
 
         await setLastSyncTime(now());
         result.success = true;
