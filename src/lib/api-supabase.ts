@@ -80,6 +80,13 @@ export const expenseApi = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Authentication required');
 
+        // Fetch user's household_id
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('household_id')
+            .eq('id', user.id)
+            .single();
+
         const newExpense = {
             id: crypto.randomUUID(),
             amount: expense.amount,
@@ -88,7 +95,8 @@ export const expenseApi = {
             date: expense.date,
             note: expense.note || null,
             updated_at: Date.now(),
-            user_id: user.id
+            user_id: user.id,
+            household_id: profile?.household_id || null
         };
 
         const { data, error } = await supabase
@@ -161,9 +169,21 @@ export const subcategoryApi = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Authentication required');
 
+        // Fetch user's household_id
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('household_id')
+            .eq('id', user.id)
+            .single();
+
         const { data, error } = await supabase
             .from('subcategories')
-            .insert({ category, name, user_id: user.id })
+            .insert({
+                category,
+                name,
+                user_id: user.id,
+                household_id: profile?.household_id || null
+            })
             .select()
             .single();
 
