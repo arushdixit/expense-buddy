@@ -25,14 +25,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     const fetchHouseholdId = async (userId: string) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('household_id')
-            .eq('id', userId)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', userId)
+                .single();
 
-        if (data && !error) {
-            setHouseholdId(data.household_id);
+            if (error) {
+                console.warn('Profile not found or tables not setup:', error.message);
+                return;
+            }
+
+            if (data) {
+                setHouseholdId(data.household_id);
+            }
+        } catch (err) {
+            console.error('Error fetching household:', err);
         }
     };
 
