@@ -26,34 +26,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
+            // Use maybeSingle to avoid 406 error if record is missing
             let { data, error } = await supabase
                 .from('profiles')
                 .select('household_id')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
-            if (error && error.code === 'PGRST116') {
+            if (error) {
+                console.error('Error fetching profile:', error.message);
+                return;
+            }
+
+            if (!data) {
                 // Profile missing! Let's create it.
                 console.log('Profile missing, creating one...');
-                const { data: household } = await supabase.from('households').select('id').limit(1).single();
+
+                // Get first household or create one
+                let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
+
+                let hId = household?.id;
+
+                if (!hId) {
+                    const { data: newH } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
+                    hId = newH?.id;
+                }
 
                 const { data: newProfile, error: createError } = await supabase
                     .from('profiles')
                     .insert({
                         id: userId,
                         email: email,
-                        household_id: household?.id || null
+                        household_id: hId || null
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (!createError && newProfile) {
                     setHouseholdId(newProfile.household_id);
                 }
-                return;
-            }
-
-            if (data) {
+            } else {
                 setHouseholdId(data.household_id);
             }
         } catch (err) {
