@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById } from "@/lib/data";
 import { syncApi } from "@/lib/sync";
-import { LocalExpense, LocalSubcategory } from "@/lib/db";
+import { db, LocalExpense, LocalSubcategory, LocalCategory, generateId } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useSync } from "@/context/SyncContext";
@@ -124,6 +124,16 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
 
       setCustomSubcategories(subcategoriesMap);
+
+      // Load custom categories from IndexedDB
+      const localCategories = await db.customCategories.toArray();
+      const mappedCategories: Category[] = localCategories.map((cat: LocalCategory) => ({
+        id: cat.id,
+        name: cat.name,
+        icon: Layers,
+        color: cat.color,
+      }));
+      setCustomCategories(mappedCategories);
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
@@ -225,14 +235,20 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.success('Subcategory added');
   };
 
-  const addCustomCategory = (name: string, color: string) => {
+  const addCustomCategory = async (name: string, color: string) => {
+    const id = generateId();
     const newCategory: Category = {
-      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id,
       name,
       icon: Layers,
       color,
     };
+
+    // Persist to IndexedDB
+    await db.customCategories.add({ id, name, color });
+
     setCustomCategories(prev => [...prev, newCategory]);
+    toast.success('Category added');
   };
 
   return (
