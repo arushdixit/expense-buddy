@@ -24,16 +24,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [householdId, setHouseholdId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchHouseholdId = async (userId: string) => {
+    const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
-            const { data, error } = await supabase
+            let { data, error } = await supabase
                 .from('profiles')
                 .select('household_id')
                 .eq('id', userId)
                 .single();
 
-            if (error) {
-                console.warn('Profile not found or tables not setup:', error.message);
+            if (error && error.code === 'PGRST116') {
+                // Profile missing! Let's create it.
+                console.log('Profile missing, creating one...');
+                const { data: household } = await supabase.from('households').select('id').limit(1).single();
+
+                const { data: newProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        email: email,
+                        household_id: household?.id || null
+                    })
+                    .select()
+                    .single();
+
+                if (!createError && newProfile) {
+                    setHouseholdId(newProfile.household_id);
+                }
                 return;
             }
 
@@ -41,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setHouseholdId(data.household_id);
             }
         } catch (err) {
-            console.error('Error fetching household:', err);
+            console.error('Error in fetchHouseholdId:', err);
         }
     };
 
@@ -50,16 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) fetchHouseholdId(session.user.id);
+            if (session?.user) fetchHouseholdId(session.user.id, session.user.email);
             setLoading(false);
         });
 
-        // Listen for changes on auth state (sign in, sign out, etc.)
+        // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchHouseholdId(session.user.id);
+                fetchHouseholdId(session.user.id, session.user.email);
             } else {
                 setHouseholdId(null);
             }
