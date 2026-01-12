@@ -17,6 +17,7 @@ dev-dist
 *.db
 *.db-shm
 *.db-wal
+*.db.backup*
 
 # Server
 server/dist
@@ -38,5 +39,5 @@ WARP.md
 
 #env
 .env
-.env.example
+# Note: .env.example IS committed (template for developers)
 server/expenses.db.backup-20260104_213036
