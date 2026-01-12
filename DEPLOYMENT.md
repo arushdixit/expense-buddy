@@ -39,10 +39,12 @@ This guide walks you through deploying your expense tracking PWA for **free** us
 
 1. Go to **Settings** (gear icon, bottom left)
 2. Click **API** in the sidebar
-3. Copy these values (you'll need them for Vercel):
+3. Under **"Publishable and secret API keys"** (or legacy keys), copy:
    - **Project URL** (e.g., `https://abcdefgh.supabase.co`)
-   - **anon public** key (the long JWT token)
-   - **service_role** key (for migration only - keep this secret!)
+   - **Publishable key** (also called "anon public" in legacy) - safe for frontend
+   - **Secret key** (also called "service_role" in legacy) - for migration only!
+
+> 💡 **Note**: The new "Publishable/Secret" keys and legacy "anon/service_role" keys work identically - Supabase just renamed them for clarity.
 
 ---
 
