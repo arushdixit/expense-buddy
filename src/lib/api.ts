@@ -27,4 +27,4 @@ if (useSupabase) {
 export const expenseApi = useSupabase ? supabaseApi.expenseApi : expressApi.expenseApi;
 export const subcategoryApi = useSupabase ? supabaseApi.subcategoryApi : expressApi.subcategoryApi;
 export const statsApi = useSupabase ? supabaseApi.statsApi : expressApi.statsApi;
-export const healthCheck = useSupabase ? supabaseApi.healthCheck : expressApi.healthCheck;
+export const healthCheck = useSupabase ? async () => true : expressApi.healthCheck;
