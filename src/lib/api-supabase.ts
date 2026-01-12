@@ -77,6 +77,9 @@ export const expenseApi = {
     },
 
     async create(expense: Omit<ApiExpense, 'id' | 'created_at'>): Promise<ApiExpense> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
         const newExpense = {
             id: crypto.randomUUID(),
             amount: expense.amount,
@@ -85,6 +88,7 @@ export const expenseApi = {
             date: expense.date,
             note: expense.note || null,
             updated_at: Date.now(),
+            user_id: user.id
         };
 
         const { data, error } = await supabase
@@ -154,9 +158,12 @@ export const subcategoryApi = {
     },
 
     async create(category: string, name: string): Promise<ApiSubcategory> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
         const { data, error } = await supabase
             .from('subcategories')
-            .insert({ category, name })
+            .insert({ category, name, user_id: user.id })
             .select()
             .single();
 
