@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SyncProvider } from "@/context/SyncContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
     <SyncProvider>
       <TooltipProvider>
         <Toaster />
+        <SpeedInsights />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
