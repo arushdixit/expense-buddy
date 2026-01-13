@@ -30,7 +30,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onEdit }) => {
   const categoryTotals = calculateCategoryTotals(monthlyExpenses);
   const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const recentExpenses = monthlyExpenses.slice(0, 5);
+  const recentExpenses = [...monthlyExpenses]
+    .sort((a, b) => {
+      const timeA = a.createdAt || "";
+      const timeB = b.createdAt || "";
+      return timeB.localeCompare(timeA);
+    })
+    .slice(0, 5);
 
   const sortedCategories = allCategories
     .map(cat => ({ ...cat, total: categoryTotals[cat.id] || 0 }))

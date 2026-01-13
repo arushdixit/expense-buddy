@@ -15,6 +15,7 @@ export interface Expense {
   amount: number;
   date: string;
   note?: string;
+  createdAt?: string;
 }
 
 export interface MonthlyData {

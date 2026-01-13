@@ -34,6 +34,7 @@ const localExpenseToExpense = (localExpense: LocalExpense, customCategories: Cat
     amount: localExpense.amount,
     date: localExpense.date,
     note: localExpense.note,
+    createdAt: localExpense.created_at,
   };
 };
 

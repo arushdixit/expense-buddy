@@ -334,6 +334,13 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                   if (isToday(date)) dateHeader = "Today";
                   else if (isYesterday(date)) dateHeader = "Yesterday";
 
+                  // Sort items within the day by createdAt descending
+                  const sortedItems = [...items].sort((a, b) => {
+                    const timeA = a.createdAt || "";
+                    const timeB = b.createdAt || "";
+                    return timeB.localeCompare(timeA);
+                  });
+
                   return (
                     <div key={dateStr} className="space-y-2">
                       <div className="flex items-center gap-2 px-1">
@@ -343,7 +350,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                         <div className="h-[1px] flex-1 bg-border/40" />
                       </div>
                       <div className="space-y-1">
-                        {items.map((expense) => (
+                        {sortedItems.map((expense) => (
                           <ExpenseItem key={expense.id} expense={expense} onEdit={onEdit} />
                         ))}
                       </div>
