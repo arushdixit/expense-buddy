@@ -287,21 +287,33 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo<ExpenseContextType>(() => ({
+    expenses,
+    isLoading,
+    addExpense,
+    deleteExpense,
+    updateExpense,
+    customSubcategories,
+    addCustomSubcategory,
+    customCategories,
+    addCustomCategory,
+    refreshExpenses,
+  }), [
+    expenses,
+    isLoading,
+    addExpense,
+    deleteExpense,
+    updateExpense,
+    customSubcategories,
+    addCustomSubcategory,
+    customCategories,
+    addCustomCategory,
+    refreshExpenses,
+  ]);
+
   return (
-    <ExpenseContext.Provider
-      value={{
-        expenses,
-        isLoading,
-        addExpense,
-        deleteExpense,
-        updateExpense,
-        customSubcategories,
-        addCustomSubcategory,
-        customCategories,
-        addCustomCategory,
-        refreshExpenses,
-      }}
-    >
+    <ExpenseContext.Provider value={contextValue}>
       {children}
     </ExpenseContext.Provider>
   );
