@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById } from "@/lib/data";
 import { syncApi } from "@/lib/sync";
-import { categoryApi } from "@/lib/api";
-import { db, LocalExpense, LocalSubcategory, LocalCategory, generateId } from "@/lib/db";
+import { subcategoryApi } from "@/lib/api";
+import { LocalExpense, LocalSubcategory } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useSync } from "@/context/SyncContext";
@@ -37,12 +37,13 @@ const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
 };
 
 // Helper function to convert frontend expense to sync API format
-const expenseToLocalData = (expense: Omit<Expense, "id">) => {
-  const category = getCategoryById(expense.categoryId);
+const expenseToLocalData = (expense: Omit<Expense, "id">, customCategories: Category[] = []) => {
+  // Look in both predefined and custom categories
+  const category = getCategoryById(expense.categoryId, customCategories);
 
   return {
     amount: expense.amount,
-    category: category?.name || expense.categoryId,
+    category: category?.name || expense.categoryId, // Should always find it now
     subcategory: expense.subcategory,
     date: expense.date,
     note: expense.note,
@@ -51,17 +52,10 @@ const expenseToLocalData = (expense: Omit<Expense, "id">) => {
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
-// Simple category data without icon component (for state storage)
-interface CategoryData {
-  id: string;
-  name: string;
-  color: string;
-}
-
 export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>({});
-  const [customCategoryData, setCustomCategoryData] = useState<CategoryData[]>([]);
+  const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Access sync context for refreshing after sync and triggering auto-sync
@@ -69,14 +63,6 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Auto-sync debounce timer
   const autoSyncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Convert custom category data to full categories with icons (memoized)
-  const customCategories = React.useMemo<Category[]>(() => {
-    return customCategoryData.map(cat => ({
-      ...cat,
-      icon: Layers,
-    }));
-  }, [customCategoryData]);
 
   // Trigger auto-sync after a delay (debounced)
   const scheduleAutoSync = useCallback(() => {
@@ -140,15 +126,6 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
 
       setCustomSubcategories(subcategoriesMap);
-
-      // Load custom categories from IndexedDB (without icon)
-      const localCategories = await db.customCategories.toArray();
-      const categoryData: CategoryData[] = localCategories.map((cat: LocalCategory) => ({
-        id: cat.id,
-        name: cat.name,
-        color: cat.color,
-      }));
-      setCustomCategoryData(categoryData);
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
@@ -183,7 +160,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const addExpense = async (expense: Omit<Expense, "id">) => {
     try {
-      const localData = expenseToLocalData(expense);
+      const localData = expenseToLocalData(expense, customCategories);
       const createdExpense = await syncApi.createExpense(localData);
       const mappedExpense = localExpenseToExpense(createdExpense);
       setExpenses(prev => [mappedExpense, ...prev]);
@@ -242,78 +219,64 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const addCustomSubcategory = async (categoryId: string, subcategory: string) => {
-    // For now, just add locally. Will sync when adding expense with this subcategory
-    setCustomSubcategories(prev => ({
-      ...prev,
-      [categoryId]: [...(prev[categoryId] || []), subcategory],
-    }));
-    toast.success('Subcategory added');
-  };
+    // Get the category name for saving to Supabase
+    const category = getCategoryById(categoryId, customCategories);
+    const categoryName = category?.name || categoryId;
 
-  const addCustomCategory = async (name: string, color: string) => {
     try {
-      // Try to save to Supabase first (this also validates uniqueness)
-      const serverCategory = await categoryApi.create(name, color);
+      // Try to save to Supabase first
+      if (isOnline) {
+        await subcategoryApi.create(categoryName, subcategory);
+      }
 
-      // Save to local IndexedDB for offline access
-      await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
+      // Add to local state
+      setCustomSubcategories(prev => ({
+        ...prev,
+        [categoryId]: [...(prev[categoryId] || []), subcategory],
+      }));
 
-      const newCategoryData: CategoryData = {
-        id: serverCategory.id,
-        name: serverCategory.name,
-        color: serverCategory.color,
-      };
-
-      setCustomCategoryData(prev => [...prev, newCategoryData]);
-      toast.success('Category added');
+      toast.success('Subcategory added');
     } catch (error) {
-      // If offline or error, save locally only
+      // If offline or error, still add locally
+      setCustomSubcategories(prev => ({
+        ...prev,
+        [categoryId]: [...(prev[categoryId] || []), subcategory],
+      }));
+
       if (!isOnline) {
-        const id = generateId();
-        await db.customCategories.add({ id, name, color });
-
-        const newCategoryData: CategoryData = {
-          id,
-          name,
-          color,
-        };
-
-        setCustomCategoryData(prev => [...prev, newCategoryData]);
-        toast.success('Category saved locally (will sync when online)');
+        toast.success('Subcategory saved locally (will sync when online)');
       } else {
-        console.error('Failed to add category:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to add category');
+        console.error('Failed to add subcategory:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to add subcategory');
       }
     }
   };
 
-  // Memoize context value to prevent unnecessary re-renders
-  const contextValue = React.useMemo<ExpenseContextType>(() => ({
-    expenses,
-    isLoading,
-    addExpense,
-    deleteExpense,
-    updateExpense,
-    customSubcategories,
-    addCustomSubcategory,
-    customCategories,
-    addCustomCategory,
-    refreshExpenses,
-  }), [
-    expenses,
-    isLoading,
-    addExpense,
-    deleteExpense,
-    updateExpense,
-    customSubcategories,
-    addCustomSubcategory,
-    customCategories,
-    addCustomCategory,
-    refreshExpenses,
-  ]);
+  const addCustomCategory = (name: string, color: string) => {
+    const newCategory: Category = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      icon: Layers,
+      color,
+    };
+    setCustomCategories(prev => [...prev, newCategory]);
+  };
 
   return (
-    <ExpenseContext.Provider value={contextValue}>
+    <ExpenseContext.Provider
+      value={{
+        expenses,
+        isLoading,
+        addExpense,
+        deleteExpense,
+        updateExpense,
+        customSubcategories,
+        addCustomSubcategory,
+        customCategories,
+        addCustomCategory,
+        refreshExpenses,
+      }}
+    >
       {children}
     </ExpenseContext.Provider>
   );

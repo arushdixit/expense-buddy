@@ -95,21 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => subscription.unsubscribe();
     }, []);
 
-    const signOut = React.useCallback(async () => {
+    const signOut = async () => {
         await supabase.auth.signOut();
-    }, []);
-
-    // Memoize context value to prevent unnecessary re-renders
-    const contextValue = React.useMemo(() => ({
-        session,
-        user,
-        householdId,
-        loading,
-        signOut,
-    }), [session, user, householdId, loading, signOut]);
+    };
 
     return (
-        <AuthContext.Provider value={contextValue}>
+        <AuthContext.Provider value={{ session, user, householdId, loading, signOut }}>
             {children}
         </AuthContext.Provider>
     );

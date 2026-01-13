@@ -1,24 +1,29 @@
 import Dexie, { Table } from 'dexie';
-import { BaseExpense, BaseSubcategory, BaseCategory, SyncStatus } from './types';
 
-// Re-export SyncStatus for backward compatibility
-export type { SyncStatus } from './types';
+// Sync status for offline changes
+export type SyncStatus = 'synced' | 'pending' | 'deleted';
 
 // Local expense type with sync metadata
-export interface LocalExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
+export interface LocalExpense {
+    id: string;
+    amount: number;
+    category: string;
     subcategory?: string;
+    date: string;
     note?: string;
+    created_at?: string;
+    // Sync metadata
     syncStatus: SyncStatus;
-    updatedAt: number;
+    updatedAt: number; // Unix timestamp for conflict resolution
 }
 
 // Local subcategory type with sync metadata
-export interface LocalSubcategory extends BaseSubcategory {
+export interface LocalSubcategory {
+    id: number;
+    category: string;
+    name: string;
     syncStatus: SyncStatus;
 }
-
-// Local custom category
-export interface LocalCategory extends BaseCategory { }
 
 // Sync metadata store
 export interface SyncMeta {
@@ -30,24 +35,14 @@ export interface SyncMeta {
 export class ExpenseDatabase extends Dexie {
     expenses!: Table<LocalExpense, string>;
     subcategories!: Table<LocalSubcategory, number>;
-    customCategories!: Table<LocalCategory, string>;
     syncMeta!: Table<SyncMeta, string>;
 
     constructor() {
         super('ExpenseBuddyDB');
 
-        // Version 1: Original schema
         this.version(1).stores({
             expenses: 'id, category, date, syncStatus, updatedAt',
             subcategories: 'id, category, syncStatus',
-            syncMeta: 'key',
-        });
-
-        // Version 2: Add custom categories
-        this.version(2).stores({
-            expenses: 'id, category, date, syncStatus, updatedAt',
-            subcategories: 'id, category, syncStatus',
-            customCategories: 'id, name',
             syncMeta: 'key',
         });
     }

@@ -6,18 +6,25 @@
 
 import { supabase, DbExpense } from './supabase';
 import { generateId } from './db';
-import { BaseExpense, BaseSubcategory, BaseCategory } from './types';
 
-// ----- Types (extending base types) -----
+// ----- Types -----
 
-export interface ApiExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
+export interface ApiExpense {
+    id: string;
+    amount: number;
+    category: string;
     subcategory?: string;
+    date: string;
     note?: string;
+    created_at?: string;
+    updated_at?: number;
 }
 
-export interface ApiSubcategory extends BaseSubcategory { }
-
-export interface ApiCategory extends BaseCategory { }
+export interface ApiSubcategory {
+    id: number;
+    category: string;
+    name: string;
+}
 
 // ----- Helpers -----
 
@@ -42,17 +49,6 @@ export const expenseApi = {
             .order('date', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch expenses: ${error.message}`);
-        return (data || []).map(toApiExpense);
-    },
-
-    async getUpdatedSince(timestamp: number): Promise<ApiExpense[]> {
-        const { data, error } = await supabase
-            .from('expenses')
-            .select('*')
-            .gt('updated_at', timestamp)
-            .order('updated_at', { ascending: true });
-
-        if (error) throw new Error(`Failed to fetch updated expenses: ${error.message}`);
         return (data || []).map(toApiExpense);
     },
 
@@ -224,56 +220,69 @@ export const subcategoryApi = {
     },
 };
 
-// ----- Category API -----
+// ----- Statistics API -----
 
-export const categoryApi = {
-    async getAll(): Promise<ApiCategory[]> {
-        const { data, error } = await supabase
-            .from('categories')
-            .select('id, name, color')
-            .order('name');
+export const statsApi = {
+    async getByCategory(startDate?: string, endDate?: string) {
+        let query = supabase
+            .from('expenses')
+            .select('category, amount');
 
-        if (error) throw new Error(`Failed to fetch categories: ${error.message}`);
-        return data || [];
-    },
-
-    async create(name: string, color: string): Promise<ApiCategory> {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Authentication required');
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('household_id')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        const { data, error } = await supabase
-            .from('categories')
-            .insert({
-                name,
-                color,
-                user_id: user.id,
-                household_id: profile?.household_id || null
-            })
-            .select()
-            .single();
-
-        if (error) {
-            if (error.code === '23505') {
-                throw new Error('Category already exists');
-            }
-            throw new Error(`Failed to create category: ${error.message}`);
+        if (startDate && endDate) {
+            query = query.gte('date', startDate).lte('date', endDate);
         }
-        return { id: data.id, name: data.name, color: data.color };
+
+        const { data, error } = await query;
+
+        if (error) throw new Error(`Failed to fetch statistics: ${error.message}`);
+
+        const stats = (data || []).reduce((acc: Record<string, { count: number; total: number; min: number; max: number }>, row) => {
+            if (!acc[row.category]) {
+                acc[row.category] = { count: 0, total: 0, min: Infinity, max: -Infinity };
+            }
+            acc[row.category].count++;
+            acc[row.category].total += row.amount;
+            acc[row.category].min = Math.min(acc[row.category].min, row.amount);
+            acc[row.category].max = Math.max(acc[row.category].max, row.amount);
+            return acc;
+        }, {});
+
+        return Object.entries(stats)
+            .map(([category, stat]) => ({
+                category,
+                count: stat.count,
+                total: stat.total,
+                average: stat.total / stat.count,
+                min: stat.min === Infinity ? 0 : stat.min,
+                max: stat.max === -Infinity ? 0 : stat.max,
+            }))
+            .sort((a, b) => b.total - a.total);
     },
 
-    async delete(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('categories')
-            .delete()
-            .eq('id', id);
+    async getMonthly() {
+        const { data, error } = await supabase
+            .from('expenses')
+            .select('date, amount');
 
-        if (error) throw new Error(`Failed to delete category: ${error.message}`);
+        if (error) throw new Error(`Failed to fetch statistics: ${error.message}`);
+
+        const monthlyStats = (data || []).reduce((acc: Record<string, { count: number; total: number }>, row) => {
+            const month = row.date.substring(0, 7);
+            if (!acc[month]) {
+                acc[month] = { count: 0, total: 0 };
+            }
+            acc[month].count++;
+            acc[month].total += row.amount;
+            return acc;
+        }, {});
+
+        return Object.entries(monthlyStats)
+            .map(([month, stat]) => ({
+                month,
+                count: stat.count,
+                total: stat.total,
+            }))
+            .sort((a, b) => b.month.localeCompare(a.month));
     },
 };
 

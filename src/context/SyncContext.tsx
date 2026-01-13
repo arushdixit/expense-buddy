@@ -167,17 +167,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [refreshStatus]);
 
-    // Memoize context value to prevent unnecessary re-renders
-    const contextValue = React.useMemo(() => ({
-        ...state,
-        triggerSync,
-        refreshStatus,
-        registerSyncCallback,
-        unregisterSyncCallback,
-    }), [state, triggerSync, refreshStatus, registerSyncCallback, unregisterSyncCallback]);
-
     return (
-        <SyncContext.Provider value={contextValue}>
+        <SyncContext.Provider value={{ ...state, triggerSync, refreshStatus, registerSyncCallback, unregisterSyncCallback }}>
             {children}
         </SyncContext.Provider>
     );
