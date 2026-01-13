@@ -100,23 +100,49 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       setIsLoading(true);
 
+      // Check if DB is already known to be blocked
+      if (db.isBlocked) {
+        throw new Error('Database is blocked');
+      }
+
+      // Initialize DB explicitly
+      const dbReady = await db.ensureInitialized();
+      if (!dbReady) {
+        throw new Error('Database failed to initialize');
+      }
+
       // 1. Load custom categories from IndexedDB FIRST
-      const localCategories = await db.customCategories.toArray();
-      const loadedCategories: Category[] = localCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: Layers,
-        color: cat.color,
-      }));
+      let loadedCategories: Category[] = [];
+      try {
+        const localCategories = await db.customCategories.toArray();
+        loadedCategories = localCategories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          icon: Layers,
+          color: cat.color,
+        }));
+      } catch (err) {
+        console.error('Dexie Error in loadData (categories):', err);
+      }
       setCustomCategories(loadedCategories);
 
       // 2. Load expenses and map them using the categories we just loaded
-      const localExpenses = await syncApi.getAllExpenses();
+      let localExpenses: LocalExpense[] = [];
+      try {
+        localExpenses = await syncApi.getAllExpenses();
+      } catch (err) {
+        console.error('Dexie Error in loadData (expenses):', err);
+      }
       const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
 
       // 3. Load subcategories and group by category
-      const localSubcategories = await syncApi.getAllSubcategories();
+      let localSubcategories: LocalSubcategory[] = [];
+      try {
+        localSubcategories = await syncApi.getAllSubcategories();
+      } catch (err) {
+        console.error('Dexie Error in loadData (subcategories):', err);
+      }
       const subcategoriesMap: Record<string, string[]> = {};
       const allCategories = [...categories, ...loadedCategories];
 
@@ -141,23 +167,32 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       setCustomSubcategories(subcategoriesMap);
     } catch (error) {
       console.error('Failed to load data:', error);
-      toast.error('Failed to load data');
+      // Only show error toast if it's not a storage block (which has its own UI)
+      if (!db.isBlocked) {
+        toast.error('Failed to load data from storage');
+      }
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+
   // Refresh all data (called after sync or data changes)
   const refreshExpenses = useCallback(async () => {
     try {
       // 1. Reload categories
-      const localCategories = await db.customCategories.toArray();
-      const loadedCategories: Category[] = localCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: Layers,
-        color: cat.color,
-      }));
+      let loadedCategories: Category[] = [];
+      try {
+        const localCategories = await db.customCategories.toArray();
+        loadedCategories = localCategories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          icon: Layers,
+          color: cat.color,
+        }));
+      } catch (err) {
+        console.error('Dexie Error in refreshExpenses (categories):', err);
+      }
       setCustomCategories(loadedCategories);
 
       // 2. Reload subcategories
@@ -304,7 +339,11 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       const serverCategory = await categoryApi.create(name, color);
 
       // Save to local IndexedDB for offline access
-      await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
+      try {
+        await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
+      } catch (err) {
+        console.error('Dexie Error in addCustomCategory:', err);
+      }
 
       const newCategory: Category = {
         id: serverCategory.id,
@@ -319,7 +358,11 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       // If offline or error, save locally only
       if (!isOnline) {
         const id = generateId();
-        await db.customCategories.add({ id, name, color });
+        try {
+          await db.customCategories.add({ id, name, color });
+        } catch (err) {
+          console.error('Dexie Error in addCustomCategory (offline):', err);
+        }
 
         const newCategory: Category = {
           id,

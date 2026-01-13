@@ -9,6 +9,7 @@ import { CompareView } from "@/components/views/CompareView";
 import { TrendsView } from "@/components/views/TrendsView";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expense } from "@/lib/data";
+import { StorageWarning } from "@/components/StorageWarning";
 
 const Index: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -37,7 +38,8 @@ const Index: React.FC = () => {
 
   return (
     <ExpenseProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20">
+        <StorageWarning />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

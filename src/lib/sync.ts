@@ -157,11 +157,16 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
 export const syncApi = {
     // Get all expenses (from IndexedDB)
     async getAllExpenses(): Promise<LocalExpense[]> {
-        return db.expenses
-            .where('syncStatus')
-            .notEqual('deleted')
-            .reverse()
-            .sortBy('date');
+        try {
+            return await db.expenses
+                .where('syncStatus')
+                .notEqual('deleted')
+                .reverse()
+                .sortBy('date');
+        } catch (err) {
+            console.error('Dexie Error in getAllExpenses:', err);
+            return [];
+        }
     },
 
     // Get expenses by date range
@@ -178,9 +183,13 @@ export const syncApi = {
 
     // Get single expense
     async getExpenseById(id: string): Promise<LocalExpense | undefined> {
-        const expense = await db.expenses.get(id);
-        if (expense && expense.syncStatus !== 'deleted') {
-            return expense;
+        try {
+            const expense = await db.expenses.get(id);
+            if (expense && expense.syncStatus !== 'deleted') {
+                return expense;
+            }
+        } catch (err) {
+            console.error('Dexie Error in getExpenseById:', err);
         }
         return undefined;
     },
@@ -240,7 +249,12 @@ export const syncApi = {
 
     // Get all subcategories
     async getAllSubcategories(): Promise<LocalSubcategory[]> {
-        return db.subcategories.toArray();
+        try {
+            return await db.subcategories.toArray();
+        } catch (err) {
+            console.error('Dexie Error in getAllSubcategories:', err);
+            return [];
+        }
     },
 
     // Get subcategories by category
@@ -253,11 +267,22 @@ export const syncApi = {
         isOnline: boolean;
         pendingCount: number;
         lastSyncTime: number | null;
+        isStorageBlocked?: boolean;
     }> {
-        return {
-            isOnline: getIsOnline(),
-            pendingCount: await getPendingCount(),
-            lastSyncTime: await getLastSyncTime(),
-        };
+        try {
+            return {
+                isOnline: getIsOnline(),
+                pendingCount: await getPendingCount(),
+                lastSyncTime: await getLastSyncTime(),
+            };
+        } catch (err) {
+            console.error('Dexie Error in getSyncStatus:', err);
+            return {
+                isOnline: getIsOnline(),
+                pendingCount: 0,
+                lastSyncTime: null,
+                isStorageBlocked: err instanceof Error && (err.name === 'SecurityError' || err.name === 'UnknownError'),
+            };
+        }
     },
 };

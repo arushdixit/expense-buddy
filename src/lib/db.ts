@@ -44,6 +44,8 @@ export class ExpenseDatabase extends Dexie {
     subcategories!: Table<LocalSubcategory, number>;
     customCategories!: Table<LocalCategory, string>;
     syncMeta!: Table<SyncMeta, string>;
+    private _isInitialized: boolean = false;
+    private _isBlocked: boolean = false;
 
     constructor() {
         super('ExpenseBuddyDB');
@@ -62,11 +64,45 @@ export class ExpenseDatabase extends Dexie {
             customCategories: 'id, name',
             syncMeta: 'key',
         });
+
+        // Handle database opening errors
+        this.on('blocked', () => {
+            console.warn('Dexie: Database is blocked. Please close other tabs of this app.');
+            this._isBlocked = true;
+        });
+    }
+
+    async ensureInitialized(): Promise<boolean> {
+        if (this._isInitialized) return !this._isBlocked;
+
+        try {
+            await this.open();
+            this._isInitialized = true;
+            return true;
+        } catch (err) {
+            console.error('Failed to open IndexedDB:', err);
+            this._isBlocked = true;
+            return false;
+        }
+    }
+
+    get isBlocked() {
+        return this._isBlocked;
     }
 }
 
 // Singleton instance
 export const db = new ExpenseDatabase();
+
+// Helper to check if IndexedDB is available and working
+export const isStorageAvailable = async (): Promise<boolean> => {
+    try {
+        if (!window.indexedDB) return false;
+        return await db.ensureInitialized();
+    } catch (e) {
+        return false;
+    }
+};
 
 // Helper to get current timestamp
 export const now = () => Date.now();
@@ -85,20 +121,33 @@ export const generateId = (): string => {
 
 // Get last sync time
 export const getLastSyncTime = async (): Promise<number | null> => {
-    const meta = await db.syncMeta.get('lastSyncTime');
-    return meta ? Number(meta.value) : null;
+    try {
+        const meta = await db.syncMeta.get('lastSyncTime');
+        return meta ? Number(meta.value) : null;
+    } catch (e) {
+        return null;
+    }
 };
 
 // Set last sync time
 export const setLastSyncTime = async (timestamp: number): Promise<void> => {
-    await db.syncMeta.put({ key: 'lastSyncTime', value: timestamp });
+    try {
+        await db.syncMeta.put({ key: 'lastSyncTime', value: timestamp });
+    } catch (e) {
+        console.error('Failed to set last sync time:', e);
+    }
 };
 
 // Get pending changes count
 export const getPendingCount = async (): Promise<number> => {
-    const pending = await db.expenses
-        .where('syncStatus')
-        .anyOf(['pending', 'deleted'])
-        .count();
-    return pending;
+    try {
+        const pending = await db.expenses
+            .where('syncStatus')
+            .anyOf(['pending', 'deleted'])
+            .count();
+        return pending;
+    } catch (e) {
+        return 0;
+    }
 };
+

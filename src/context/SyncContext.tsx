@@ -8,6 +8,7 @@ interface SyncState {
     pendingCount: number;
     lastSyncTime: number | null;
     lastSyncResult: { success: boolean; message: string } | null;
+    isStorageBlocked: boolean;
 }
 
 // Callback type for sync completion notification
@@ -30,6 +31,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         pendingCount: 0,
         lastSyncTime: null,
         lastSyncResult: null,
+        isStorageBlocked: false,
     });
 
     // Store registered callbacks for sync completion
@@ -68,13 +70,21 @@ export function SyncProvider({ children }: { children: ReactNode }) {
                 pendingCount: status.pendingCount,
                 lastSyncTime: status.lastSyncTime,
                 isOnline: status.isOnline && serverReachable,
+                isStorageBlocked: !!status.isStorageBlocked,
             }));
         } catch (error) {
             console.error('Failed to refresh sync status:', error);
+            // If it's a security error or unknown error, mark storage as blocked
+            const isSecurityError = error instanceof Error &&
+                (error.name === 'SecurityError' || error.name === 'UnknownError' || error.message.includes('denied'));
+
+            setState(prev => ({ ...prev, isStorageBlocked: isSecurityError || prev.isStorageBlocked }));
         }
     }, []);
 
     const triggerSync = useCallback(async () => {
+        if (state.isStorageBlocked) return;
+
         setState(prev => ({ ...prev, isSyncing: true, lastSyncResult: null }));
 
         try {
@@ -108,44 +118,49 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
 
         await refreshStatus();
-    }, [refreshStatus, notifySyncComplete, householdId]);
+    }, [refreshStatus, notifySyncComplete, householdId, state.isStorageBlocked]);
 
     // Initialize on mount and trigger auto-sync
     useEffect(() => {
         const init = async () => {
-            await refreshStatus();
+            try {
+                await refreshStatus();
 
-            // Auto-sync on app open if server is available (but only once)
-            if (!hasInitialSync.current && householdId) {
-                hasInitialSync.current = true;
-                const serverAvailable = await checkServerConnection();
-                if (serverAvailable) {
-                    // Small delay to let UI render first
-                    setTimeout(async () => {
-                        setState(prev => ({ ...prev, isSyncing: true }));
-                        try {
-                            const result = await syncWithServer(householdId);
-                            setState(prev => ({
-                                ...prev,
-                                isSyncing: false,
-                                pendingCount: result.success ? 0 : prev.pendingCount,
-                                lastSyncTime: result.success ? Date.now() : prev.lastSyncTime,
-                                lastSyncResult: null, // Don't show result for auto-sync
-                            }));
-                            // Notify callbacks after auto-sync
-                            if (result.success) {
-                                notifySyncComplete();
+                // Auto-sync on app open if server is available (but only once)
+                if (!hasInitialSync.current && householdId && !state.isStorageBlocked) {
+                    hasInitialSync.current = true;
+                    const serverAvailable = await checkServerConnection();
+                    if (serverAvailable) {
+                        // Small delay to let UI render first
+                        setTimeout(async () => {
+                            setState(prev => ({ ...prev, isSyncing: true }));
+                            try {
+                                const result = await syncWithServer(householdId);
+                                setState(prev => ({
+                                    ...prev,
+                                    isSyncing: false,
+                                    pendingCount: result.success ? 0 : prev.pendingCount,
+                                    lastSyncTime: result.success ? Date.now() : prev.lastSyncTime,
+                                    lastSyncResult: null, // Don't show result for auto-sync
+                                }));
+                                // Notify callbacks after auto-sync
+                                if (result.success) {
+                                    notifySyncComplete();
+                                }
+                            } catch {
+                                setState(prev => ({ ...prev, isSyncing: false }));
                             }
-                        } catch {
-                            setState(prev => ({ ...prev, isSyncing: false }));
-                        }
-                        await refreshStatus();
-                    }, 500);
+                            await refreshStatus();
+                        }, 500);
+                    }
                 }
+            } catch (err) {
+                console.error('Initialization error:', err);
             }
         };
         init();
-    }, [refreshStatus, notifySyncComplete, householdId]);
+    }, [refreshStatus, notifySyncComplete, householdId, state.isStorageBlocked]);
+
 
     // Listen for online/offline changes
     useEffect(() => {
