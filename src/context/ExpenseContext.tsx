@@ -99,18 +99,29 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       setIsLoading(true);
 
-      // Load expenses from IndexedDB
+      // 1. Load custom categories from IndexedDB FIRST
+      const localCategories = await db.customCategories.toArray();
+      const loadedCategories: Category[] = localCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        icon: Layers,
+        color: cat.color,
+      }));
+      setCustomCategories(loadedCategories);
+
+      // 2. Load expenses and map them using the categories we just loaded
       const localExpenses = await syncApi.getAllExpenses();
       const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
 
-      // Load subcategories and group by category
+      // 3. Load subcategories and group by category
       const localSubcategories = await syncApi.getAllSubcategories();
       const subcategoriesMap: Record<string, string[]> = {};
+      const allCategories = [...categories, ...loadedCategories];
 
       localSubcategories.forEach((sub: LocalSubcategory) => {
-        // Find the category ID for this category name
-        const category = categories.find(cat =>
+        // Find the category for this subcategory
+        const category = allCategories.find(cat =>
           cat.name.toLowerCase() === sub.category.toLowerCase()
         );
         const categoryId = category?.id || sub.category.toLowerCase();
@@ -127,16 +138,6 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
 
       setCustomSubcategories(subcategoriesMap);
-
-      // Load custom categories from IndexedDB
-      const localCategories = await db.customCategories.toArray();
-      const loadedCategories: Category[] = localCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: Layers,
-        color: cat.color,
-      }));
-      setCustomCategories(loadedCategories);
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
