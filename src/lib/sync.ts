@@ -53,13 +53,11 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
             try {
                 const { syncStatus, updatedAt, ...expenseData } = expense;
 
-                try {
-                    // Check if exists
-                    const existing = await expenseApi.getById(expense.id);
-                    if (existing) {
-                        await expenseApi.update(expense.id, expenseData);
-                    }
-                } catch (err: any) {
+                // Check if exists
+                const existing = await expenseApi.getById(expense.id);
+                if (existing) {
+                    await expenseApi.update(expense.id, expenseData);
+                } else {
                     // Use original ID and householdId for creation
                     await expenseApi.create({
                         ...expenseData,

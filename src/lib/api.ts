@@ -81,15 +81,15 @@ export const expenseApi = {
         return (data || []).map(toApiExpense);
     },
 
-    async getById(id: string): Promise<ApiExpense> {
+    async getById(id: string): Promise<ApiExpense | null> {
         const { data, error } = await supabase
             .from('expenses')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (error) throw new Error(`Failed to fetch expense: ${error.message}`);
-        return toApiExpense(data);
+        return data ? toApiExpense(data) : null;
     },
 
     async create(expense: Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string }): Promise<ApiExpense> {
@@ -123,9 +123,10 @@ export const expenseApi = {
             .from('expenses')
             .insert(newExpense)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw new Error(`Failed to create expense: ${error.message}`);
+        if (!data) throw new Error('Failed to create expense: No data returned (check RLS policies)');
         return toApiExpense(data);
     },
 
@@ -145,9 +146,10 @@ export const expenseApi = {
             .update(updateData)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw new Error(`Failed to update expense: ${error.message}`);
+        if (!data) throw new Error('Failed to update expense: Not found or access denied');
         return toApiExpense(data);
     },
 
@@ -205,7 +207,7 @@ export const subcategoryApi = {
                 household_id: profile?.household_id || null
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             if (error.code === '23505') {
@@ -213,6 +215,7 @@ export const subcategoryApi = {
             }
             throw new Error(`Failed to create subcategory: ${error.message}`);
         }
+        if (!data) throw new Error('Failed to create subcategory: No data returned (check RLS policies)');
         return data;
     },
 
@@ -226,71 +229,6 @@ export const subcategoryApi = {
     },
 };
 
-// ----- Statistics API -----
-
-export const statsApi = {
-    async getByCategory(startDate?: string, endDate?: string) {
-        let query = supabase
-            .from('expenses')
-            .select('category, amount');
-
-        if (startDate && endDate) {
-            query = query.gte('date', startDate).lte('date', endDate);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw new Error(`Failed to fetch statistics: ${error.message}`);
-
-        const stats = (data || []).reduce((acc: Record<string, { count: number; total: number; min: number; max: number }>, row) => {
-            if (!acc[row.category]) {
-                acc[row.category] = { count: 0, total: 0, min: Infinity, max: -Infinity };
-            }
-            acc[row.category].count++;
-            acc[row.category].total += row.amount;
-            acc[row.category].min = Math.min(acc[row.category].min, row.amount);
-            acc[row.category].max = Math.max(acc[row.category].max, row.amount);
-            return acc;
-        }, {});
-
-        return Object.entries(stats)
-            .map(([category, stat]) => ({
-                category,
-                count: stat.count,
-                total: stat.total,
-                average: stat.total / stat.count,
-                min: stat.min === Infinity ? 0 : stat.min,
-                max: stat.max === -Infinity ? 0 : stat.max,
-            }))
-            .sort((a, b) => b.total - a.total);
-    },
-
-    async getMonthly() {
-        const { data, error } = await supabase
-            .from('expenses')
-            .select('date, amount');
-
-        if (error) throw new Error(`Failed to fetch statistics: ${error.message}`);
-
-        const monthlyStats = (data || []).reduce((acc: Record<string, { count: number; total: number }>, row) => {
-            const month = row.date.substring(0, 7);
-            if (!acc[month]) {
-                acc[month] = { count: 0, total: 0 };
-            }
-            acc[month].count++;
-            acc[month].total += row.amount;
-            return acc;
-        }, {});
-
-        return Object.entries(monthlyStats)
-            .map(([month, stat]) => ({
-                month,
-                count: stat.count,
-                total: stat.total,
-            }))
-            .sort((a, b) => b.month.localeCompare(a.month));
-    },
-};
 
 // ----- Category API -----
 
@@ -324,7 +262,7 @@ export const categoryApi = {
                 household_id: profile?.household_id || null
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             if (error.code === '23505') {
@@ -332,6 +270,7 @@ export const categoryApi = {
             }
             throw new Error(`Failed to create category: ${error.message}`);
         }
+        if (!data) throw new Error('Failed to create category: No data returned (check RLS policies)');
         return { id: data.id, name: data.name, color: data.color };
     },
 

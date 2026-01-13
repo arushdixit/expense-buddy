@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { formatDateForStorage } from "@/lib/dateUtils";
 
 // Default amounts for specific subcategories
 const DEFAULT_AMOUNTS: Record<string, number> = {
@@ -179,14 +180,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           categoryId: selectedCategory.id,
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
-          date: selectedDate.toISOString(),
+          date: formatDateForStorage(selectedDate),
         });
       } else {
         await addExpense({
           categoryId: selectedCategory.id,
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
-          date: selectedDate.toISOString(),
+          date: formatDateForStorage(selectedDate),
         });
       }
 

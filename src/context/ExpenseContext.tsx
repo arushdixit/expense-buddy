@@ -20,9 +20,10 @@ interface ExpenseContextType {
   refreshExpenses: () => Promise<void>;
 }
 
-// Helper function to convert local expense to frontend format (outside component for performance)
-const localExpenseToExpense = (localExpense: LocalExpense): Expense => {
-  const category = categories.find(cat =>
+// Helper function to convert local expense to frontend format
+const localExpenseToExpense = (localExpense: LocalExpense, customCategories: Category[] = []): Expense => {
+  const allCategories = [...categories, ...customCategories];
+  const category = allCategories.find(cat =>
     cat.name.toLowerCase() === localExpense.category.toLowerCase()
   );
 
@@ -100,7 +101,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // Load expenses from IndexedDB
       const localExpenses = await syncApi.getAllExpenses();
-      const mappedExpenses = localExpenses.map(localExpenseToExpense);
+      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
 
       // Load subcategories and group by category
@@ -148,12 +149,12 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const refreshExpenses = useCallback(async () => {
     try {
       const localExpenses = await syncApi.getAllExpenses();
-      const mappedExpenses = localExpenses.map(localExpenseToExpense);
+      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, customCategories));
       setExpenses(mappedExpenses);
     } catch (error) {
       console.error('Failed to refresh expenses:', error);
     }
-  }, []);
+  }, [customCategories]);
 
   // Load initial data
   useEffect(() => {
@@ -172,7 +173,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const localData = expenseToLocalData(expense, customCategories);
       const createdExpense = await syncApi.createExpense(localData);
-      const mappedExpense = localExpenseToExpense(createdExpense);
+      const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
       setExpenses(prev => [mappedExpense, ...prev]);
       refreshStatus(); // Update pending count in bg
       scheduleAutoSync(); // Trigger auto-sync
@@ -207,13 +208,13 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (updates.note !== undefined) localUpdates.note = updates.note;
       if (updates.subcategory !== undefined) localUpdates.subcategory = updates.subcategory;
       if (updates.categoryId !== undefined) {
-        const category = getCategoryById(updates.categoryId);
+        const category = getCategoryById(updates.categoryId, customCategories);
         localUpdates.category = category?.name || updates.categoryId;
       }
 
       const updatedExpense = await syncApi.updateExpense(id, localUpdates);
       if (updatedExpense) {
-        const mappedExpense = localExpenseToExpense(updatedExpense);
+        const mappedExpense = localExpenseToExpense(updatedExpense, customCategories);
         setExpenses(prev =>
           prev.map(exp => (exp.id === id ? mappedExpense : exp))
         );
