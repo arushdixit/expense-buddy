@@ -25,6 +25,13 @@ export interface LocalSubcategory {
     syncStatus: SyncStatus;
 }
 
+// Local custom category
+export interface LocalCategory {
+    id: string;
+    name: string;
+    color: string;
+}
+
 // Sync metadata store
 export interface SyncMeta {
     key: string;
@@ -35,14 +42,24 @@ export interface SyncMeta {
 export class ExpenseDatabase extends Dexie {
     expenses!: Table<LocalExpense, string>;
     subcategories!: Table<LocalSubcategory, number>;
+    customCategories!: Table<LocalCategory, string>;
     syncMeta!: Table<SyncMeta, string>;
 
     constructor() {
         super('ExpenseBuddyDB');
 
+        // Version 1: Initial schema
         this.version(1).stores({
             expenses: 'id, category, date, syncStatus, updatedAt',
             subcategories: 'id, category, syncStatus',
+            syncMeta: 'key',
+        });
+
+        // Version 2: Add custom categories table
+        this.version(2).stores({
+            expenses: 'id, category, date, syncStatus, updatedAt',
+            subcategories: 'id, category, syncStatus',
+            customCategories: 'id, name',
             syncMeta: 'key',
         });
     }
