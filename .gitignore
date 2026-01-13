@@ -41,3 +41,6 @@ WARP.md
 .env
 # Note: .env.example IS committed (template for developers)
 server/expenses.db.backup-20260104_213036
+
+# screenshots
+public/screenshots/
