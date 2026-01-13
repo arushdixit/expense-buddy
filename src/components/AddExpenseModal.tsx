@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Check, ChevronLeft, Calendar, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDateForStorage } from "@/lib/dateUtils";
 import { categories, Category, formatCurrency } from "@/lib/data";
 import { useExpenses } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
@@ -179,14 +180,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           categoryId: selectedCategory.id,
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
-          date: selectedDate.toISOString(),
+          date: formatDateForStorage(selectedDate),
         });
       } else {
         await addExpense({
           categoryId: selectedCategory.id,
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
-          date: selectedDate.toISOString(),
+          date: formatDateForStorage(selectedDate),
         });
       }
 
@@ -489,13 +490,12 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         {format(selectedDate, "PPP")}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[70]" align="start">
                       <CalendarComponent
                         mode="single"
                         selected={selectedDate}
                         onSelect={(date) => date && setSelectedDate(date)}
                         initialFocus
-                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
