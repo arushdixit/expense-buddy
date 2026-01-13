@@ -146,16 +146,49 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  // Refresh expenses (called after sync or data changes)
+  // Refresh all data (called after sync or data changes)
   const refreshExpenses = useCallback(async () => {
     try {
+      // 1. Reload categories
+      const localCategories = await db.customCategories.toArray();
+      const loadedCategories: Category[] = localCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        icon: Layers,
+        color: cat.color,
+      }));
+      setCustomCategories(loadedCategories);
+
+      // 2. Reload subcategories
+      const localSubcategories = await syncApi.getAllSubcategories();
+      const subcategoriesMap: Record<string, string[]> = {};
+      const allCategories = [...categories, ...loadedCategories];
+
+      localSubcategories.forEach((sub: LocalSubcategory) => {
+        const category = allCategories.find(cat =>
+          cat.name.toLowerCase() === sub.category.toLowerCase()
+        );
+        const categoryId = category?.id || sub.category.toLowerCase();
+
+        if (!subcategoriesMap[categoryId]) {
+          subcategoriesMap[categoryId] = [];
+        }
+
+        const predefinedSubs = category?.subcategories || [];
+        if (!predefinedSubs.includes(sub.name)) {
+          subcategoriesMap[categoryId].push(sub.name);
+        }
+      });
+      setCustomSubcategories(subcategoriesMap);
+
+      // 3. Reload and map expenses using the fresh categories
       const localExpenses = await syncApi.getAllExpenses();
-      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, customCategories));
+      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
     } catch (error) {
-      console.error('Failed to refresh expenses:', error);
+      console.error('Failed to refresh data:', error);
     }
-  }, [customCategories]);
+  }, []);
 
   // Load initial data
   useEffect(() => {
