@@ -51,10 +51,17 @@ const expenseToLocalData = (expense: Omit<Expense, "id">) => {
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
+// Simple category data without icon component (for state storage)
+interface CategoryData {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>({});
-  const [customCategories, setCustomCategories] = useState<Category[]>([]);
+  const [customCategoryData, setCustomCategoryData] = useState<CategoryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Access sync context for refreshing after sync and triggering auto-sync
@@ -62,6 +69,14 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Auto-sync debounce timer
   const autoSyncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Convert custom category data to full categories with icons (memoized)
+  const customCategories = React.useMemo<Category[]>(() => {
+    return customCategoryData.map(cat => ({
+      ...cat,
+      icon: Layers,
+    }));
+  }, [customCategoryData]);
 
   // Trigger auto-sync after a delay (debounced)
   const scheduleAutoSync = useCallback(() => {
@@ -126,15 +141,14 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       setCustomSubcategories(subcategoriesMap);
 
-      // Load custom categories from IndexedDB
+      // Load custom categories from IndexedDB (without icon)
       const localCategories = await db.customCategories.toArray();
-      const mappedCategories: Category[] = localCategories.map((cat: LocalCategory) => ({
+      const categoryData: CategoryData[] = localCategories.map((cat: LocalCategory) => ({
         id: cat.id,
         name: cat.name,
-        icon: Layers,
         color: cat.color,
       }));
-      setCustomCategories(mappedCategories);
+      setCustomCategoryData(categoryData);
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
@@ -244,14 +258,13 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Save to local IndexedDB for offline access
       await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
 
-      const newCategory: Category = {
+      const newCategoryData: CategoryData = {
         id: serverCategory.id,
         name: serverCategory.name,
-        icon: Layers,
         color: serverCategory.color,
       };
 
-      setCustomCategories(prev => [...prev, newCategory]);
+      setCustomCategoryData(prev => [...prev, newCategoryData]);
       toast.success('Category added');
     } catch (error) {
       // If offline or error, save locally only
@@ -259,14 +272,13 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         const id = generateId();
         await db.customCategories.add({ id, name, color });
 
-        const newCategory: Category = {
+        const newCategoryData: CategoryData = {
           id,
           name,
-          icon: Layers,
           color,
         };
 
-        setCustomCategories(prev => [...prev, newCategory]);
+        setCustomCategoryData(prev => [...prev, newCategoryData]);
         toast.success('Category saved locally (will sync when online)');
       } else {
         console.error('Failed to add category:', error);
