@@ -34,13 +34,13 @@ interface AddExpenseModalProps {
 type Step = 1 | 2 | 3;
 
 const COLOR_OPTIONS = [
-  "hsl(var(--chart-1))", // Turquoise
-  "hsl(var(--chart-2))", // Indigo
-  "hsl(var(--chart-3))", // Crimson Red
-  "hsl(var(--chart-4))", // Fresh Lime
-  "hsl(var(--chart-5))", // Amber/Bronze
-  "hsl(340 85% 65%)",    // Rose Pink
-  "hsl(165 75% 40%)",    // Mint Green
+  "hsl(160 75% 40%)",  // Emerald Green
+  "hsl(340 85% 65%)",  // Rose Pink
+  "hsl(295 65% 50%)",  // Plum Violet
+  "hsl(24 60% 40%)",   // Terracotta
+  "hsl(188 85% 45%)",  // Aqua Cyan
+  "hsl(52 85% 45%)",   // Mustard Gold
+  "hsl(215 20% 50%)",  // Slate Grey
 ];
 
 const ICON_OPTIONS = [
@@ -70,7 +70,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedColor, setSelectedColor] = useState("hsl(var(--chart-groceries))");
+  const [selectedColor, setSelectedColor] = useState("hsl(160 75% 40%)");
   const [selectedIcon, setSelectedIcon] = useState("Sparkles");
 
   const { addExpense, updateExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
@@ -111,7 +111,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setNewCategoryName("");
     setAmount("");
     setSelectedDate(new Date());
-    setSelectedColor("hsl(var(--chart-groceries))");
+    setSelectedColor("hsl(160 75% 40%)");
     setSelectedIcon("Sparkles");
   };
 
