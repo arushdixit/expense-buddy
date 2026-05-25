@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { Expense, categories, Category, getCategoryById } from "@/lib/data";
+import { Expense, categories, Category, getCategoryById, getCategoryIconAndColor } from "@/lib/data";
 import { syncApi } from "@/lib/sync";
 import { subcategoryApi, categoryApi } from "@/lib/api";
 import { db, LocalExpense, LocalSubcategory, generateId } from "@/lib/db";
@@ -115,12 +115,15 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       let loadedCategories: Category[] = [];
       try {
         const localCategories = await db.customCategories.toArray();
-        loadedCategories = localCategories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          icon: Layers,
-          color: cat.color,
-        }));
+        loadedCategories = localCategories.map(cat => {
+          const { icon, color } = getCategoryIconAndColor(cat.name, cat.color);
+          return {
+            id: cat.id,
+            name: cat.name,
+            icon,
+            color,
+          };
+        });
       } catch (err) {
         console.error('Dexie Error in loadData (categories):', err);
       }
@@ -184,12 +187,15 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       let loadedCategories: Category[] = [];
       try {
         const localCategories = await db.customCategories.toArray();
-        loadedCategories = localCategories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          icon: Layers,
-          color: cat.color,
-        }));
+        loadedCategories = localCategories.map(cat => {
+          const { icon, color } = getCategoryIconAndColor(cat.name, cat.color);
+          return {
+            id: cat.id,
+            name: cat.name,
+            icon,
+            color,
+          };
+        });
       } catch (err) {
         console.error('Dexie Error in refreshExpenses (categories):', err);
       }
@@ -345,11 +351,12 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         console.error('Dexie Error in addCustomCategory:', err);
       }
 
+      const { icon, color: finalColor } = getCategoryIconAndColor(serverCategory.name, serverCategory.color);
       const newCategory: Category = {
         id: serverCategory.id,
         name: serverCategory.name,
-        icon: Layers,
-        color: serverCategory.color,
+        icon,
+        color: finalColor,
       };
 
       setCustomCategories(prev => [...prev, newCategory]);
@@ -364,11 +371,12 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
           console.error('Dexie Error in addCustomCategory (offline):', err);
         }
 
+        const { icon: offlineIcon, color: offlineColor } = getCategoryIconAndColor(name, color);
         const newCategory: Category = {
           id,
           name,
-          icon: Layers,
-          color,
+          icon: offlineIcon,
+          color: offlineColor,
         };
 
         setCustomCategories(prev => [...prev, newCategory]);

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Check, ChevronLeft, Calendar, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { categories, Category, formatCurrency } from "@/lib/data";
+import { categories, Category, formatCurrency, AVAILABLE_ICONS } from "@/lib/data";
 import { useExpenses } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,12 +33,26 @@ interface AddExpenseModalProps {
 
 type Step = 1 | 2 | 3;
 
-const CATEGORY_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+const COLOR_OPTIONS = [
+  "hsl(var(--chart-groceries))",     // Green
+  "hsl(var(--chart-shopping))",      // Purple
+  "hsl(var(--chart-entertainment))", // Coral/Orange
+  "hsl(var(--chart-utilities))",     // Yellow/Gold
+  "hsl(var(--chart-luxury))",        // Pink/Magenta
+  "hsl(var(--chart-grooming))",      // Sky Blue
+  "hsl(var(--chart-transport))",     // Royal Blue
+];
+
+const ICON_OPTIONS = [
+  { name: "Utensils", label: "Food" },
+  { name: "Plane", label: "Travel" },
+  { name: "Heart", label: "Health" },
+  { name: "Gift", label: "Gift" },
+  { name: "Laptop", label: "Bills" },
+  { name: "Coins", label: "Cash" },
+  { name: "Coffee", label: "Cafe" },
+  { name: "Wrench", label: "Repair" },
+  { name: "Sparkles", label: "Misc" }
 ];
 
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
@@ -56,6 +70,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedColor, setSelectedColor] = useState("hsl(var(--chart-groceries))");
+  const [selectedIcon, setSelectedIcon] = useState("Sparkles");
 
   const { addExpense, updateExpense, customSubcategories, addCustomSubcategory, customCategories, addCustomCategory } = useExpenses();
 
@@ -95,6 +111,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setNewCategoryName("");
     setAmount("");
     setSelectedDate(new Date());
+    setSelectedColor("hsl(var(--chart-groceries))");
+    setSelectedIcon("Sparkles");
   };
 
   const handleClose = () => {
@@ -333,39 +351,91 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-2 mt-4"
+                    className="flex flex-col gap-4 mt-4 p-4 border rounded-2xl bg-secondary/15"
                   >
-                    <Input
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="New category name"
-                      className="flex-1"
-                      autoFocus
-                    />
-                    <Button
-                      onClick={() => {
-                        if (newCategoryName.trim()) {
-                          const colorIndex = customCategories.length % CATEGORY_COLORS.length;
-                          addCustomCategory(newCategoryName.trim(), CATEGORY_COLORS[colorIndex]);
-                          toast.success(`${newCategoryName.trim()} has been added`);
-                          setNewCategoryName("");
+                    <div className="flex gap-2">
+                      <Input
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="New category name"
+                        className="flex-1 text-[14px]"
+                        autoFocus
+                      />
+                      <Button
+                        onClick={() => {
+                          if (newCategoryName.trim()) {
+                            addCustomCategory(newCategoryName.trim(), `${selectedColor}|${selectedIcon}`);
+                            toast.success(`${newCategoryName.trim()} has been added`);
+                            setNewCategoryName("");
+                            setShowNewCategoryInput(false);
+                          }
+                        }}
+                        size="icon"
+                        className="gradient-teal shrink-0"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
                           setShowNewCategoryInput(false);
-                        }
-                      }}
-                      size="icon"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setShowNewCategoryInput(false);
-                        setNewCategoryName("");
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                          setNewCategoryName("");
+                        }}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Color Picker */}
+                    <div>
+                      <span className="text-xs font-semibold text-muted-foreground block mb-2">Select Color</span>
+                      <div className="flex flex-wrap gap-2">
+                        {COLOR_OPTIONS.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setSelectedColor(color)}
+                            className={cn(
+                              "h-8 w-8 rounded-full border-2 transition-all relative",
+                              selectedColor === color ? "border-primary scale-110 shadow-sm" : "border-transparent"
+                            )}
+                            style={{ backgroundColor: color }}
+                          >
+                            {selectedColor === color && (
+                              <Check className="h-4 w-4 text-white absolute inset-0 m-auto filter drop-shadow-sm" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Icon Picker */}
+                    <div>
+                      <span className="text-xs font-semibold text-muted-foreground block mb-2">Select Icon</span>
+                      <div className="grid grid-cols-5 gap-2">
+                        {ICON_OPTIONS.map(opt => {
+                          const IconComp = AVAILABLE_ICONS[opt.name] || Sparkles;
+                          return (
+                            <button
+                              key={opt.name}
+                              type="button"
+                              onClick={() => setSelectedIcon(opt.name)}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-xs font-medium gap-1",
+                                selectedIcon === opt.name 
+                                  ? "border-primary bg-primary/5 text-primary scale-105" 
+                                  : "border-border bg-background text-muted-foreground hover:bg-secondary/40"
+                              )}
+                            >
+                              <IconComp className="h-4 w-4" style={selectedIcon === opt.name ? { color: selectedColor } : {}} />
+                              <span className="text-[10px] scale-90">{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </motion.div>

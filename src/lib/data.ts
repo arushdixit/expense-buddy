@@ -1,4 +1,7 @@
-import { Home, ShoppingCart, ShoppingBag, Ticket, Zap, Diamond, Scissors, Car, LucideIcon } from "lucide-react";
+import { 
+  Home, ShoppingCart, ShoppingBag, Ticket, Zap, Diamond, Scissors, Car, LucideIcon,
+  Utensils, Plane, Heart, Gift, Book, Laptop, DollarSign, Coffee, Sparkles, Layers, Coins, Wrench
+} from "lucide-react";
 
 export interface Category {
   id: string;
@@ -82,6 +85,77 @@ export const categories: Category[] = [
     subcategories: ["Refund"],
   },
 ];
+
+// List of all available icons for custom categories
+export const AVAILABLE_ICONS: Record<string, LucideIcon> = {
+  Home, ShoppingCart, ShoppingBag, Ticket, Zap, Diamond, Scissors, Car,
+  Utensils, Plane, Heart, Gift, Book, Laptop, DollarSign, Coffee, Sparkles, Layers, Coins, Wrench
+};
+
+// Custom Category Helper that decodes "color|icon" format and implements smart fallbacks
+export function getCategoryIconAndColor(name: string, colorField?: string): { icon: LucideIcon; color: string } {
+  let finalColor = colorField || "hsl(var(--chart-5))";
+  let iconName = "Layers";
+
+  // Check if colorField has encoded icon: "color|iconName"
+  if (colorField && colorField.includes('|')) {
+    const parts = colorField.split('|');
+    finalColor = parts[0];
+    iconName = parts[1];
+  } else {
+    // Fallback: Smart keyword matching based on the category name
+    const lowerName = name.toLowerCase();
+
+    if (lowerName.includes("food") || lowerName.includes("dining") || lowerName.includes("restaurant") || lowerName.includes("eat") || lowerName.includes("cafe")) {
+      iconName = "Utensils";
+      if (!colorField) finalColor = "hsl(var(--chart-entertainment))";
+    } else if (lowerName.includes("coffee") || lowerName.includes("drink") || lowerName.includes("tea") || lowerName.includes("starbucks")) {
+      iconName = "Coffee";
+      if (!colorField) finalColor = "hsl(var(--chart-entertainment))";
+    } else if (lowerName.includes("travel") || lowerName.includes("flight") || lowerName.includes("trip") || lowerName.includes("vacation") || lowerName.includes("hotel") || lowerName.includes("holiday")) {
+      iconName = "Plane";
+      if (!colorField) finalColor = "hsl(var(--chart-luxury))";
+    } else if (lowerName.includes("car") || lowerName.includes("uber") || lowerName.includes("taxi") || lowerName.includes("transport") || lowerName.includes("fuel") || lowerName.includes("petrol") || lowerName.includes("metro")) {
+      iconName = "Car";
+      if (!colorField) finalColor = "hsl(var(--chart-transport))";
+    } else if (lowerName.includes("health") || lowerName.includes("medical") || lowerName.includes("doctor") || lowerName.includes("medicine") || lowerName.includes("gym") || lowerName.includes("fitness") || lowerName.includes("dentist")) {
+      iconName = "Heart";
+      if (!colorField) finalColor = "hsl(var(--chart-grooming))";
+    } else if (lowerName.includes("gift") || lowerName.includes("present") || lowerName.includes("donation") || lowerName.includes("charity")) {
+      iconName = "Gift";
+      if (!colorField) finalColor = "hsl(var(--chart-shopping))";
+    } else if (lowerName.includes("book") || lowerName.includes("education") || lowerName.includes("school") || lowerName.includes("class") || lowerName.includes("course")) {
+      iconName = "Book";
+      if (!colorField) finalColor = "hsl(var(--chart-utilities))";
+    } else if (lowerName.includes("subscription") || lowerName.includes("netflix") || lowerName.includes("spotify") || lowerName.includes("prime") || lowerName.includes("software") || lowerName.includes("app")) {
+      iconName = "Laptop";
+      if (!colorField) finalColor = "hsl(var(--chart-utilities))";
+    } else if (lowerName.includes("salary") || lowerName.includes("income") || lowerName.includes("bonus") || lowerName.includes("investment") || lowerName.includes("dividend")) {
+      iconName = "DollarSign";
+      if (!colorField) finalColor = "hsl(var(--chart-luxury))";
+    } else if (lowerName.includes("bill") || lowerName.includes("fee") || lowerName.includes("tax") || lowerName.includes("dewa") || lowerName.includes("chiller")) {
+      iconName = "Coins";
+      if (!colorField) finalColor = "hsl(var(--chart-utilities))";
+    } else if (lowerName.includes("home") || lowerName.includes("rent") || lowerName.includes("house") || lowerName.includes("stay") || lowerName.includes("maintenance") || lowerName.includes("repair") || lowerName.includes("plumber")) {
+      iconName = "Wrench";
+      if (!colorField) finalColor = "hsl(var(--chart-rent))";
+    } else if (lowerName.includes("groceries") || lowerName.includes("supermarket") || lowerName.includes("carrefour")) {
+      iconName = "ShoppingCart";
+      if (!colorField) finalColor = "hsl(var(--chart-groceries))";
+    } else if (lowerName.includes("shopping") || lowerName.includes("clothes") || lowerName.includes("mall")) {
+      iconName = "ShoppingBag";
+      if (!colorField) finalColor = "hsl(var(--chart-shopping))";
+    } else if (lowerName.includes("grooming") || lowerName.includes("salon") || lowerName.includes("barber") || lowerName.includes("hair")) {
+      iconName = "Scissors";
+      if (!colorField) finalColor = "hsl(var(--chart-grooming))";
+    } else if (lowerName.includes("misc") || lowerName.includes("other") || lowerName.includes("general")) {
+      iconName = "Sparkles";
+    }
+  }
+
+  const resolvedIcon = AVAILABLE_ICONS[iconName] || Layers;
+  return { icon: resolvedIcon, color: finalColor };
+}
 
 export const formatCurrency = (amount: number): string => {
   const isNegative = amount < 0;

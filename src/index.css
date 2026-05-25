@@ -61,6 +61,13 @@
     --chart-luxury: 320 70% 55%;
     --chart-grooming: 200 70% 50%;
     --chart-transport: 210 80% 55%;
+
+    /* Missing chart HSL variables for custom categories */
+    --chart-1: 145 65% 42%;    /* Green */
+    --chart-2: 280 65% 55%;    /* Purple */
+    --chart-3: 16 85% 65%;     /* Coral/Orange */
+    --chart-4: 200 70% 50%;    /* Sky Blue */
+    --chart-5: 320 70% 55%;    /* Pink/Magenta */
   }
 
   .dark {
