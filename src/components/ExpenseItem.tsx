@@ -5,6 +5,7 @@ import { Expense, getCategoryById, formatCurrency } from "@/lib/data";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useExpenses } from "@/context/ExpenseContext";
+import { parseDateFromStorage } from "@/lib/dateUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,7 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
   if (!category) return null;
 
   const Icon = category.icon;
-  const expenseDate = new Date(expense.date);
+  const expenseDate = parseDateFromStorage(expense.date);
 
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 

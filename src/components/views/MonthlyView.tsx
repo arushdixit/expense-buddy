@@ -14,6 +14,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { parseDateFromStorage, getTodayString, formatDateForStorage } from "@/lib/dateUtils";
 import {
   Drawer,
   DrawerContent,
@@ -321,7 +322,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
                   ? monthlyExpenses.filter(exp => exp.categoryId === selectedCategoryId)
                   : monthlyExpenses
                 ).reduce((groups, expense) => {
-                  const date = format(new Date(expense.date), "yyyy-MM-dd");
+                  const date = expense.date;
                   if (!groups[date]) groups[date] = [];
                   groups[date].push(expense);
                   return groups;
@@ -329,10 +330,14 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
               )
                 .sort((a, b) => b[0].localeCompare(a[0])) // Sort dates descending
                 .map(([dateStr, items]) => {
-                  const date = new Date(dateStr);
-                  let dateHeader = format(date, "EEEE, d MMM");
-                  if (isToday(date)) dateHeader = "Today";
-                  else if (isYesterday(date)) dateHeader = "Yesterday";
+                  const todayStr = getTodayString();
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  const yesterdayStr = formatDateForStorage(yesterday);
+
+                  let dateHeader = format(parseDateFromStorage(dateStr), "EEEE, d MMM");
+                  if (dateStr === todayStr) dateHeader = "Today";
+                  else if (dateStr === yesterdayStr) dateHeader = "Yesterday";
 
                   // Sort items within the day by createdAt descending
                   const sortedItems = [...items].sort((a, b) => {

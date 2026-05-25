@@ -122,7 +122,10 @@ export const calculateSubcategoryTotals = (expenses: Expense[]): Record<string, 
 
 export const getExpensesByMonth = (expenses: Expense[], year: number, month: number): Expense[] => {
   return expenses.filter(expense => {
-    const date = new Date(expense.date);
-    return date.getFullYear() === year && date.getMonth() === month;
+    const parts = expense.date.split('-');
+    if (parts.length !== 3) return false;
+    const expYear = parseInt(parts[0], 10);
+    const expMonth = parseInt(parts[1], 10) - 1; // Convert 1-12 to 0-11 index
+    return expYear === year && expMonth === month;
   });
 };

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { formatDateForStorage } from "@/lib/dateUtils";
+import { formatDateForStorage, parseDateFromStorage } from "@/lib/dateUtils";
 
 // Default amounts for specific subcategories
 const DEFAULT_AMOUNTS: Record<string, number> = {
@@ -65,7 +65,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setSelectedCategory(category);
       setSelectedSubcategory(expenseToEdit.subcategory || null);
       setAmount(Math.abs(expenseToEdit.amount).toString());
-      setSelectedDate(new Date(expenseToEdit.date));
+      setSelectedDate(parseDateFromStorage(expenseToEdit.date));
       setStep(3); // Go straight to amount step for editing
     } else if (isOpen) {
       resetForm();
