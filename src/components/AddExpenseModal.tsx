@@ -34,13 +34,13 @@ interface AddExpenseModalProps {
 type Step = 1 | 2 | 3;
 
 const COLOR_OPTIONS = [
-  "hsl(var(--chart-groceries))",     // Green
-  "hsl(var(--chart-shopping))",      // Purple
-  "hsl(var(--chart-entertainment))", // Coral/Orange
-  "hsl(var(--chart-utilities))",     // Yellow/Gold
-  "hsl(var(--chart-luxury))",        // Pink/Magenta
-  "hsl(var(--chart-grooming))",      // Sky Blue
-  "hsl(var(--chart-transport))",     // Royal Blue
+  "hsl(var(--chart-1))", // Turquoise
+  "hsl(var(--chart-2))", // Indigo
+  "hsl(var(--chart-3))", // Crimson Red
+  "hsl(var(--chart-4))", // Fresh Lime
+  "hsl(var(--chart-5))", // Amber/Bronze
+  "hsl(340 85% 65%)",    // Rose Pink
+  "hsl(165 75% 40%)",    // Mint Green
 ];
 
 const ICON_OPTIONS = [

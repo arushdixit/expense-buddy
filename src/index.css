@@ -62,12 +62,12 @@
     --chart-grooming: 200 70% 50%;
     --chart-transport: 210 80% 55%;
 
-    /* Missing chart HSL variables for custom categories */
-    --chart-1: 145 65% 42%;    /* Green */
-    --chart-2: 280 65% 55%;    /* Purple */
-    --chart-3: 16 85% 65%;     /* Coral/Orange */
-    --chart-4: 200 70% 50%;    /* Sky Blue */
-    --chart-5: 320 70% 55%;    /* Pink/Magenta */
+    /* Unique chart HSL variables for custom categories (No overlap with predefined ones) */
+    --chart-1: 185 80% 45%;    /* Turquoise */
+    --chart-2: 245 75% 60%;    /* Indigo/Violet */
+    --chart-3: 355 75% 55%;    /* Crimson Red */
+    --chart-4: 95 70% 48%;     /* Fresh Lime */
+    --chart-5: 30 75% 45%;     /* Amber/Bronze */
   }
 
   .dark {
