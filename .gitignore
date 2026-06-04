@@ -44,3 +44,7 @@ server/expenses.db.backup-20260104_213036
 
 # screenshots
 public/screenshots/
+
+#statements
+statements/
+
