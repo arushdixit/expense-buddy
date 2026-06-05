@@ -3,17 +3,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
 import { ParsedTransaction } from "@/lib/statementParser";
 import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data";
-import { 
-  FileUp, Loader2, CheckCircle2, Trash2, Filter, 
+import {
+  FileUp, Loader2, CheckCircle2, Trash2, Filter,
   Database, RefreshCw, X, Check, Calendar, ArrowRightLeft,
   ChevronDown, Search, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
 export const ImportView: React.FC = () => {
-  const { 
-    backupExpenses, 
-    customCategories, 
+  const {
+    backupExpenses,
+    customCategories,
     customSubcategories,
     bulkAddBackupExpenses,
     deleteBackupExpense,
@@ -23,7 +23,7 @@ export const ImportView: React.FC = () => {
   } = useExpenses();
 
   const [activeSubTab, setActiveSubTab] = useState<"upload" | "queue">("upload");
-  
+
   // States for uploaded / parsed statement transactions
   const [isParsing, setIsParsing] = useState(false);
   const [parsedTxs, setParsedTxs] = useState<ParsedTransaction[]>([]);
@@ -101,7 +101,7 @@ export const ImportView: React.FC = () => {
       }
 
       const txs: ParsedTransaction[] = await res.json();
-      
+
       // Auto-assign local database category ids if found
       const finalizedTxs = txs.map(tx => {
         const matchedCat = allCategoriesList.find(c => c.name.toLowerCase() === tx.category.toLowerCase());
@@ -112,7 +112,7 @@ export const ImportView: React.FC = () => {
       });
 
       setParsedTxs(finalizedTxs);
-      
+
       // Select all by default
       const allIndexes = new Set<number>();
       finalizedTxs.forEach((_, idx) => allIndexes.add(idx));
@@ -215,7 +215,7 @@ export const ImportView: React.FC = () => {
       });
 
       await bulkAddBackupExpenses(payload);
-      
+
       // Clear view list
       setParsedTxs([]);
       setSelectedTxIndexes(new Set());
@@ -244,22 +244,20 @@ export const ImportView: React.FC = () => {
       <div className="flex p-1 rounded-xl bg-white/40 dark:bg-black/20 border border-white/20 dark:border-white/10 backdrop-blur-md mb-6 shadow-sm">
         <button
           onClick={() => setActiveSubTab("upload")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-            activeSubTab === "upload"
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeSubTab === "upload"
               ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-          }`}
+            }`}
         >
           <FileUp className="h-4 w-4" />
           Upload & Review
         </button>
         <button
           onClick={() => setActiveSubTab("queue")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative ${
-            activeSubTab === "queue"
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative ${activeSubTab === "queue"
               ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-          }`}
+            }`}
         >
           <Database className="h-4 w-4" />
           Verify Queue
@@ -290,11 +288,10 @@ export const ImportView: React.FC = () => {
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative group cursor-pointer flex flex-col items-center justify-center border-2 border-dashed rounded-3xl p-10 text-center transition-all duration-300 min-h-[300px] backdrop-blur-md ${
-                  isDragActive
+                className={`relative group cursor-pointer flex flex-col items-center justify-center border-2 border-dashed rounded-3xl p-10 text-center transition-all duration-300 min-h-[300px] backdrop-blur-md ${isDragActive
                     ? "border-primary bg-primary/[0.04] scale-[1.02] shadow-xl shadow-primary/5"
                     : "border-white/40 dark:border-white/10 bg-white/20 dark:bg-black/10 hover:border-primary/55 hover:bg-white/45 dark:hover:bg-black/15 shadow-sm"
-                }`}
+                  }`}
               >
                 <input
                   type="file"
@@ -319,7 +316,7 @@ export const ImportView: React.FC = () => {
                       <p className="font-bold text-lg text-foreground mb-1">Upload Statement PDF</p>
                       <p className="text-muted-foreground text-xs max-w-xs mx-auto">Drag and drop your credit card PDF statement here or click to browse files.</p>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports Dec-June Statements</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC Statements</span>
                   </div>
                 )}
               </div>
@@ -371,11 +368,10 @@ export const ImportView: React.FC = () => {
                     return (
                       <div
                         key={originalIndex}
-                        className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col gap-3 backdrop-blur-sm relative ${
-                          isSelected 
-                            ? "bg-white/60 dark:bg-black/30 border-primary/40 shadow-md shadow-primary/[0.02]" 
+                        className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col gap-3 backdrop-blur-sm relative ${isSelected
+                            ? "bg-white/60 dark:bg-black/30 border-primary/40 shadow-md shadow-primary/[0.02]"
                             : "bg-white/30 dark:bg-black/10 border-white/20 dark:border-white/10"
-                        }`}
+                          }`}
                       >
                         {/* Upper row: Select + Date + Trash */}
                         <div className="flex items-center gap-3">
@@ -385,7 +381,7 @@ export const ImportView: React.FC = () => {
                             onChange={() => handleToggleSelect(originalIndex)}
                             className="h-4 w-4 rounded text-primary border-border focus:ring-primary cursor-pointer"
                           />
-                          
+
                           <div className="flex items-center gap-1.5 flex-1 bg-secondary/50 px-2.5 py-1 rounded-lg border border-border/30 max-w-[130px]">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             <input
@@ -398,7 +394,7 @@ export const ImportView: React.FC = () => {
 
                           <span className="text-[10px] text-muted-foreground font-semibold px-2 py-0.5 rounded-full bg-secondary/40 border border-border/20 ml-auto">Pg {tx.page}</span>
 
-                          <button 
+                          <button
                             onClick={() => handleRemoveRow(originalIndex)}
                             className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center active:scale-95 transition-all duration-150"
                             title="Discard transaction"
@@ -424,9 +420,8 @@ export const ImportView: React.FC = () => {
                               step="0.01"
                               value={tx.amount}
                               onChange={(e) => handleUpdateField(originalIndex, "amount", parseFloat(e.target.value) || 0)}
-                              className={`w-full bg-secondary/40 border border-border/20 rounded-xl px-2 py-1.5 text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-primary ${
-                                tx.amount < 0 ? "text-success" : "text-foreground"
-                              }`}
+                              className={`w-full bg-secondary/40 border border-border/20 rounded-xl px-2 py-1.5 text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-primary ${tx.amount < 0 ? "text-success" : "text-foreground"
+                                }`}
                             />
                           </div>
 
@@ -540,7 +535,7 @@ export const ImportView: React.FC = () => {
                         <span className={`text-xs font-bold leading-none dirham-symbol ${expense.amount < 0 ? "text-success" : "text-foreground"}`}>
                           {formatCurrency(expense.amount)}
                         </span>
-                        
+
                         <button
                           onClick={() => deleteBackupExpense(expense.id)}
                           className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-all opacity-85 group-hover:opacity-100"
