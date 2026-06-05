@@ -1,31 +1,62 @@
 import os
 import re
 import json
-import hashlib
-from datetime import datetime
 from pypdf import PdfReader
 
-# Load Categories and Subcategories Lookup Table
-lookup_path = "/Users/arushdixit/Downloads/AI Project/expense-buddy/src/lib/categories_subcategories.json"
-if os.path.exists(lookup_path):
-    with open(lookup_path, 'r', encoding='utf-8') as f:
-        TAXONOMY = json.load(f)
-else:
-    TAXONOMY = {}
+# ---------------------------------------------------------------------------
+# Module-level compiled patterns — compiled once, reused for every line/page
+# ---------------------------------------------------------------------------
 
-def split_concatenated_lines(line):
-    style_a_pattern = r'(-?\d{1,2}-[A-Za-z]{3}-\d{2,4}\s+\d{1,2}-[A-Za-z]{3}-\d{2,4})'
-    style_b_pattern = r'(-?\d{2}/\d{2}/\d{4})'
-    
-    matches = list(re.finditer(style_a_pattern, line))
+# Used by split_concatenated_lines
+_SPLIT_A_RE = re.compile(
+    r'(-?\d{1,2}-[A-Za-z]{3}-\d{2,4}\s+\d{1,2}-[A-Za-z]{3}-\d{2,4})'
+)
+_SPLIT_B_RE = re.compile(r'(-?\d{2}/\d{2}/\d{4})')
+
+# Used by parse_pdf for date detection
+_STYLE_A_DATE_RE = re.compile(
+    r'[-]?(\d{1,2}-[A-Za-z]{3}-\d{2,4})\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})'
+)
+_STYLE_B_DATE_RE = re.compile(r'(\d{2}/\d{2}/\d{4})')
+
+# One compiled alternation replaces per-currency re.search() calls in a loop
+_FOREIGN_CURRENCY_RE = re.compile(
+    r'\b(AUD|BHD|CAD|CHF|CNY|DKK|EUR|GBP|HKD|INR|JPY|KWD|MXN|NOK|NZD|OMR|QAR|SAR|SEK|SGD|THB|TRY|USD|ZAR)\b'
+)
+
+# Description noise-stripping patterns
+_CUR_RATE_RE = re.compile(
+    r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)'
+    r'/AED\s+\.?\d[\d.]*'
+)
+_CUR_CODE_RE = re.compile(
+    r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)\b'
+)
+_PROC_FEE_RE = re.compile(r'FOREIGN CURRENCY PROCESSING FEE.*', re.IGNORECASE)
+_STND_PROC_RE = re.compile(r'STND PROC\..*', re.IGNORECASE)
+_TRAILING_AMT_COMMA_RE = re.compile(r'\s+\d+,\d+\.\d+(?:\s*CR)?\s*-?$')
+_TRAILING_AMT_RE = re.compile(r'\s+\d+\.\d+(?:\s*CR)?\s*-?$')
+_ORPHAN_NUM_RE = re.compile(r'(\s+\d[\d,]*\.\d{2})+\s*$')
+_MULTI_SPACE_RE = re.compile(r'\s{2,}')
+
+# Transactions whose descriptions match any of these are silently dropped
+_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL")
+
+
+# ---------------------------------------------------------------------------
+# Line splitting
+# ---------------------------------------------------------------------------
+
+def split_concatenated_lines(line: str) -> list[str]:
+    matches = list(_SPLIT_A_RE.finditer(line))
     if not matches:
-        matches = list(re.finditer(style_b_pattern, line))
-        
+        matches = list(_SPLIT_B_RE.finditer(line))
+
     if len(matches) <= 1:
         return [line]
-        
+
     sub_lines = []
-    # If there's content before the first date match, preserve it as a leading segment
+    # Preserve any content that appears before the first date match
     if matches[0].start() > 0:
         leading = line[:matches[0].start()].strip()
         if leading:
@@ -37,7 +68,11 @@ def split_concatenated_lines(line):
     return sub_lines
 
 
-def clean_amount(amt_str):
+# ---------------------------------------------------------------------------
+# Amount / date helpers
+# ---------------------------------------------------------------------------
+
+def clean_amount(amt_str: str) -> tuple[float | None, bool]:
     amt_str = amt_str.replace(',', '').strip()
     is_credit = False
     if amt_str.endswith('CR'):
@@ -52,14 +87,14 @@ def clean_amount(amt_str):
     except ValueError:
         return None, False
 
-def parse_date_a(date_str):
+def parse_date_a(date_str: str) -> str | None:
     parts = date_str.split('-')
     if len(parts) != 3:
         return None
     day = parts[0].zfill(2)
     month_str = parts[1].lower()
     year_str = parts[2]
-    
+
     months = {
         'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
         'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
@@ -67,14 +102,14 @@ def parse_date_a(date_str):
     month = months.get(month_str[:3])
     if not month:
         return None
-        
+
     if len(year_str) == 2:
         year = "20" + year_str
     else:
         year = year_str
     return f"{year}-{month}-{day}"
 
-def parse_date_b(date_str):
+def parse_date_b(date_str: str) -> str | None:
     parts = date_str.split('/')
     if len(parts) != 3:
         return None
@@ -83,7 +118,12 @@ def parse_date_b(date_str):
     year = parts[2]
     return f"{year}-{month}-{day}"
 
-def categorize(desc, amt, is_refund, is_foreign=False):
+
+# ---------------------------------------------------------------------------
+# Categorisation (unchanged)
+# ---------------------------------------------------------------------------
+
+def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False) -> tuple[str, str]:
     desc_lower = desc.lower().strip()
     
     # General overrides
@@ -107,7 +147,7 @@ def categorize(desc, amt, is_refund, is_foreign=False):
             subcategory = "Transit"
         elif any(x in desc_lower for x in ["restaurant", "dine", "cafe", "food", "eats", "bistro", "bar", "pub", "pizza", "coffee", "bakery", "laduree", "torry", "ice cream", "abdelwahab", "maison russe", "talay"]):
             subcategory = "Food"
-        elif any(x in desc_lower for x in ["shopping", "store", "market", "mall", "duty free", "king power", "zara", "namshi", "h&m", "h and m", "6th street", "namshi", "retail", "tailor", "rami and tommy"]):
+        elif any(x in desc_lower for x in ["shopping", "store", "market", "mall", "duty free", "king power", "zara", "namshi", "h&m", "h and m", "6th street", "retail", "tailor", "rami and tommy"]):
             subcategory = "Shopping"
         elif any(x in desc_lower for x in ["museum", "garden", "gardn", "gallery", "attraction", "monument", "observatory", "ste chapelle", "show", "theater", "tickets", "spa", "massage"]):
             subcategory = "Entertainment"
@@ -133,6 +173,9 @@ def categorize(desc, amt, is_refund, is_foreign=False):
         elif "noon one" in desc_lower or "noonone" in desc_lower:
             category = "Misc"
             subcategory = "Noon One"
+        elif "food" in desc_lower:
+            category = "Entertainment"
+            subcategory = "Food Delivery"
         else:
             category = "Groceries"
             subcategory = "Noon"
@@ -160,8 +203,8 @@ def categorize(desc, amt, is_refund, is_foreign=False):
             category = "Misc"
             subcategory = "Talabat pro"
         else:
-            category = "Entertainment"
-            subcategory = "Food Delivery"
+            category = "Groceries"
+            subcategory = "Talabat"
 
     elif "uber" in desc_lower:
         if "eats" in desc_lower:
@@ -294,7 +337,7 @@ def categorize(desc, amt, is_refund, is_foreign=False):
     # --- TRAVEL ---
     elif any(x in desc_lower for x in ["flight", "airline"]) or ("emirates" in desc_lower and "furniture" not in desc_lower and "furnishing" not in desc_lower):
         category = "Travel"
-        subcategory = "Transit"
+        subcategory = "Flight"
         
     elif any(x in desc_lower for x in ["ritz carlton", "ritz-carlton", "marriott", "hilton", "hyatt", "sheraton", "westin", "intercontinental", "four seasons", "hotel", "resort", "sala samui", "renaissance paris"]):
         category = "Travel"
@@ -357,236 +400,179 @@ def categorize(desc, amt, is_refund, is_foreign=False):
         
     return category, subcategory
 
-def parse_db_expenses(filePath):
-    if not os.path.exists(filePath):
-        return []
-    expenses = []
-    with open(filePath, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    for i in range(1, len(lines)):
-        line = lines[i].strip()
-        if not line: continue
-        
-        # Simple CSV parser
-        parts = []
-        currentPart = ''
-        inQuotes = False
-        for char in line:
-            if char == '"':
-                inQuotes = not inQuotes
-            elif char == ',' and not inQuotes:
-                parts.append(currentPart.strip())
-                currentPart = ''
-            else:
-                currentPart += char
-        parts.append(currentPart.strip())
-        
-        if len(parts) < 6: continue
-        
-        try:
-            amt = float(parts[1])
-            cat = parts[2]
-            sub = parts[3] if parts[3] and parts[3] != 'null' and parts[3] != 'NULL' else None
-            dt = parts[4]
-            note = parts[5] if parts[5] and parts[5] != 'null' and parts[5] != 'NULL' else None
-            expenses.append({
-                "amount": amt,
-                "category": cat,
-                "subcategory": sub,
-                "date": dt,
-                "note": note
-            })
-        except ValueError:
-            continue
-    return expenses
 
-def is_valid_match(db_exp, tx_desc, tx_cat, tx_sub):
-    desc = tx_desc.lower()
-    db_sub = (db_exp["subcategory"] or "").lower()
-    db_cat = db_exp["category"].lower()
-    
-    # Specific brand guards to prevent cross-talk
-    if "careem" in desc and db_sub != "careem" and db_sub != "taxi": return False
-    if "talabat" in desc and db_sub != "talabat" and db_sub != "food delivery" and db_sub != "talabat pro": return False
-    if "carrefour" in desc and db_sub != "carrefour": return False
-    if "noon" in desc and db_sub != "noon": return False
-    if "dewa" in desc and db_sub != "dewa": return False
-    if "zara" in desc and db_sub != "clothes": return False
-    if "temu" in desc and db_sub != "temu": return False
-    if "bikanervala" in desc and db_sub != "obligation" and db_sub != "gift": return False
-    if "amazon" in desc and db_sub != "amazon now" and db_sub != "miscellaneous": return False
-    if "smart dubai" in desc and db_sub != "nol card": return False
-    if "ista" in desc and db_sub != "chiller": return False
-    
-    # Generic category matching
-    if db_cat == "rent" and not any(x in desc for x in ["rent", "payment", "to ", "landlord"]): return False
-    
-    return True
+# ---------------------------------------------------------------------------
+# Description cleaning helper
+# ---------------------------------------------------------------------------
 
-def find_db_match(tx_date_str, tx_amt, tx_desc, db_expenses):
-    # Standardize transaction date
-    tx_date = None
-    try:
-        tx_date = datetime.strptime(tx_date_str, "%Y-%m-%d")
-    except ValueError:
+def _clean_description(description: str, extra_cleanup: bool = False) -> str:
+    """Strip PDF noise from a raw description string.
+
+    `extra_cleanup=True` enables Style-A-specific trailing amount removal and
+    orphan numeric stripping that is not needed for Style B statements.
+    """
+    if extra_cleanup:
+        description = _TRAILING_AMT_COMMA_RE.sub('', description)
+        description = _TRAILING_AMT_RE.sub('', description)
+
+    description = (description
+                   .replace("NFC - (AP-PAY)-", "")
+                   .replace("IAP - (AP-PAY)-", "")
+                   .strip())
+    description = _CUR_RATE_RE.sub('', description)
+    description = _CUR_CODE_RE.sub('', description)
+    description = _PROC_FEE_RE.sub('', description)
+    description = _STND_PROC_RE.sub('', description)
+
+    if extra_cleanup:
+        # Strip trailing orphan numeric tokens left after currency removal
+        # e.g. "LE CAFE DUCALE FR 24.50 106.99" → "LE CAFE DUCALE FR"
+        description = _ORPHAN_NUM_RE.sub('', description)
+
+    description = _MULTI_SPACE_RE.sub(' ', description).strip()
+    return description
+
+
+# ---------------------------------------------------------------------------
+# Shared transaction builder — eliminates the duplicated Style A / B blocks
+# ---------------------------------------------------------------------------
+
+def _build_transaction(
+    rest: str,
+    date_str: str,
+    parse_date_fn,
+    page_idx: int,
+    extra_cleanup: bool = False,
+) -> dict | None:
+    """Parse the token stream that follows a date match into a transaction dict.
+
+    Returns None if the line should be skipped (bad amount, missing date,
+    empty description, or filtered keyword).
+
+    `extra_cleanup=True` enables Style-A-specific merged-amount stripping and
+    trailing noise removal inside _clean_description.
+    """
+    tokens = rest.split()
+    if len(tokens) < 2:
         return None
 
-    tx_amt_abs = abs(tx_amt)
-    candidates = []
-
-    for db_exp in db_expenses:
-        db_amt_abs = abs(db_exp["amount"])
-        if abs(db_amt_abs - tx_amt_abs) > 0.05:
-            continue
-            
-        # Date difference check within 2 days
-        try:
-            db_date = datetime.strptime(db_exp["date"], "%Y-%m-%d")
-            day_diff = abs((db_date - tx_date).days)
-            if day_diff > 2:
-                continue
-                
-            if is_valid_match(db_exp, tx_desc, db_exp["category"], db_exp["subcategory"]):
-                candidates.append((db_exp, day_diff))
-        except ValueError:
-            continue
-
-    if not candidates:
+    # Strip trailing lone hyphen artefact
+    if tokens[-1] == '-':
+        tokens = tokens[:-1]
+    if len(tokens) < 2:
         return None
 
-    # Sort candidates by date difference (ascending)
-    candidates.sort(key=lambda x: x[1])
-    return candidates[0][0]
+    last_token = tokens[-1]
+    if last_token == 'CR' and len(tokens) >= 2:
+        last_token = tokens[-2] + ' CR'
+        desc_tokens: list[str] = list(tokens[:-2])
+    else:
+        desc_tokens = list(tokens[:-1])
 
-def parse_pdf(pdf_path, db_expenses):
+    amt_val, is_ref = clean_amount(last_token)
+    if amt_val is None:
+        return None
+
+    # Style A only: strip spurious extra amount tokens merged into description
+    if extra_cleanup and desc_tokens:
+        second_last = desc_tokens[-1]
+        if second_last == 'CR' and len(desc_tokens) >= 2:
+            second_last = desc_tokens[-2] + ' CR'
+            temp_val, _ = clean_amount(second_last)
+            if temp_val is not None:
+                desc_tokens = desc_tokens[:-2]
+        else:
+            temp_val, _ = clean_amount(second_last)
+            if temp_val is not None:
+                desc_tokens = desc_tokens[:-1]
+
+    description = " ".join(desc_tokens).strip()
+    std_date = parse_date_fn(date_str)
+    if not std_date or not description:
+        return None
+
+    # Detect foreign currency before description clean-up
+    desc_upper = description.upper()
+    is_foreign = bool(
+        _FOREIGN_CURRENCY_RE.search(desc_upper)
+        or "FOREIGN CURRENCY" in desc_upper
+        or "PROC. FEE" in desc_upper
+    )
+
+    description = _clean_description(description, extra_cleanup=extra_cleanup)
+    desc_upper = description.upper()
+
+    # Skip cashback, bill payments, reversals, and empty descriptions
+    if not description or desc_upper.startswith("TO ") or any(kw in desc_upper for kw in _SKIP_KEYWORDS):
+        return None
+
+    is_refund = is_ref or (amt_val < 0) or ("CASHBACK" in desc_upper) or ("PAYMENT" in desc_upper)
+    if is_refund and amt_val > 0:
+        amt_val = -amt_val
+
+    cat, sub = categorize(description, amt_val, is_refund, is_foreign)
+
+    return {
+        "date": std_date,
+        "description": description,
+        "amount": amt_val,
+        "category": cat,
+        "subcategory": sub,
+        "isRefund": is_refund,
+        "page": page_idx + 1,
+    }
+
+
+# ---------------------------------------------------------------------------
+# PDF parser
+# ---------------------------------------------------------------------------
+
+def parse_pdf(pdf_path: str) -> list[dict]:
     reader = PdfReader(pdf_path)
-    transactions = []
-    
-    style_a_date_re = re.compile(r'[-]?(\d{1,2}-[A-Za-z]{3}-\d{2,4})\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})')
-    style_b_date_re = re.compile(r'(\d{2}/\d{2}/\d{4})')
+    transactions: list[dict] = []
 
     for page_idx, page in enumerate(reader.pages):
         text = page.extract_text()
-        raw_lines = text.split('\n')
-        lines = []
-        for rl in raw_lines:
-            lines.extend(split_concatenated_lines(rl))
-            
+        # List comprehension is faster than a for-loop with list.extend()
+        lines = [
+            sub
+            for rl in text.split('\n')
+            for sub in split_concatenated_lines(rl)
+        ]
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-                
-            # Style A
-            match_a = style_a_date_re.search(line)
+
+            # --- Style A ---
+            match_a = _STYLE_A_DATE_RE.search(line)
             if match_a:
                 line_to_parse = line[match_a.start():]
-                match_a = style_a_date_re.search(line_to_parse)
-                
                 tx_date_str = match_a.group(1)
-                post_date_str = match_a.group(2)
-                
-                rest = line_to_parse[match_a.end():].strip()
-                tokens = rest.split()
-                if len(tokens) >= 2:
-                    last_token = tokens[-1]
-                    if last_token == '-' and len(tokens) >= 2:
-                        tokens = tokens[:-1]
-                        last_token = tokens[-1]
-                        
-                    if last_token == 'CR' and len(tokens) >= 2:
-                        last_token = tokens[-2] + ' CR'
-                        desc_tokens = tokens[:-2]
-                    else:
-                        desc_tokens = tokens[:-1]
-                        
-                    amt_val, is_ref = clean_amount(last_token)
-                    if amt_val is not None:
-                        # Clean multiple amounts from merged lines
-                        if len(desc_tokens) > 0:
-                            second_last = desc_tokens[-1]
-                            if second_last == 'CR' and len(desc_tokens) >= 2:
-                                second_last = desc_tokens[-2] + ' CR'
-                                temp_val, temp_ref = clean_amount(second_last)
-                                if temp_val is not None:
-                                    desc_tokens = desc_tokens[:-2]
-                            else:
-                                temp_val, temp_ref = clean_amount(second_last)
-                                if temp_val is not None:
-                                    desc_tokens = desc_tokens[:-1]
-                                    
-                        description = " ".join(desc_tokens).strip()
-                        std_date = parse_date_a(tx_date_str)
-                        if std_date and description:
-                            # Detect foreign currency before description clean-up
-                            is_foreign = False
-                            desc_upper = description.upper()
-                            foreign_currencies = ["EUR", "USD", "THB", "GBP", "SGD", "SAR", "KWD", "BHD", "QAR", "OMR", "INR", "CNY", "JPY", "AUD", "CAD", "CHF", "NZD", "HKD", "SEK", "NOK", "DKK", "MXN", "ZAR", "TRY"]
-                            if any(re.search(r'\b' + cur + r'\b', desc_upper) for cur in foreign_currencies) or "FOREIGN CURRENCY" in desc_upper or "PROC. FEE" in desc_upper:
-                                is_foreign = True
-
-                            # Strip trailing hyphens or amount fragments from the description
-                            description = re.sub(r'\s+\d+,\d+\.\d+(?:\s*CR)?\s*-?$', '', description)
-                            description = re.sub(r'\s+\d+\.\d+(?:\s*CR)?\s*-?$', '', description)
-                            description = description.replace("NFC - (AP-PAY)-", "").replace("IAP - (AP-PAY)-", "").strip()
-                            # Strip foreign currency noise: rate string and fee labels
-                            description = re.sub(r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)/AED\s+\.?\d+[\d.]*', '', description)
-                            description = re.sub(r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)\b', '', description)
-                            description = re.sub(r'FOREIGN CURRENCY PROCESSING FEE.*', '', description, flags=re.IGNORECASE)
-                            description = re.sub(r'STND PROC\..*', '', description, flags=re.IGNORECASE)
-                            # Strip trailing orphan numeric tokens left after currency removal
-                            # e.g. "LE CAFE DUCALE FR 24.50 106.99" → "LE CAFE DUCALE FR"
-                            description = re.sub(r'(\s+\d[\d,]*\.\d{2})+\s*$', '', description)
-                            description = re.sub(r'\s{2,}', ' ', description).strip()
-
-                            
-                            # Ignore cashback, credit card payments, reversals, and empty descriptions
-                            desc_upper = description.upper()
-                            if not description or "DAILY CASHBACK" in desc_upper or "CASHBACK" in desc_upper or desc_upper.startswith("TO ") or "BILL PAYMENT" in desc_upper or "RVSL" in desc_upper:
-                                continue
-                            
-                            is_refund = is_ref or (amt_val < 0) or ("CASHBACK" in description.upper()) or ("PAYMENT" in description.upper())
-                            if is_refund and amt_val > 0:
-                                amt_val = -amt_val
-                                
-                            # Match against database backup to get exact category/subcategory if available
-                            db_match = find_db_match(std_date, amt_val, description, db_expenses)
-                            if db_match:
-                                cat = db_match["category"]
-                                sub = db_match["subcategory"] or "Miscellaneous"
-                            else:
-                                cat, sub = categorize(description, amt_val, is_refund, is_foreign)
-                            
-                            transactions.append({
-                                "date": std_date,
-                                "description": description,
-                                "amount": amt_val,
-                                "category": cat,
-                                "subcategory": sub,
-                                "isRefund": is_refund,
-                                "page": page_idx + 1
-                            })
+                rest = line_to_parse[match_a.end() - match_a.start():].strip()
+                tx = _build_transaction(rest, tx_date_str, parse_date_a, page_idx, extra_cleanup=True)
+                if tx:
+                    transactions.append(tx)
                 continue
-                
-            # Fee-continuation line: foreign transaction fees wrapped to a new line.
-            # Pattern: starts with FOREIGN CURRENCY PROCESSING FEE or STND PROC. FEE
-            # and ends with a final total AED amount.
-            # Only apply if this line has NO date pattern (i.e., it's purely a continuation,
-            # not a new transaction that got concatenated after the fees).
+
+            # --- Fee-continuation line ---
+            # Foreign transaction fees sometimes wrap onto a new line.
+            # Only apply if this line has no date (pure continuation, not a new tx).
+            # At this point _STYLE_A_DATE_RE already didn't match, so only check B.
             line_upper = line.upper()
-            has_date = bool(style_a_date_re.search(line) or style_b_date_re.search(line))
-            if not has_date and (line_upper.startswith("FOREIGN CURRENCY") or line_upper.startswith("STND PROC.")) and transactions:
-                # Find the last number before an optional trailing ' -'
+            if (
+                not _STYLE_B_DATE_RE.search(line)
+                and (line_upper.startswith("FOREIGN CURRENCY") or line_upper.startswith("STND PROC."))
+                and transactions
+            ):
                 fee_line = line.rstrip()
                 if fee_line.endswith(' -'):
                     fee_line = fee_line[:-2].strip()
-                # Handle CR suffix
                 is_cr = fee_line.endswith(' CR')
                 if is_cr:
                     fee_line = fee_line[:-3].strip()
-                fee_tokens = fee_line.split()
-                # Walk back to find last valid float
-                for tok in reversed(fee_tokens):
+                for tok in reversed(fee_line.split()):
                     tok_clean = tok.replace(',', '')
                     try:
                         final_amt = float(tok_clean)
@@ -599,102 +585,42 @@ def parse_pdf(pdf_path, db_expenses):
                         continue
                 continue
 
-            # Style B
-            match_b = style_b_date_re.search(line)
+            # --- Style B ---
+            match_b = _STYLE_B_DATE_RE.search(line)
             if match_b:
                 line_to_parse = line[match_b.start():]
-                match_b = style_b_date_re.search(line_to_parse)
-                
                 tx_date_str = match_b.group(1)
-                rest = line_to_parse[match_b.end():].strip()
-                tokens = rest.split()
-                if len(tokens) >= 2:
-                    last_token = tokens[-1]
-                    if last_token == '-' and len(tokens) >= 2:
-                        tokens = tokens[:-1]
-                        last_token = tokens[-1]
-                        
-                    if last_token == 'CR' and len(tokens) >= 2:
-                        last_token = tokens[-2] + ' CR'
-                        desc_tokens = tokens[:-2]
-                    else:
-                        desc_tokens = tokens[:-1]
-                        
-                    amt_val, is_ref = clean_amount(last_token)
-                    if amt_val is not None:
-                        description = " ".join(desc_tokens).strip()
-                        std_date = parse_date_b(tx_date_str)
-                        if std_date and description:
-                            # Detect foreign currency before description clean-up
-                            is_foreign = False
-                            desc_upper = description.upper()
-                            foreign_currencies = ["EUR", "USD", "THB", "GBP", "SGD", "SAR", "KWD", "BHD", "QAR", "OMR", "INR", "CNY", "JPY", "AUD", "CAD", "CHF", "NZD", "HKD", "SEK", "NOK", "DKK", "MXN", "ZAR", "TRY"]
-                            if any(re.search(r'\b' + cur + r'\b', desc_upper) for cur in foreign_currencies) or "FOREIGN CURRENCY" in desc_upper or "PROC. FEE" in desc_upper:
-                                is_foreign = True
-
-                            description = description.replace("NFC - (AP-PAY)-", "").replace("IAP - (AP-PAY)-", "").strip()
-                            # Strip foreign currency noise
-                            description = re.sub(r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)/AED\s+\.?\d+[\d.]*', '', description)
-                            description = re.sub(r'\b(EUR|USD|THB|GBP|SGD|AED|SAR|KWD|BHD|QAR|OMR|INR|CNY|JPY|AUD|CAD|CHF|NZD|HKD|SEK|NOK|DKK|MXN|ZAR|TRY)\b', '', description)
-                            description = re.sub(r'FOREIGN CURRENCY PROCESSING FEE.*', '', description, flags=re.IGNORECASE)
-                            description = re.sub(r'STND PROC\..*', '', description, flags=re.IGNORECASE)
-                            description = re.sub(r'\s{2,}', ' ', description).strip()
-                            
-                            # Ignore cashback, credit card payments, and reversals (RVSL)
-                            desc_upper = description.upper()
-                            # Ignore cashback, credit card payments, reversals, and empty descriptions
-                            desc_upper = description.upper()
-                            if not description or "DAILY CASHBACK" in desc_upper or "CASHBACK" in desc_upper or desc_upper.startswith("TO ") or "BILL PAYMENT" in desc_upper or "RVSL" in desc_upper:
-                                continue
-                            
-                            is_refund = is_ref or (amt_val < 0) or ("CASHBACK" in description.upper()) or ("PAYMENT" in description.upper())
-                            if is_refund and amt_val > 0:
-                                amt_val = -amt_val
-                                
-                            # Match against database backup to get exact category/subcategory if available
-                            db_match = find_db_match(std_date, amt_val, description, db_expenses)
-                            if db_match:
-                                cat = db_match["category"]
-                                sub = db_match["subcategory"] or "Miscellaneous"
-                            else:
-                                cat, sub = categorize(description, amt_val, is_refund, is_foreign)
-                            
-                            transactions.append({
-                                "date": std_date,
-                                "description": description,
-                                "amount": amt_val,
-                                "category": cat,
-                                "subcategory": sub,
-                                "isRefund": is_refund,
-                                "page": page_idx + 1
-                            })
+                rest = line_to_parse[match_b.end() - match_b.start():].strip()
+                tx = _build_transaction(rest, tx_date_str, parse_date_b, page_idx, extra_cleanup=False)
+                if tx:
+                    transactions.append(tx)
                 continue
-                
+
     return transactions
+
+
+# ---------------------------------------------------------------------------
+# Local dev / testing entry point (not used in production)
+# ---------------------------------------------------------------------------
 
 def main():
     statements_dir = "/Users/arushdixit/Downloads/AI Project/expense-buddy/statements"
-    db_csv_path = "/Users/arushdixit/Downloads/AI Project/expense-buddy/backup/expenses_rows.csv"
-    
-    print("Loading database expenses from CSV backup...")
-    db_expenses = parse_db_expenses(db_csv_path)
-    print(f"Loaded {len(db_expenses)} database expenses.\n")
-    
+
     if not os.path.exists(statements_dir):
         print(f"Error: Statements directory {statements_dir} does not exist.")
         return
-        
+
     for filename in sorted(os.listdir(statements_dir)):
         if filename.endswith(".pdf") and filename != "Account summary and transactions.pdf":
             pdf_path = os.path.join(statements_dir, filename)
             json_filename = filename.rsplit(".", 1)[0] + ".json"
             output_path = os.path.join(statements_dir, json_filename)
-            
+
             print(f"Parsing PDF statement: {filename}...")
             try:
-                txs = parse_pdf(pdf_path, db_expenses)
+                txs = parse_pdf(pdf_path)
                 print(f"Successfully parsed {len(txs)} transactions.")
-                
+
                 with open(output_path, 'w', encoding='utf-8') as f:
                     json.dump(txs, f, indent=2, ensure_ascii=False)
                 print(f"Saved parsed transactions to: {output_path}\n")

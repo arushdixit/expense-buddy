@@ -40,10 +40,11 @@ export interface SyncMeta {
 
 // Dexie database class
 export class ExpenseDatabase extends Dexie {
-    expenses!: Table<LocalExpense, string>;
-    subcategories!: Table<LocalSubcategory, number>;
-    customCategories!: Table<LocalCategory, string>;
-    syncMeta!: Table<SyncMeta, string>;
+    declare expenses: Table<LocalExpense, string>;
+    declare expenses_backup: Table<LocalExpense, string>;
+    declare subcategories: Table<LocalSubcategory, number>;
+    declare customCategories: Table<LocalCategory, string>;
+    declare syncMeta: Table<SyncMeta, string>;
     private _isInitialized: boolean = false;
     private _isBlocked: boolean = false;
 
@@ -60,6 +61,15 @@ export class ExpenseDatabase extends Dexie {
         // Version 2: Add custom categories table
         this.version(2).stores({
             expenses: 'id, category, date, syncStatus, updatedAt',
+            subcategories: 'id, category, syncStatus',
+            customCategories: 'id, name',
+            syncMeta: 'key',
+        });
+
+        // Version 3: Add expenses_backup table
+        this.version(3).stores({
+            expenses: 'id, category, date, syncStatus, updatedAt',
+            expenses_backup: 'id, category, date, syncStatus, updatedAt',
             subcategories: 'id, category, syncStatus',
             customCategories: 'id, name',
             syncMeta: 'key',
@@ -145,7 +155,11 @@ export const getPendingCount = async (): Promise<number> => {
             .where('syncStatus')
             .anyOf(['pending', 'deleted'])
             .count();
-        return pending;
+        const pendingBackup = await db.expenses_backup
+            .where('syncStatus')
+            .anyOf(['pending', 'deleted'])
+            .count();
+        return pending + pendingBackup;
     } catch (e) {
         return 0;
     }

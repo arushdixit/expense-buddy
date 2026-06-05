@@ -1,9 +1,9 @@
 import React from "react";
-import { LayoutDashboard, Calendar, ArrowLeftRight, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Calendar, ArrowLeftRight, TrendingUp, FileUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SyncStatus } from "./SyncStatus";
 
-export type TabId = "dashboard" | "monthly" | "compare" | "trends";
+export type TabId = "dashboard" | "monthly" | "compare" | "trends" | "import";
 
 interface BottomNavigationProps {
   activeTab: TabId;
@@ -15,6 +15,7 @@ const tabs = [
   { id: "monthly" as const, label: "Monthly", icon: Calendar },
   { id: "compare" as const, label: "Compare", icon: ArrowLeftRight },
   { id: "trends" as const, label: "Trends", icon: TrendingUp },
+  { id: "import" as const, label: "Import", icon: FileUp },
 ];
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({

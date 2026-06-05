@@ -1,5 +1,5 @@
 import { db, LocalExpense, LocalSubcategory, LocalCategory, now, setLastSyncTime, getLastSyncTime, getPendingCount, generateId } from './db';
-import { ApiExpense, ApiSubcategory, ApiCategory, expenseApi, subcategoryApi, categoryApi, healthCheck } from './api';
+import { ApiExpense, ApiSubcategory, ApiCategory, expenseApi, expenseBackupApi, subcategoryApi, categoryApi, healthCheck } from './api';
 
 // Connection status - centralized in SyncContext, this is just a fallback
 export const getIsOnline = () => navigator.onLine;
@@ -47,26 +47,21 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
     }
 
     try {
-        // 1. Push pending creates/updates
+        // 1. Push pending creates/updates (Primary)
         const pending = await db.expenses.where('syncStatus').equals('pending').toArray();
         for (const expense of pending) {
             try {
                 const { syncStatus, updatedAt, ...expenseData } = expense;
-
-                // Check if exists
                 const existing = await expenseApi.getById(expense.id);
                 if (existing) {
                     await expenseApi.update(expense.id, expenseData);
                 } else {
-                    // Use original ID and householdId for creation
                     await expenseApi.create({
                         ...expenseData,
                         id: expense.id,
                         household_id: householdId || undefined
                     });
                 }
-
-                // Mark as synced
                 await db.expenses.update(expense.id, { syncStatus: 'synced' });
                 result.pushed++;
             } catch (err) {
@@ -74,7 +69,29 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
             }
         }
 
-        // 2. Push pending deletes
+        // 1b. Push pending creates/updates (Backup)
+        const pendingBackup = await db.expenses_backup.where('syncStatus').equals('pending').toArray();
+        for (const expense of pendingBackup) {
+            try {
+                const { syncStatus, updatedAt, ...expenseData } = expense;
+                const existing = await expenseBackupApi.getById(expense.id);
+                if (existing) {
+                    await expenseBackupApi.update(expense.id, expenseData);
+                } else {
+                    await expenseBackupApi.create({
+                        ...expenseData,
+                        id: expense.id,
+                        household_id: householdId || undefined
+                    });
+                }
+                await db.expenses_backup.update(expense.id, { syncStatus: 'synced' });
+                result.pushed++;
+            } catch (err) {
+                result.errors.push(`Failed to push backup expense ${expense.id}: ${err}`);
+            }
+        }
+
+        // 2. Push pending deletes (Primary)
         const deleted = await db.expenses.where('syncStatus').equals('deleted').toArray();
         for (const expense of deleted) {
             try {
@@ -86,18 +103,26 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
             }
         }
 
-        // 3. Pull all
-        const serverExpenses = await expenseApi.getAll();
+        // 2b. Push pending deletes (Backup)
+        const deletedBackup = await db.expenses_backup.where('syncStatus').equals('deleted').toArray();
+        for (const expense of deletedBackup) {
+            try {
+                await expenseBackupApi.delete(expense.id);
+                await db.expenses_backup.delete(expense.id);
+                result.pushed++;
+            } catch (err) {
+                result.errors.push(`Failed to delete backup expense ${expense.id}: ${err}`);
+            }
+        }
 
-        // Get local expense IDs that are synced (not pending)
+        // 3. Pull all (Primary)
+        const serverExpenses = await expenseApi.getAll();
         const localSyncedIds = new Set(
             (await db.expenses.where('syncStatus').equals('synced').primaryKeys())
         );
 
-        // Update/insert server expenses
         for (const serverExp of serverExpenses) {
             const local = await db.expenses.get(serverExp.id);
-
             if (!local) {
                 await db.expenses.put({
                     ...serverExp,
@@ -117,11 +142,44 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
             }
         }
 
-        // Remove local synced items that no longer exist on server
         const serverIds = new Set(serverExpenses.map(e => e.id));
         for (const localId of localSyncedIds) {
             if (!serverIds.has(localId)) {
                 await db.expenses.delete(localId as string);
+            }
+        }
+
+        // 3b. Pull all (Backup)
+        const serverBackupExpenses = await expenseBackupApi.getAll();
+        const localSyncedBackupIds = new Set(
+            (await db.expenses_backup.where('syncStatus').equals('synced').primaryKeys())
+        );
+
+        for (const serverExp of serverBackupExpenses) {
+            const local = await db.expenses_backup.get(serverExp.id);
+            if (!local) {
+                await db.expenses_backup.put({
+                    ...serverExp,
+                    syncStatus: 'synced',
+                    updatedAt: now(),
+                });
+                result.pulled++;
+            } else if (local.syncStatus === 'synced') {
+                if (!areExpensesEqual(local, serverExp)) {
+                    await db.expenses_backup.put({
+                        ...serverExp,
+                        syncStatus: 'synced',
+                        updatedAt: now(),
+                    });
+                    result.pulled++;
+                }
+            }
+        }
+
+        const serverBackupIds = new Set(serverBackupExpenses.map(e => e.id));
+        for (const localId of localSyncedBackupIds) {
+            if (!serverBackupIds.has(localId)) {
+                await db.expenses_backup.delete(localId as string);
             }
         }
 
@@ -211,6 +269,37 @@ export const syncApi = {
         return newExpense;
     },
 
+    // Get all backup expenses (from IndexedDB)
+    async getAllBackupExpenses(): Promise<LocalExpense[]> {
+        try {
+            return await db.expenses_backup
+                .where('syncStatus')
+                .notEqual('deleted')
+                .reverse()
+                .sortBy('date');
+        } catch (err) {
+            console.error('Dexie Error in getAllBackupExpenses:', err);
+            return [];
+        }
+    },
+
+    // Create backup expense (writes to IndexedDB, syncs later)
+    async createBackupExpense(expense: Omit<ApiExpense, 'id' | 'created_at'>): Promise<LocalExpense> {
+        const id = generateId();
+        const timestamp = now();
+
+        const newExpense: LocalExpense = {
+            id,
+            ...expense,
+            created_at: new Date().toISOString(),
+            syncStatus: 'pending',
+            updatedAt: timestamp,
+        };
+
+        await db.expenses_backup.add(newExpense);
+        return newExpense;
+    },
+
     // Update expense
     async updateExpense(id: string, updates: Partial<ApiExpense>): Promise<LocalExpense | null> {
         const existing = await db.expenses.get(id);
@@ -240,6 +329,22 @@ export const syncApi = {
         } else {
             // Mark for deletion so it syncs
             await db.expenses.update(id, {
+                syncStatus: 'deleted',
+                updatedAt: now(),
+            });
+        }
+        return true;
+    },
+
+    // Delete backup expense
+    async deleteBackupExpense(id: string): Promise<boolean> {
+        const existing = await db.expenses_backup.get(id);
+        if (!existing) return false;
+
+        if (existing.syncStatus === 'pending' && !existing.created_at) {
+            await db.expenses_backup.delete(id);
+        } else {
+            await db.expenses_backup.update(id, {
                 syncStatus: 'deleted',
                 updatedAt: now(),
             });

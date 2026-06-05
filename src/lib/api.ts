@@ -284,6 +284,100 @@ export const categoryApi = {
     },
 };
 
+// ----- Expense Backup API -----
+
+export const expenseBackupApi = {
+    async getAll(): Promise<ApiExpense[]> {
+        const { data, error } = await supabase
+            .from('expenses_backup')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw new Error(`Failed to fetch backup expenses: ${error.message}`);
+        return (data || []).map(toApiExpense);
+    },
+
+    async getById(id: string): Promise<ApiExpense | null> {
+        const { data, error } = await supabase
+            .from('expenses_backup')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error) throw new Error(`Failed to fetch backup expense: ${error.message}`);
+        return data ? toApiExpense(data) : null;
+    },
+
+    async create(expense: Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string }): Promise<ApiExpense> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
+        let hId = expense.household_id;
+
+        if (!hId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', user.id)
+                .maybeSingle();
+            hId = profile?.household_id || null;
+        }
+
+        const newExpense = {
+            id: expense.id || generateId(),
+            amount: expense.amount,
+            category: expense.category,
+            subcategory: expense.subcategory || null,
+            date: expense.date,
+            note: expense.note || null,
+            updated_at: Date.now(),
+            user_id: user.id,
+            household_id: hId
+        };
+
+        const { data, error } = await supabase
+            .from('expenses_backup')
+            .insert(newExpense)
+            .select()
+            .maybeSingle();
+
+        if (error) throw new Error(`Failed to create backup expense: ${error.message}`);
+        if (!data) throw new Error('Failed to create backup expense: No data returned');
+        return toApiExpense(data);
+    },
+
+    async update(id: string, updates: Partial<ApiExpense>): Promise<ApiExpense> {
+        const updateData: Record<string, unknown> = {
+            updated_at: Date.now(),
+        };
+        if (updates.amount !== undefined) updateData.amount = updates.amount;
+        if (updates.category !== undefined) updateData.category = updates.category;
+        if (updates.subcategory !== undefined) updateData.subcategory = updates.subcategory;
+        if (updates.date !== undefined) updateData.date = updates.date;
+        if (updates.note !== undefined) updateData.note = updates.note;
+
+        const { data, error } = await supabase
+            .from('expenses_backup')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+
+        if (error) throw new Error(`Failed to update backup expense: ${error.message}`);
+        if (!data) throw new Error('Failed to update backup expense: Not found or access denied');
+        return toApiExpense(data);
+    },
+
+    async delete(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('expenses_backup')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(`Failed to delete backup expense: ${error.message}`);
+    },
+};
+
 // ----- Health Check -----
 
 export const healthCheck = async (): Promise<boolean> => true;

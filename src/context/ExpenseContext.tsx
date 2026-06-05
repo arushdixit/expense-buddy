@@ -9,10 +9,15 @@ import { useSync } from "@/context/SyncContext";
 
 interface ExpenseContextType {
   expenses: Expense[];
+  backupExpenses: Expense[];
   isLoading: boolean;
   addExpense: (expense: Omit<Expense, "id">) => void;
   deleteExpense: (id: string) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
+  deleteBackupExpense: (id: string) => Promise<void>;
+  bulkAddBackupExpenses: (expenses: Omit<Expense, "id">[]) => Promise<void>;
+  mergeBackupToProduction: () => Promise<void>;
+  clearBackupQueue: () => Promise<void>;
   customSubcategories: Record<string, string[]>;
   addCustomSubcategory: (categoryId: string, subcategory: string) => void;
   customCategories: Category[];
@@ -56,6 +61,7 @@ const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [backupExpenses, setBackupExpenses] = useState<Expense[]>([]);
   const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>({});
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -138,6 +144,16 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
+
+      // 2b. Load backup expenses
+      let localBackupExpenses: LocalExpense[] = [];
+      try {
+        localBackupExpenses = await syncApi.getAllBackupExpenses();
+      } catch (err) {
+        console.error('Dexie Error in loadData (backup expenses):', err);
+      }
+      const mappedBackupExpenses = localBackupExpenses.map(e => localExpenseToExpense(e, loadedCategories));
+      setBackupExpenses(mappedBackupExpenses);
 
       // 3. Load subcategories and group by category
       let localSubcategories: LocalSubcategory[] = [];
@@ -227,6 +243,11 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       const localExpenses = await syncApi.getAllExpenses();
       const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
       setExpenses(mappedExpenses);
+
+      // 3b. Reload backup expenses
+      const localBackupExpenses = await syncApi.getAllBackupExpenses();
+      const mappedBackupExpenses = localBackupExpenses.map(e => localExpenseToExpense(e, loadedCategories));
+      setBackupExpenses(mappedBackupExpenses);
     } catch (error) {
       console.error('Failed to refresh data:', error);
     }
@@ -302,6 +323,93 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.error('Failed to update expense:', error);
       toast.error('Failed to update expense');
       throw error;
+    }
+  };
+
+  const deleteBackupExpense = async (id: string) => {
+    try {
+      await syncApi.deleteBackupExpense(id);
+      setBackupExpenses(prev => prev.filter(exp => exp.id !== id));
+      refreshStatus();
+      scheduleAutoSync();
+      toast.success('Backup transaction removed');
+    } catch (error) {
+      console.error('Failed to delete backup expense:', error);
+      toast.error('Failed to delete backup transaction');
+      throw error;
+    }
+  };
+
+  const bulkAddBackupExpenses = async (newExpenses: Omit<Expense, "id">[]) => {
+    try {
+      const addedMapped: Expense[] = [];
+      for (const expense of newExpenses) {
+        const localData = expenseToLocalData(expense, customCategories);
+        const createdExpense = await syncApi.createBackupExpense(localData);
+        const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
+        addedMapped.push(mappedExpense);
+      }
+      setBackupExpenses(prev => [...addedMapped, ...prev]);
+      refreshStatus();
+      scheduleAutoSync();
+      toast.success(`Uploaded ${newExpenses.length} transactions to backup queue`);
+    } catch (error) {
+      console.error('Failed bulk backup upload:', error);
+      toast.error('Failed to upload transactions to backup queue');
+      throw error;
+    }
+  };
+
+  const mergeBackupToProduction = async () => {
+    try {
+      const backupToMerge = [...backupExpenses];
+      if (backupToMerge.length === 0) {
+        toast.info('No transactions in backup queue');
+        return;
+      }
+
+      // Copy all to production
+      const addedMapped: Expense[] = [];
+      for (const backup of backupToMerge) {
+        const localData = {
+          amount: backup.amount,
+          category: getCategoryById(backup.categoryId, customCategories)?.name || backup.categoryId,
+          subcategory: backup.subcategory,
+          date: backup.date,
+          note: backup.note,
+        };
+        const createdExpense = await syncApi.createExpense(localData);
+        const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
+        addedMapped.push(mappedExpense);
+
+        // Delete from backup
+        await syncApi.deleteBackupExpense(backup.id);
+      }
+
+      // Update state
+      setExpenses(prev => [...addedMapped, ...prev]);
+      setBackupExpenses([]);
+      refreshStatus();
+      scheduleAutoSync();
+      toast.success(`Successfully merged ${backupToMerge.length} transactions to production!`);
+    } catch (error) {
+      console.error('Failed to merge backup to production:', error);
+      toast.error('Failed to merge transactions');
+    }
+  };
+
+  const clearBackupQueue = async () => {
+    try {
+      for (const backup of backupExpenses) {
+        await syncApi.deleteBackupExpense(backup.id);
+      }
+      setBackupExpenses([]);
+      refreshStatus();
+      scheduleAutoSync();
+      toast.success('Backup queue cleared');
+    } catch (error) {
+      console.error('Failed to clear backup queue:', error);
+      toast.error('Failed to clear backup queue');
     }
   };
 
@@ -392,10 +500,15 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
     <ExpenseContext.Provider
       value={{
         expenses,
+        backupExpenses,
         isLoading,
         addExpense,
         deleteExpense,
         updateExpense,
+        deleteBackupExpense,
+        bulkAddBackupExpenses,
+        mergeBackupToProduction,
+        clearBackupQueue,
         customSubcategories,
         addCustomSubcategory,
         customCategories,

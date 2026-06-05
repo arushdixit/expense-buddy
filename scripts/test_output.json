@@ -1,0 +1,3899 @@
+[
+  {
+    "date": "2026-04-20",
+    "description": "talabat pro Dubai AE",
+    "amount": 29.0,
+    "category": "Misc",
+    "subcategory": "Talabat pro",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-24",
+    "description": "ISTA MIDDLE EAST FZE D DUBAI AE",
+    "amount": 1757.76,
+    "category": "Utilities",
+    "subcategory": "Chiller",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-28",
+    "description": "BAIT MARYAM DMCC DUBAI AE",
+    "amount": 98.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-28",
+    "description": "CITY CART DMCC DUBAI AE",
+    "amount": 3.5,
+    "category": "Groceries",
+    "subcategory": "Convenience",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-28",
+    "description": "DUBAI TAXI DUBAI AE",
+    "amount": 122.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-28",
+    "description": "NOUR FRESH MART DMCC Dubai AE",
+    "amount": 2.0,
+    "category": "Groceries",
+    "subcategory": "Convenience",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-29",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 48.15,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-29",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 8.75,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-29",
+    "description": "San Wan No qlub, dubai DUBAI AE",
+    "amount": 95.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-30",
+    "description": "Amazon.ae Dubai AE",
+    "amount": 9.99,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-04-30",
+    "description": "Amazon.ae Dubai AE",
+    "amount": 413.64,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-01",
+    "description": "myAster Dubai AE",
+    "amount": 84.83,
+    "category": "Medical",
+    "subcategory": "Medicine",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-01",
+    "description": "myAster Dubai AE",
+    "amount": -84.83,
+    "category": "Medical",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-05-01",
+    "description": "Temu.com Dubai AE",
+    "amount": 208.29,
+    "category": "Shopping",
+    "subcategory": "Temu",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-01",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 105.03,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-01",
+    "description": "DUBAI ELECTRICITY DUBAI AE",
+    "amount": 513.6,
+    "category": "Utilities",
+    "subcategory": "DEWA",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-02",
+    "description": "Amazon.ae Dubai AE",
+    "amount": 45.09,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-03",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 38.38,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-02",
+    "description": "ZARA DUBAI AE",
+    "amount": 219.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-02",
+    "description": "CARREFOUR-MOE DUBAI AE",
+    "amount": 5.92,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-02",
+    "description": "CARREFOUR-MOE DUBAI AE",
+    "amount": 125.45,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-02",
+    "description": "Smart Dubai Government DUBAI AE",
+    "amount": 50.0,
+    "category": "Transport",
+    "subcategory": "Nol Card",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-03",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-04",
+    "description": "CalvinKlein Dubai AE",
+    "amount": 215.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-03",
+    "description": "ISTA MIDDLE EAST FZE D DUBAI AE",
+    "amount": 218.96,
+    "category": "Utilities",
+    "subcategory": "Chiller",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-06",
+    "description": "CAREEM HALA Abu Dhabi AE",
+    "amount": 22.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-06",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 23.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-08",
+    "description": "UrbanClap Dubai AE",
+    "amount": 234.0,
+    "category": "Grooming",
+    "subcategory": "Waxing",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-07",
+    "description": "Amazon.ae Dubai AE",
+    "amount": -413.64,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-05-08",
+    "description": "MMI JLT ARMADA SHOP DUBAI AE",
+    "amount": 148.1,
+    "category": "Entertainment",
+    "subcategory": "Drinks",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-09",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 31.25,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-09",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 10.99,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-10",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 37.15,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-13",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 377.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-13",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 17.1,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-13",
+    "description": "AFGHAN PALACE REST BR Dubai AE",
+    "amount": 124.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-14",
+    "description": "MADHOOR STORE DMCC DUBAI AE",
+    "amount": 4.75,
+    "category": "Groceries",
+    "subcategory": "Madhoor",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-14",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 197.37,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-14",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 49.05,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-15",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 197.37,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-14",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 57.16,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-16",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 49.54,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-16",
+    "description": "ASTER PHARMACIES DUBAI AE",
+    "amount": 19.0,
+    "category": "Medical",
+    "subcategory": "Medicine",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-16",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 28.0,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-09",
+    "description": "Temu.com Dubai AE",
+    "amount": -47.39,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2025-12-19",
+    "description": "UrbanClap Dubai AE",
+    "amount": 81.0,
+    "category": "Grooming",
+    "subcategory": "Waxing",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-18",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 20.2,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-18",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 14.99,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-18",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -194.37,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2025-12-19",
+    "description": "GRANDIOSE SUPERMARKET DUBAI AE",
+    "amount": 43.55,
+    "category": "Groceries",
+    "subcategory": "Grandiose",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "carrefouruae.com Dubai AE",
+    "amount": 132.86,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-19",
+    "description": "talabat.com DUBAI AE",
+    "amount": 47.86,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-19",
+    "description": "SPINNEYS DUBAI LLC DUBAI AE",
+    "amount": 36.55,
+    "category": "Groceries",
+    "subcategory": "Spinneys",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "MARKS N SPENCER MOE DUBAI AE",
+    "amount": 149.0,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "LEVEL SHOES DUBAI AE",
+    "amount": 1820.0,
+    "category": "Shopping",
+    "subcategory": "Shoe",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "LISH BEAUTY BAR Dubai AE",
+    "amount": 315.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 9.02,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-20",
+    "description": "Smart Dubai Government DUBAI AE",
+    "amount": 50.0,
+    "category": "Transport",
+    "subcategory": "Nol Card",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-21",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 84.0,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-21",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 51.95,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-22",
+    "description": "talabat.com DUBAI AE",
+    "amount": 48.0,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-22",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 31.7,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-22",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 4.47,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-23",
+    "description": "EMIR BEY GENERAL TRADI Dubai AE",
+    "amount": 25.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-21",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 189.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-23",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 37.55,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-24",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 34.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-24",
+    "description": "CAREEM QUIK Dubai AE",
+    "amount": 32.76,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-24",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 27.98,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-24",
+    "description": "MADINAT JUMEIRAH LLC DUBAI AE",
+    "amount": 45.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-24",
+    "description": "MADINAT JUMEIRAH LLC DUBAI AE",
+    "amount": 25.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-25",
+    "description": "MONS HOSPITALITY FZ LL Dubai AE",
+    "amount": 25.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-26",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 42.18,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-25",
+    "description": "talabat.com DUBAI AE",
+    "amount": 43.11,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2025-12-25",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 8.49,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-25",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 4.5,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-26",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 112.5,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-26",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 54.9,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-26",
+    "description": "DUBAI ELECTRICITY DUBAI AE",
+    "amount": 618.35,
+    "category": "Utilities",
+    "subcategory": "DEWA",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-28",
+    "description": "AL KHAYMA HERITAGE RES DUBAI AE",
+    "amount": 180.6,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-28",
+    "description": "Royal Delight Trading Dubai AE",
+    "amount": 65.0,
+    "category": "Entertainment",
+    "subcategory": "Snacks",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-30",
+    "description": "Urban Company dubai AE",
+    "amount": 234.0,
+    "category": "Grooming",
+    "subcategory": "Waxing",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-29",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 28.87,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-30",
+    "description": "SUNGLASS HUT DUBAI AE",
+    "amount": 585.0,
+    "category": "Shopping",
+    "subcategory": "Accessories",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-30",
+    "description": "talabat.com DUBAI AE",
+    "amount": 52.18,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-30",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 47.4,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-01",
+    "description": "CAREEM DINEOUT Abu Dhabi AE",
+    "amount": 95.17,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-31",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 25.95,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-31",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 36.35,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2025-12-31",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 63.35,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-01",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 15.97,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-03",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-03",
+    "description": "GRANDIOSE SUPERMARKET DUBAI AE",
+    "amount": 43.4,
+    "category": "Groceries",
+    "subcategory": "Grandiose",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-04",
+    "description": "DONNERCHEF DMCC DUBAI AE",
+    "amount": 40.0,
+    "category": "Entertainment",
+    "subcategory": "Snacks",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-04",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 36.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-03",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 35.55,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-03",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 7.5,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-04",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 42.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-04",
+    "description": "ATLANTIS THE PALM LIMI DUBAI AE",
+    "amount": 554.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-05",
+    "description": "CAREEM QUIK Dubai AE",
+    "amount": 34.09,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-06",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 37.56,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-02",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 403.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-05",
+    "description": "AL FURAT REFRESHME DUBAI AE",
+    "amount": 75.2,
+    "category": "Utilities",
+    "subcategory": "Water",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-01-06",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 25.8,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-01-07",
+    "description": "Noon Food LLC Dubai AE",
+    "amount": 44.1,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-01-08",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 7.99,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-09",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 58.6,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-10",
+    "description": "NAMSHI DUBAI AE",
+    "amount": 379.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-11",
+    "description": "KAMAT RESTAURANT LLC DUBAI AE",
+    "amount": 20.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-12",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 99.95,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-11",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 68.24,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-12",
+    "description": "CAREEM RIDE Dubai AE",
+    "amount": 30.17,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-12",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 18.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-14",
+    "description": "CAREEM HALA Abu Dhabi AE",
+    "amount": 43.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-13",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 71.66,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-14",
+    "description": "CAREEM RIDE Dubai AE",
+    "amount": 21.12,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-10",
+    "description": "NAMSHI DUBAI AE",
+    "amount": -379.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-02-14",
+    "description": "Abdelwahab premier Abu Dhabi AE",
+    "amount": 215.72,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-14",
+    "description": "HARVEST CAFE DUBAI AE",
+    "amount": 62.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-14",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 6.16,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-15",
+    "description": "AL FUTTAIM SONS CO LLC Dubai AE",
+    "amount": 265.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-16",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 32.5,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-15",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 94.29,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-16",
+    "description": "LE CAFE DUCALE 418359 75PARIS 16 FR",
+    "amount": 110.53,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-17",
+    "description": "talabat pro Dubai AE",
+    "amount": 29.0,
+    "category": "Misc",
+    "subcategory": "Talabat pro",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-17",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 35.02,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-02-17",
+    "description": "8 A HUIT 243732 PARIS FR",
+    "amount": 13.05,
+    "category": "Travel",
+    "subcategory": "Misc",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-19",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 54.8,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-19",
+    "description": "BOUTIQUE LADUREE PARIS FR",
+    "amount": 101.52,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 37.85,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "STE CHAPELLE 232272 75PARIS FR",
+    "amount": 98.61,
+    "category": "Travel",
+    "subcategory": "Entertainment",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "RATP PARIS FR",
+    "amount": 11.43,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "RATP PARIS FR",
+    "amount": 20.39,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "SC-MAISON RUSSE PARIS FR",
+    "amount": 256.34,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-20",
+    "description": "RENAISSANCE PARIS NOBE PARIS FR",
+    "amount": 6829.1,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-21",
+    "description": "Noon Food LLC Dubai AE",
+    "amount": 47.25,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-21",
+    "description": "AL FURAT REFRESHME DUBAI AE",
+    "amount": 150.4,
+    "category": "Utilities",
+    "subcategory": "Water",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-22",
+    "description": "BAIT MARYAM DMCC DUBAI AE",
+    "amount": 140.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-22",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 22.07,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-23",
+    "description": "NAMSHI DUBAI AE",
+    "amount": 156.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-23",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 269.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-24",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 30.46,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-25",
+    "description": "NAMSHI DUBAI AE",
+    "amount": 218.6,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-23",
+    "description": "NAMSHI DUBAI AE",
+    "amount": -156.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-02-26",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 145.4,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-02-27",
+    "description": "Deliveroo Plus Subs Dubai AE",
+    "amount": 29.0,
+    "category": "Groceries",
+    "subcategory": "Deliveroo",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-28",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 49.13,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-22",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 538.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-25",
+    "description": "NAMSHI DUBAI AE",
+    "amount": -218.6,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-28",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -145.4,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-28",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 87.0,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-28",
+    "description": "DUBAI ELECTRICITY DUBAI AE",
+    "amount": 663.97,
+    "category": "Utilities",
+    "subcategory": "DEWA",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-01",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 120.9,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-01",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 17.91,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-01",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 5.25,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-02",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-02",
+    "description": "KAMAT RESTAURANT LLC DUBAI AE",
+    "amount": 39.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-03",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 28.71,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-03",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 19.15,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-04",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 127.6,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-04",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 148.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-06",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 33.67,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-05",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 207.7,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-05",
+    "description": "SPINNEYS JLT DUBAI AE",
+    "amount": 30.75,
+    "category": "Groceries",
+    "subcategory": "Spinneys",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-07",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 62.48,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-07",
+    "description": "CAREEM HALA Abu Dhabi AE",
+    "amount": 32.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-06",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -204.7,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-23",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -269.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-22",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -169.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-03-07",
+    "description": "DUBAI TAXI DUBAI AE",
+    "amount": 36.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-07",
+    "description": "Talabat DUBAI AE",
+    "amount": 97.25,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-08",
+    "description": "NOON.COM DUBAI AE",
+    "amount": -150.75,
+    "category": "Groceries",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-03-08",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 150.75,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-03-08",
+    "description": "BUZZ ADDA RESTAURANT D Dubai AE",
+    "amount": 39.99,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-10",
+    "description": "GENATSVALE BISTRO REST DUBAI AE",
+    "amount": 141.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-09",
+    "description": "Namshi Dubai AE",
+    "amount": 149.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-09",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 32.55,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-09",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 17.14,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-11",
+    "description": "CAREEM QUIK Dubai AE",
+    "amount": 67.52,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-09",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 169.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-11",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 7.5,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-11",
+    "description": "ZARA DUBAI AE",
+    "amount": 149.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-09",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -169.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-01-11",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 19.8,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-11",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 18.0,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-12",
+    "description": "M.H. ALSAHAYA CO.-H & DUBAI AE",
+    "amount": 219.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-12",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 105.95,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-13",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 31.2,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-14",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 58.28,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-14",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 34.9,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-14",
+    "description": "talabat.com DUBAI AE",
+    "amount": 33.48,
+    "category": "Groceries",
+    "subcategory": "Talabat",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-15",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 243.87,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-15",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 37.25,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2025-12-30",
+    "description": "SUNGLASS HUT DUBAI AE",
+    "amount": -585.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-01-17",
+    "description": "D385 H AND M ALSHAYA DUBAI AE",
+    "amount": 89.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-01-17",
+    "description": "M.H. ALSAHAYA CO.-H & DUBAI AE",
+    "amount": -219.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-17",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -240.87,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-17",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 235.5,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-17",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 34.76,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-17",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 40.77,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-18",
+    "description": "BAIT MARYAM DMCC DUBAI AE",
+    "amount": 190.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-18",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 103.25,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-20",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 61.52,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-20",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 15.4,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-20",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 427.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-02",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -129.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-21",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 46.05,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-22",
+    "description": "BIKANERVALA RESTAURANT DUBAI AE",
+    "amount": 30.0,
+    "category": "Misc",
+    "subcategory": "Obligation",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-22",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -424.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-22",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 32.1,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-22",
+    "description": "MADHOOR STORE DMCC Dubai AE",
+    "amount": 52.12,
+    "category": "Groceries",
+    "subcategory": "Madhoor",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-23",
+    "description": "GRANDIOSE SUPERMARKET DUBAI AE",
+    "amount": 40.15,
+    "category": "Groceries",
+    "subcategory": "Grandiose",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-24",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 37.85,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-23",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 30.25,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-23",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 268.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-23",
+    "description": "SPINNEYS DUBAI LLC DUBAI AE",
+    "amount": 9.5,
+    "category": "Groceries",
+    "subcategory": "Spinneys",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-24",
+    "description": "ZARA DUBAI AE",
+    "amount": 400.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-23",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -99.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-25",
+    "description": "DAIKAN DMCC DUBAI AE",
+    "amount": 170.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-25",
+    "description": "Noon Minutes Dubai AE",
+    "amount": 25.3,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-09",
+    "description": "Namshi Dubai AE",
+    "amount": -137.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-01-25",
+    "description": "WEST ZONE FRESH SUPERM DUBAI AE",
+    "amount": 1.75,
+    "category": "Groceries",
+    "subcategory": "West Zone",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-27",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 46.9,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-01-27",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 45.05,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-26",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 69.0,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-26",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 258.82,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "Deliveroo Dubai AE",
+    "amount": 35.15,
+    "category": "Groceries",
+    "subcategory": "Deliveroo",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-26",
+    "description": "PAYPAL *MAK36393XDL 4029357733 HK",
+    "amount": 248.73,
+    "category": "Shopping",
+    "subcategory": "Rep Ladies",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 142.5,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 66.7,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": -4.75,
+    "category": "Groceries",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "DUBAI ELECTRICITY DUBAI AE",
+    "amount": 658.97,
+    "category": "Utilities",
+    "subcategory": "DEWA",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-28",
+    "description": "ASTER PHARMACIES DUBAI AE",
+    "amount": 15.5,
+    "category": "Medical",
+    "subcategory": "Medicine",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-29",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 49.1,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-31",
+    "description": "CAREEM HALA Abu Dhabi AE",
+    "amount": 32.66,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-31",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 37.27,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-31",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 20.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-30",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 28.46,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-30",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -69.75,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-01-30",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 41.62,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-01-31",
+    "description": "PAN EMIRATES FURNITURE DUBAI AE",
+    "amount": 19.0,
+    "category": "Shopping",
+    "subcategory": "Household",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-02",
+    "description": "DESCO COPY & PRINT DUBAI AE",
+    "amount": 66.15,
+    "category": "Shopping",
+    "subcategory": "Household",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-02",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 47.6,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-01",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 27.15,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-01",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -69.75,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-01",
+    "description": "NAMSHI DUBAI AE",
+    "amount": 338.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-01",
+    "description": "FARSI DMCC Dubai AE",
+    "amount": 201.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-04",
+    "description": "CAREEM HALA Abu Dhabi AE",
+    "amount": 31.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-01",
+    "description": "NAMSHI DUBAI AE",
+    "amount": -338.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-02-04",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-04",
+    "description": "OLIVES AND SALT RESTAU ABU DHABI AE",
+    "amount": 45.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-04",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 45.9,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-02-04",
+    "description": "VFS AUH France Abu Dhabi AE",
+    "amount": 459.75,
+    "category": "Travel",
+    "subcategory": "Visa",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-04",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 13.18,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-04",
+    "description": "ZOMATO MEDIA PRIVATE L DUBAI AE",
+    "amount": 500.0,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-06",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 41.24,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-06",
+    "description": "UrbanClap Dubai AE",
+    "amount": 170.0,
+    "category": "Grooming",
+    "subcategory": "Waxing",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-05",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 75.75,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-04",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": 499.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-06",
+    "description": "NAMSHI DUBAI AE",
+    "amount": 195.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-06",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 14.16,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-07",
+    "description": "NOON Minutes DUBAI AE",
+    "amount": 33.5,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-08",
+    "description": "ZARA DUBAI AE",
+    "amount": 299.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-08",
+    "description": "ZARA DUBAI AE",
+    "amount": 169.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-02-04",
+    "description": "Kaswa Trading LLC DUBAI AE",
+    "amount": -499.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 8
+  },
+  {
+    "date": "2026-02-08",
+    "description": "ZOMATO MEDIA PRIVATE L DUBAI AE",
+    "amount": 29.8,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-03-10",
+    "description": "PAYPAL *MAK36393XDL 4029357733 HK",
+    "amount": -238.71,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-03-10",
+    "description": "Zara.com Dubai AE",
+    "amount": 538.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-11",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 80.49,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-13",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 42.24,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-13",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 69.12,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-10",
+    "description": "Zara.com Dubai AE",
+    "amount": -249.0,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-03-14",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 520.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-15",
+    "description": "EMIRATES 6220790580 WWW.EMIRATES. AE",
+    "amount": 3580.0,
+    "category": "Travel",
+    "subcategory": "Flight",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-17",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 42.33,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-16",
+    "description": "6TH STREET DUBAI AE",
+    "amount": -254.24,
+    "category": "Shopping",
+    "subcategory": "Refund",
+    "isRefund": true,
+    "page": 5
+  },
+  {
+    "date": "2026-03-16",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 14.27,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-20",
+    "description": "talabat pro Dubai AE",
+    "amount": 29.0,
+    "category": "Misc",
+    "subcategory": "Talabat pro",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-26",
+    "description": "DUBAI ELECTRICITY DUBAI AE",
+    "amount": 623.47,
+    "category": "Utilities",
+    "subcategory": "DEWA",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-27",
+    "description": "Deliveroo Plus Subs Dubai AE",
+    "amount": 29.0,
+    "category": "Groceries",
+    "subcategory": "Deliveroo",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-29",
+    "description": "CAFE 8.98 KRABI TH",
+    "amount": 64.93,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-29",
+    "description": "WWW.GRAB.COM BANGKOK TH",
+    "amount": 20.07,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-29",
+    "description": "WWW.PAYSOLUT*WWW.PAYSO BANGKOK TH",
+    "amount": 224.68,
+    "category": "Travel",
+    "subcategory": "Misc",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-28",
+    "description": "GRABTAXI BANGKOK TH",
+    "amount": 3.48,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-03-28",
+    "description": "GRABTAXI BANGKOK TH",
+    "amount": 0.58,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-03-29",
+    "description": "ANDALAY BEACH BAR & CA KRABI TH",
+    "amount": 118.38,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-03-28",
+    "description": "GRABTAXI BANGKOK TH 5.00 CR 0.56 CR REVRSL OF",
+    "amount": -0.58,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": true,
+    "page": 6
+  },
+  {
+    "date": "2026-03-30",
+    "description": "noon ONE subscription Dubai AE",
+    "amount": 119.94,
+    "category": "Misc",
+    "subcategory": "Noon One",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-01",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-03",
+    "description": "SALA SAMUI CHAWENG BEA SURATTHANI TH",
+    "amount": 167.76,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-03",
+    "description": "12GO Nicosia CY",
+    "amount": 187.18,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-04",
+    "description": "RIVER VIEW RESORT SURATTHANI TH",
+    "amount": 528.79,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-04",
+    "description": "RIVER VIEW RESORT SURATTHANI TH",
+    "amount": 59.33,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-05",
+    "description": "12GO Nicosia CY",
+    "amount": 76.9,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-06",
+    "description": "LPE*TORRY S ICE CREAM BANGKOK TH",
+    "amount": 17.5,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-06",
+    "description": "LPE*TORRY S ICE CREAM BANGKOK TH",
+    "amount": 21.0,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-05",
+    "description": "RAMI AND TOMMY PHUKET TH",
+    "amount": 75.83,
+    "category": "Travel",
+    "subcategory": "Shopping",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-04-06",
+    "description": "TALAY PHUKET TH",
+    "amount": 57.18,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-06",
+    "description": "WWW.2C2P.COM*2C2P (THA BANGKOK TH",
+    "amount": 22.59,
+    "category": "Travel",
+    "subcategory": "Misc",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-06",
+    "description": "GRABTAXI BANGKOK TH",
+    "amount": 0.58,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-06",
+    "description": "CHARM MASSAGE PHUKET TH",
+    "amount": 90.36,
+    "category": "Travel",
+    "subcategory": "Entertainment",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-07",
+    "description": "WWW.GRAB.COM BANGKOK TH",
+    "amount": 21.65,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-06",
+    "description": "WWW.2C2P.COM*2C2P BOLT BANGKOK TH",
+    "amount": 16.81,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-07",
+    "description": "WWW.2C2P.COM*2C2P BOLT BANGKOK TH",
+    "amount": 16.86,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-07",
+    "description": "WWW.2C2P.COM*2C2P BOLT BANGKOK TH",
+    "amount": 16.86,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-07",
+    "description": "MOONTREE SPA PHUKET TH",
+    "amount": 399.92,
+    "category": "Travel",
+    "subcategory": "Entertainment",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-06",
+    "description": "GRABTAXI BANGKOK TH 5.00 CR 0.56 CR REVRSL OF",
+    "amount": -0.58,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": true,
+    "page": 7
+  },
+  {
+    "date": "2026-04-08",
+    "description": "WWW.2C2P.COM*2C2P BOLT BANGKOK TH",
+    "amount": 70.95,
+    "category": "Travel",
+    "subcategory": "Cab",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-08",
+    "description": "KING POWER DUTY FREE H PHUKET TH",
+    "amount": 314.95,
+    "category": "Travel",
+    "subcategory": "Shopping",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-04-07",
+    "description": "COURTYARD RESTAURANT&B PHUKET TH",
+    "amount": 122.9,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-04-07",
+    "description": "ZURI RESTRO BAR AND LO PHUKET TH",
+    "amount": 75.6,
+    "category": "Travel",
+    "subcategory": "Food",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-06-02",
+    "description": "e& Digital App Abu Dhabi AE",
+    "amount": 418.95,
+    "category": "Utilities",
+    "subcategory": "Internet",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-02",
+    "description": "NOON.COM DUBAI AE",
+    "amount": 52.06,
+    "category": "Groceries",
+    "subcategory": "Noon",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-02",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 52.07,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-01",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 10.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-01",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 5.76,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-01",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 79.46,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-06-01",
+    "description": "THE RITZ CARLTON BOSTON MA",
+    "amount": 10011.09,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.11,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 1
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.06,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.07,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.04,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.15,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.09,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.1,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.06,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 2
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 13.15,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 7.56,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.14,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.08,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 3
+  },
+  {
+    "date": "2026-05-30",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 106.72,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 66.53,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 150.96,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 98.49,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "MBTA BOYLSTON BOSTON MA",
+    "amount": 8.82,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "THE RITZ CARLTON BOSTON MA",
+    "amount": 13153.62,
+    "category": "Travel",
+    "subcategory": "Hotel",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "MACYS BOSTON BOSTON MA",
+    "amount": 143.28,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "MBTA HARVARD BOSTON MA",
+    "amount": 8.82,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "MBTA PARK STREET BOSTON MA",
+    "amount": 8.82,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-30",
+    "description": "Temu.com Dubai AE",
+    "amount": 14.1,
+    "category": "Shopping",
+    "subcategory": "Temu",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.04,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.03,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 4
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.16,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.09,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.2,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.12,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.08,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.05,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.15,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.09,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 5
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.09,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.05,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 1.4,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.8,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 6
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.15,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.09,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.36,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.21,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 43.06,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 161.94,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 199.78,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "Isabella Stewart Gardn Boston MA",
+    "amount": 80.82,
+    "category": "Entertainment",
+    "subcategory": "Activities",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 150.99,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "MBTA ASSEMBLY SQUARE SOMERVILLE MA",
+    "amount": 8.82,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "MBTA DOWNTOWN XNG BOSTON MA",
+    "amount": 8.82,
+    "category": "Travel",
+    "subcategory": "Transit",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 87.99,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "COACH 4604 Somerville MA",
+    "amount": 1397.44,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 7
+  },
+  {
+    "date": "2026-05-25",
+    "description": "AMAZON RETA* XW59X2XE3 WWW.AMAZON.CO WA",
+    "amount": 154.23,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-25",
+    "description": "AMAZON RETA* 9B6IS7BD3 WWW.AMAZON.CO WA",
+    "amount": 358.56,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-25",
+    "description": "Temu.com Dubai AE",
+    "amount": 11.44,
+    "category": "Shopping",
+    "subcategory": "Temu",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.12,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.07,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.24,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.14,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.19,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.11,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 117.6,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 237.34,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 8
+  },
+  {
+    "date": "2026-05-23",
+    "description": "MACYS BOSTON BOSTON MA",
+    "amount": 190.12,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-23",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 45.08,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-23",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 16.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-22",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.13,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-22",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.08,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-22",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 131.25,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-22",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 52.98,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-22",
+    "description": "OUNASS DUBAI AE",
+    "amount": 450.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.19,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.11,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.02,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 9
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.01,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON PROCESSING FEE FOR FOREIGN TXN",
+    "amount": 0.04,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "VAT ON STANDARD PROCESSING FEE VISA/MC",
+    "amount": 0.02,
+    "category": "Shopping",
+    "subcategory": "Miscellaneous",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "UBER *EATS 8005928996 CA",
+    "amount": 186.2,
+    "category": "Entertainment",
+    "subcategory": "Food Delivery",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "UBER *TRIP 8005928996 CA",
+    "amount": 18.19,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "7-ELEVEN 32480 BOSTON MA",
+    "amount": 40.67,
+    "category": "Groceries",
+    "subcategory": "Convenience",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 38.19,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-21",
+    "description": "Temu.com Dubai AE",
+    "amount": 44.34,
+    "category": "Shopping",
+    "subcategory": "Temu",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-20",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 188.1,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-20",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 7.28,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-19",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 52.45,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-19",
+    "description": "OUNASS DUBAI AE",
+    "amount": 485.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-18",
+    "description": "CAREEM DINEOUT Abu Dhabi AE",
+    "amount": 59.03,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 10
+  },
+  {
+    "date": "2026-05-18",
+    "description": "Amazon Grocery Dubai AE",
+    "amount": 6.49,
+    "category": "Groceries",
+    "subcategory": "Amazon Now",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "DUBAI TAXI DUBAI AE",
+    "amount": 18.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "DUBAI TAXI DUBAI AE",
+    "amount": 17.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 191.1,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "KINOYA RESTAURANT LLC DUBAI AE",
+    "amount": 316.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "Zara.com Dubai AE",
+    "amount": 369.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-18",
+    "description": "Zara.com Dubai AE",
+    "amount": 749.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-16",
+    "description": "Careem Deliveries FZ-L Dubai AE",
+    "amount": 33.07,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-15",
+    "description": "Zara.com Dubai AE",
+    "amount": 749.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-14",
+    "description": "Zara.com Dubai AE",
+    "amount": 369.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-14",
+    "description": "GRANDIOSE SUPERMARKET DUBAI AE",
+    "amount": 34.3,
+    "category": "Groceries",
+    "subcategory": "Grandiose",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-13",
+    "description": "CAREEM QUIK Abu Dhabi AE",
+    "amount": 43.53,
+    "category": "Groceries",
+    "subcategory": "Careem",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-13",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 179.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-12",
+    "description": "Temu.com Dubai AE",
+    "amount": 189.52,
+    "category": "Shopping",
+    "subcategory": "Temu",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-12",
+    "description": "CARS TAXI SERVICES CO DUBAI AE",
+    "amount": 21.0,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-12",
+    "description": "11 WOODFIRE RESTAURANT DUBAI AE",
+    "amount": 294.0,
+    "category": "Entertainment",
+    "subcategory": "Dine-out",
+    "isRefund": false,
+    "page": 11
+  },
+  {
+    "date": "2026-05-11",
+    "description": "CAREEM HALA RIDE Dubai AE",
+    "amount": 73.5,
+    "category": "Transport",
+    "subcategory": "Taxi",
+    "isRefund": false,
+    "page": 12
+  },
+  {
+    "date": "2026-05-11",
+    "description": "CARREFOUR MARKET JLT A DUBAI AE",
+    "amount": 15.59,
+    "category": "Groceries",
+    "subcategory": "Carrefour",
+    "isRefund": false,
+    "page": 12
+  },
+  {
+    "date": "2026-05-11",
+    "description": "SPINNEYS JLT DUBAI AE",
+    "amount": 11.65,
+    "category": "Groceries",
+    "subcategory": "Spinneys",
+    "isRefund": false,
+    "page": 12
+  },
+  {
+    "date": "2026-05-11",
+    "description": "6TH STREET DUBAI AE",
+    "amount": 182.0,
+    "category": "Shopping",
+    "subcategory": "Clothes",
+    "isRefund": false,
+    "page": 12
+  },
+  {
+    "date": "2026-05-11",
+    "description": "Amazon.ae Dubai AE",
+    "amount": 94.24,
+    "category": "Shopping",
+    "subcategory": "Amazon",
+    "isRefund": false,
+    "page": 12
+  }
+]

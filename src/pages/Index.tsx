@@ -7,6 +7,7 @@ import { DashboardView } from "@/components/views/DashboardView";
 import { MonthlyView } from "@/components/views/MonthlyView";
 import { CompareView } from "@/components/views/CompareView";
 import { TrendsView } from "@/components/views/TrendsView";
+import { ImportView } from "@/components/views/ImportView";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expense } from "@/lib/data";
 import { StorageWarning } from "@/components/StorageWarning";
@@ -31,6 +32,8 @@ const Index: React.FC = () => {
         return <CompareView />;
       case "trends":
         return <TrendsView />;
+      case "import":
+        return <ImportView />;
       default:
         return <DashboardView onEdit={handleEdit} />;
     }
