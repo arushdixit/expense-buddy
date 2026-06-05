@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from pypdf import PdfReader
+import fitz
 
 # ---------------------------------------------------------------------------
 # Module-level compiled patterns — compiled once, reused for every line/page
@@ -528,18 +528,74 @@ def _build_transaction(
 # ---------------------------------------------------------------------------
 
 def parse_pdf(pdf_path: str) -> list[dict]:
-    reader = PdfReader(pdf_path)
+    import time
+    import sys
+    from collections import defaultdict
+    
+    t_start = time.perf_counter()
+    doc = fitz.open(pdf_path)
+    t_load = time.perf_counter() - t_start
+    sys.stderr.write(f"  [PDF TIMING] PyMuPDF open took {t_load:.4f} seconds\n")
+    
     transactions: list[dict] = []
-
-    for page_idx, page in enumerate(reader.pages):
-        text = page.extract_text()
-        # List comprehension is faster than a for-loop with list.extend()
-        lines = [
-            sub
-            for rl in text.split('\n')
-            for sub in split_concatenated_lines(rl)
-        ]
-
+    
+    t_extract_total = 0.0
+    t_process_total = 0.0
+    
+    for page_idx in range(len(doc)):
+        page = doc[page_idx]
+        t_p_start = time.perf_counter()
+        # Extract text blocks
+        blocks = page.get_text("blocks")
+        t_p_extract = time.perf_counter() - t_p_start
+        t_extract_total += t_p_extract
+        
+        t_p_proc_start = time.perf_counter()
+        
+        # Filter empty or non-text blocks
+        blocks = [b for b in blocks if b[4].strip() and b[6] == 0]
+        
+        # Group blocks that vertically overlap
+        grouped_lines = []
+        for b in blocks:
+            x0, y0, x1, y1, text, block_no, block_type = b
+            h = y1 - y0
+            
+            assigned = False
+            for line in grouped_lines:
+                overlap = min(y1, line["y1"]) - max(y0, line["y0"])
+                if overlap > 0:
+                    line_h = line["y1"] - line["y0"]
+                    overlap_ratio = overlap / min(h, line_h)
+                    if overlap_ratio > 0.4:  # 40% vertical overlap
+                        line["blocks"].append((x0, text))
+                        line["y0"] = min(line["y0"], y0)
+                        line["y1"] = max(line["y1"], y1)
+                        assigned = True
+                        break
+            if not assigned:
+                grouped_lines.append({
+                    "y0": y0,
+                    "y1": y1,
+                    "blocks": [(x0, text)]
+                })
+                
+        # Sort groups from top to bottom
+        grouped_lines.sort(key=lambda l: l["y0"])
+        
+        # Reconstruct lines
+        lines = []
+        for group in grouped_lines:
+            # Sort blocks in line from left to right
+            blocks_sorted = sorted(group["blocks"], key=lambda x: x[0])
+            merged_texts = []
+            for x0, text in blocks_sorted:
+                clean_block_text = " ".join(text.split())
+                merged_texts.append(clean_block_text)
+            line_str = " ".join(merged_texts).strip()
+            if line_str:
+                lines.extend(split_concatenated_lines(line_str))
+                
         for line in lines:
             line = line.strip()
             if not line:
@@ -595,8 +651,14 @@ def parse_pdf(pdf_path: str) -> list[dict]:
                 if tx:
                     transactions.append(tx)
                 continue
-
+        t_p_proc = time.perf_counter() - t_p_proc_start
+        t_process_total += t_p_proc
+        
+    sys.stderr.write(f"  [PDF TIMING] Total text extraction ({len(doc)} pages) took {t_extract_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] Total line processing took {t_process_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] Total parse_pdf execution took {time.perf_counter() - t_start:.4f} seconds\n")
     return transactions
+
 
 
 # ---------------------------------------------------------------------------

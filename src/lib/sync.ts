@@ -49,69 +49,65 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
     try {
         // 1. Push pending creates/updates (Primary)
         const pending = await db.expenses.where('syncStatus').equals('pending').toArray();
-        for (const expense of pending) {
+        if (pending.length > 0) {
             try {
-                const { syncStatus, updatedAt, ...expenseData } = expense;
-                const existing = await expenseApi.getById(expense.id);
-                if (existing) {
-                    await expenseApi.update(expense.id, expenseData);
-                } else {
-                    await expenseApi.create({
+                const payload = pending.map(expense => {
+                    const { syncStatus, updatedAt, ...expenseData } = expense;
+                    return {
                         ...expenseData,
-                        id: expense.id,
                         household_id: householdId || undefined
-                    });
-                }
-                await db.expenses.update(expense.id, { syncStatus: 'synced' });
-                result.pushed++;
+                    };
+                });
+                await expenseApi.upsertBulk(payload);
+                await db.expenses.where('id').anyOf(pending.map(e => e.id)).modify({ syncStatus: 'synced' });
+                result.pushed += pending.length;
             } catch (err) {
-                result.errors.push(`Failed to push expense ${expense.id}: ${err}`);
+                result.errors.push(`Failed to bulk push expenses: ${err}`);
             }
         }
 
         // 1b. Push pending creates/updates (Backup)
         const pendingBackup = await db.expenses_backup.where('syncStatus').equals('pending').toArray();
-        for (const expense of pendingBackup) {
+        if (pendingBackup.length > 0) {
             try {
-                const { syncStatus, updatedAt, ...expenseData } = expense;
-                const existing = await expenseBackupApi.getById(expense.id);
-                if (existing) {
-                    await expenseBackupApi.update(expense.id, expenseData);
-                } else {
-                    await expenseBackupApi.create({
+                const payload = pendingBackup.map(expense => {
+                    const { syncStatus, updatedAt, ...expenseData } = expense;
+                    return {
                         ...expenseData,
-                        id: expense.id,
                         household_id: householdId || undefined
-                    });
-                }
-                await db.expenses_backup.update(expense.id, { syncStatus: 'synced' });
-                result.pushed++;
+                    };
+                });
+                await expenseBackupApi.upsertBulk(payload);
+                await db.expenses_backup.where('id').anyOf(pendingBackup.map(e => e.id)).modify({ syncStatus: 'synced' });
+                result.pushed += pendingBackup.length;
             } catch (err) {
-                result.errors.push(`Failed to push backup expense ${expense.id}: ${err}`);
+                result.errors.push(`Failed to bulk push backup expenses: ${err}`);
             }
         }
 
         // 2. Push pending deletes (Primary)
         const deleted = await db.expenses.where('syncStatus').equals('deleted').toArray();
-        for (const expense of deleted) {
+        if (deleted.length > 0) {
             try {
-                await expenseApi.delete(expense.id);
-                await db.expenses.delete(expense.id);
-                result.pushed++;
+                const ids = deleted.map(e => e.id);
+                await expenseApi.deleteBulk(ids);
+                await db.expenses.where('id').anyOf(ids).delete();
+                result.pushed += deleted.length;
             } catch (err) {
-                result.errors.push(`Failed to delete expense ${expense.id}: ${err}`);
+                result.errors.push(`Failed to bulk delete expenses: ${err}`);
             }
         }
 
         // 2b. Push pending deletes (Backup)
         const deletedBackup = await db.expenses_backup.where('syncStatus').equals('deleted').toArray();
-        for (const expense of deletedBackup) {
+        if (deletedBackup.length > 0) {
             try {
-                await expenseBackupApi.delete(expense.id);
-                await db.expenses_backup.delete(expense.id);
-                result.pushed++;
+                const ids = deletedBackup.map(e => e.id);
+                await expenseBackupApi.deleteBulk(ids);
+                await db.expenses_backup.where('id').anyOf(ids).delete();
+                result.pushed += deletedBackup.length;
             } catch (err) {
-                result.errors.push(`Failed to delete backup expense ${expense.id}: ${err}`);
+                result.errors.push(`Failed to bulk delete backup expenses: ${err}`);
             }
         }
 

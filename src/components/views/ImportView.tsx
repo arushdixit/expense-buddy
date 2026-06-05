@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
 import { ParsedTransaction } from "@/lib/statementParser";
-import { categories, formatCurrency, Expense } from "@/lib/data";
+import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data";
 import { 
   FileUp, Loader2, CheckCircle2, Trash2, Filter, 
   Database, RefreshCw, X, Check, Calendar, ArrowRightLeft,
@@ -528,14 +528,16 @@ export const ImportView: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] text-muted-foreground font-semibold bg-secondary/50 px-2 py-0.5 rounded border border-border/20">{expense.date}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">{expense.categoryId}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                            {getCategoryById(expense.categoryId, customCategories)?.name || expense.categoryId}
+                          </span>
                           <span className="text-[10px] font-medium text-muted-foreground italic truncate">/ {expense.subcategory || "Other"}</span>
                         </div>
                         <p className="text-xs font-semibold text-foreground truncate">{expense.note ? expense.note.replace("Imported from Statement (", "").replace(")", "") : "No Details"}</p>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className={`text-xs font-bold leading-none ${expense.amount < 0 ? "text-success" : "text-foreground"}`}>
+                        <span className={`text-xs font-bold leading-none dirham-symbol ${expense.amount < 0 ? "text-success" : "text-foreground"}`}>
                           {formatCurrency(expense.amount)}
                         </span>
                         

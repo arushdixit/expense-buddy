@@ -93,6 +93,8 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Parse the uploaded PDF and return transactions as JSON."""
+        import time
+        start_time = time.perf_counter()
         try:
             content_type = self.headers.get("Content-Type", "")
             if "multipart/form-data" not in content_type:
@@ -104,11 +106,14 @@ class handler(BaseHTTPRequestHandler):
                 self._send_error(400, "Empty request body")
                 return
 
+            t_parse_start = time.perf_counter()
             try:
                 form = _parse_multipart(self.rfile, content_type, content_length)
             except ValueError as exc:
                 self._send_error(400, str(exc))
                 return
+            t_parse_end = time.perf_counter()
+            sys.stderr.write(f"[TIMING] _parse_multipart took {t_parse_end - t_parse_start:.4f} seconds\n")
 
             pdf_list = form.get("file")
             if not pdf_list:
@@ -117,16 +122,27 @@ class handler(BaseHTTPRequestHandler):
 
             pdf_bytes = pdf_list[0]
 
+            t_write_start = time.perf_counter()
             # Write to a temp file and parse
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(pdf_bytes)
                 tmp_path = tmp.name
+            t_write_end = time.perf_counter()
+            sys.stderr.write(f"[TIMING] Writing temp file took {t_write_end - t_write_start:.4f} seconds\n")
 
+            t_pdf_start = time.perf_counter()
             try:
                 transactions = parse_pdf(tmp_path)
+            except Exception as exc:
+                self._send_error(500, f"parse_pdf failed: {str(exc)}")
+                return
             finally:
-                os.unlink(tmp_path)
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            t_pdf_end = time.perf_counter()
+            sys.stderr.write(f"[TIMING] parse_pdf took {t_pdf_end - t_pdf_start:.4f} seconds\n")
 
+            t_json_start = time.perf_counter()
             body = json.dumps(transactions, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             for k, v in _CORS_HEADERS.items():
@@ -134,7 +150,9 @@ class handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
-
+            t_json_end = time.perf_counter()
+            sys.stderr.write(f"[TIMING] Response serialization & send took {t_json_end - t_json_start:.4f} seconds\n")
+            sys.stderr.write(f"[TIMING] Total do_POST handler took {t_json_end - start_time:.4f} seconds\n")
         except Exception as exc:
             self._send_error(500, str(exc))
 

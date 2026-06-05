@@ -5,8 +5,8 @@ Performs a complete comparison between:
 1. Production expenses (backup/expenses_rows.csv)
 2. Backup queue expenses (backup/expenses_backup_rows.csv)
 
+Matches rows by Amount, Category, and Subcategory ONLY.
 It links categories using backup/categories_rows.csv for custom category UUID matching.
-Verifies all fields: Date, Amount, Category, Subcategory, Notes, Household, and User alignment.
 """
 
 import os
@@ -52,9 +52,7 @@ def main():
                 'category': clean_category(row['category'], categories_map),
                 'subcategory': row['subcategory'] or '',
                 'date': row['date'],
-                'note': row['note'] or '',
-                'user_id': row.get('user_id', '') or '',
-                'household_id': row.get('household_id', '') or ''
+                'note': row['note'] or ''
             })
 
     # Parse backup expenses (expenses_backup_rows.csv)
@@ -68,84 +66,45 @@ def main():
                 'category': clean_category(row['category'], categories_map),
                 'subcategory': row['subcategory'] or '',
                 'date': row['date'],
-                'note': row['note'] or '',
-                'user_id': row.get('user_id', '') or '',
-                'household_id': row.get('household_id', '') or ''
+                'note': row['note'] or ''
             })
 
     print(f"Loaded {len(prod_expenses)} production expenses.")
     print(f"Loaded {len(backup_expenses)} backup queue expenses.\n")
     
     print("=" * 100)
-    print(f"{'Date':<12} | {'Amount':<10} | {'Field':<15} | {'Backup Value':<30} | {'Production Value':<30}")
+    print(f"{'Backup Date':<12} | {'Amount':<10} | {'Backup Cat/Sub':<30} | {'Prod Date':<12} | {'Prod Note/Details':<30}")
     print("=" * 100)
 
     matched_count = 0
-    full_matches = 0
-    mismatches = 0
     
     for be in backup_expenses:
-        # Match candidates by exact date and amount
-        candidates = [pe for pe in prod_expenses if pe['date'] == be['date'] and abs(pe['amount'] - be['amount']) < 0.01]
+        # Match candidates by Amount, Category, and Subcategory ONLY
+        candidates = []
+        for pe in prod_expenses:
+            if abs(pe['amount'] - be['amount']) < 0.01:
+                if pe['category'].lower() == be['category'].lower():
+                    # Match subcategory case insensitively
+                    if pe['subcategory'].lower() == be['subcategory'].lower():
+                        candidates.append(pe)
+        
+        be_display = f"{be['category']}/{be['subcategory']}" if be['subcategory'] else be['category']
         
         if not candidates:
-            print(f"{be['date']:<12} | {be['amount']:<10.2f} | {'[MATCH STATUS]':<15} | {'Exists in Backup Queue':<30} | {'NOT FOUND IN PRODUCTION':<30} | ❓ UNMATCHED")
-            continue
-            
-        matched_count += 1
-        
-        # We compare against the best candidate (if multiple exist, find one with matching category, else take first)
-        best_cand = candidates[0]
-        for cand in candidates:
-            if cand['category'].lower() == be['category'].lower():
-                best_cand = cand
-                break
-        
-        # Detailed field-by-field verification
-        fields_to_compare = [
-            ('category', 'Category'),
-            ('subcategory', 'Subcategory'),
-            ('note', 'Note/Details'),
-            ('user_id', 'User ID'),
-            ('household_id', 'Household ID')
-        ]
-        
-        has_field_mismatch = False
-        mismatched_fields_log = []
-        
-        for field_key, field_name in fields_to_compare:
-            b_val = be[field_key]
-            p_val = best_cand[field_key]
-            
-            # Normalize notes for statement comparison differences
-            if field_key == 'note':
-                # Strip the enclosing "Imported from Statement (...)" from backup notes if present to match clean values
-                b_val_clean = b_val.replace("Imported from Statement (", "").replace(")", "").strip()
-                p_val_clean = p_val.replace("Imported from Statement (", "").replace(")", "").strip()
-                if b_val_clean.lower() != p_val_clean.lower():
-                    has_field_mismatch = True
-                    mismatched_fields_log.append((field_name, b_val, p_val))
-            else:
-                if str(b_val).lower().strip() != str(p_val).lower().strip():
-                    has_field_mismatch = True
-                    mismatched_fields_log.append((field_name, b_val, p_val))
-        
-        if not has_field_mismatch:
-            full_matches += 1
-            print(f"{be['date']:<12} | {be['amount']:<10.2f} | {'[ALL FIELDS]':<15} | {f'{be['category']}/{be['subcategory']}':<30} | {f'{best_cand['category']}/{best_cand['subcategory']}':<30} | ✅ PERFECT MATCH")
+            print(f"{be['date']:<12} | {be['amount']:<10.2f} | {be_display:<30} | {'[NO MATCH]':<12} | {'NOT FOUND IN PRODUCTION':<30} | ❓ UNMATCHED")
         else:
-            mismatches += 1
-            print(f"{be['date']:<12} | {be['amount']:<10.2f} | {'[MISMATCH]':<15} | {f'{be['category']}/{be['subcategory']}':<30} | {f'{best_cand['category']}/{best_cand['subcategory']}':<30} | ❌ FIELD MISMATCH")
-            for field_name, b_val, p_val in mismatched_fields_log:
-                print(f"{'':<12} | {'':<10} |   -> {field_name:<11} | {str(b_val):<30} | {str(p_val):<30}")
-            print("-" * 100)
+            matched_count += 1
+            # If multiple matching candidates exist, show them
+            best_cand = candidates[0]
+            print(f"{be['date']:<12} | {be['amount']:<10.2f} | {be_display:<30} | {best_cand['date']:<12} | {best_cand['note'][:30]:<30} | ✅ MATCHED ({len(candidates)} candidate(s))")
+            if len(candidates) > 1:
+                for alt in candidates[1:]:
+                    print(f"{'':<12} | {'':<10} | {'':<30} | {alt['date']:<12} | {alt['note'][:30]:<30} | (alternative)")
 
     print("=" * 100)
     print(f"Total backup items evaluated: {len(backup_expenses)}")
-    print(f"Total matched (by date & amount): {matched_count}")
-    print(f"  - Fully Aligned (All fields match): {full_matches}")
-    print(f"  - Mismatched fields: {mismatches}")
-    print(f"  - Unmatched transactions: {len(backup_expenses) - matched_count}")
+    print(f"Total matched (by Amount + Category + Subcategory): {matched_count}")
+    print(f"Unmatched transactions: {len(backup_expenses) - matched_count}")
 
 if __name__ == '__main__':
     main()

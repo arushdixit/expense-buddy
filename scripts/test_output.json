@@ -1109,7 +1109,7 @@
   {
     "date": "2026-02-16",
     "description": "LE CAFE DUCALE 418359 75PARIS 16 FR",
-    "amount": 110.53,
+    "amount": 106.99,
     "category": "Travel",
     "subcategory": "Food",
     "isRefund": false,
@@ -1199,7 +1199,7 @@
   {
     "date": "2026-02-20",
     "description": "SC-MAISON RUSSE PARIS FR",
-    "amount": 256.34,
+    "amount": 248.14,
     "category": "Travel",
     "subcategory": "Food",
     "isRefund": false,
@@ -1208,7 +1208,7 @@
   {
     "date": "2026-02-20",
     "description": "RENAISSANCE PARIS NOBE PARIS FR",
-    "amount": 6829.1,
+    "amount": 6610.46,
     "category": "Travel",
     "subcategory": "Hotel",
     "isRefund": false,
@@ -2567,7 +2567,7 @@
   {
     "date": "2026-03-29",
     "description": "ANDALAY BEACH BAR & CA KRABI TH",
-    "amount": 118.38,
+    "amount": 114.59,
     "category": "Travel",
     "subcategory": "Food",
     "isRefund": false,
@@ -2575,8 +2575,8 @@
   },
   {
     "date": "2026-03-28",
-    "description": "GRABTAXI BANGKOK TH 5.00 CR 0.56 CR REVRSL OF",
-    "amount": -0.58,
+    "description": "GRABTAXI BANGKOK TH",
+    "amount": -0.56,
     "category": "Travel",
     "subcategory": "Cab",
     "isRefund": true,
@@ -2755,8 +2755,8 @@
   },
   {
     "date": "2026-04-06",
-    "description": "GRABTAXI BANGKOK TH 5.00 CR 0.56 CR REVRSL OF",
-    "amount": -0.58,
+    "description": "GRABTAXI BANGKOK TH",
+    "amount": -0.56,
     "category": "Travel",
     "subcategory": "Cab",
     "isRefund": true,

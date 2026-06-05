@@ -161,6 +161,53 @@ export const expenseApi = {
 
         if (error) throw new Error(`Failed to delete expense: ${error.message}`);
     },
+
+    async upsertBulk(expenses: (Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string })[]): Promise<ApiExpense[]> {
+        if (expenses.length === 0) return [];
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
+        let hId: string | null = null;
+        const needsHouseholdId = expenses.some(e => !e.household_id);
+        if (needsHouseholdId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', user.id)
+                .maybeSingle();
+            hId = profile?.household_id || null;
+        }
+
+        const upsertData = expenses.map(expense => ({
+            id: expense.id || generateId(),
+            amount: expense.amount,
+            category: expense.category,
+            subcategory: expense.subcategory || null,
+            date: expense.date,
+            note: expense.note || null,
+            updated_at: Date.now(),
+            user_id: user.id,
+            household_id: expense.household_id || hId
+        }));
+
+        const { data, error } = await supabase
+            .from('expenses')
+            .upsert(upsertData)
+            .select();
+
+        if (error) throw new Error(`Failed to upsert expenses in bulk: ${error.message}`);
+        return (data || []).map(toApiExpense);
+    },
+
+    async deleteBulk(ids: string[]): Promise<void> {
+        if (ids.length === 0) return;
+        const { error } = await supabase
+            .from('expenses')
+            .delete()
+            .in('id', ids);
+
+        if (error) throw new Error(`Failed to delete expenses in bulk: ${error.message}`);
+    },
 };
 
 // ----- Subcategory API -----
@@ -375,6 +422,53 @@ export const expenseBackupApi = {
             .eq('id', id);
 
         if (error) throw new Error(`Failed to delete backup expense: ${error.message}`);
+    },
+
+    async upsertBulk(expenses: (Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string })[]): Promise<ApiExpense[]> {
+        if (expenses.length === 0) return [];
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
+        let hId: string | null = null;
+        const needsHouseholdId = expenses.some(e => !e.household_id);
+        if (needsHouseholdId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', user.id)
+                .maybeSingle();
+            hId = profile?.household_id || null;
+        }
+
+        const upsertData = expenses.map(expense => ({
+            id: expense.id || generateId(),
+            amount: expense.amount,
+            category: expense.category,
+            subcategory: expense.subcategory || null,
+            date: expense.date,
+            note: expense.note || null,
+            updated_at: Date.now(),
+            user_id: user.id,
+            household_id: expense.household_id || hId
+        }));
+
+        const { data, error } = await supabase
+            .from('expenses_backup')
+            .upsert(upsertData)
+            .select();
+
+        if (error) throw new Error(`Failed to upsert backup expenses in bulk: ${error.message}`);
+        return (data || []).map(toApiExpense);
+    },
+
+    async deleteBulk(ids: string[]): Promise<void> {
+        if (ids.length === 0) return;
+        const { error } = await supabase
+            .from('expenses_backup')
+            .delete()
+            .in('id', ids);
+
+        if (error) throw new Error(`Failed to delete backup expenses in bulk: ${error.message}`);
     },
 };
 
