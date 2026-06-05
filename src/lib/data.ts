@@ -40,14 +40,14 @@ export const categories: Category[] = [
     name: "Groceries",
     icon: ShoppingCart,
     color: "hsl(var(--chart-groceries))",
-    subcategories: ["Carrefour", "Noon", "Careem", "West Zone", "Talabat", "Amazon Now", "Grandiose", "Spinneys", "Madhoor", "Refund"],
+    subcategories: ["Carrefour", "Noon", "Careem", "West Zone", "Talabat", "Amazon Now", "Grandiose", "Spinneys", "Madhoor", "Convenience", "Refund"],
   },
   {
     id: "shopping",
     name: "Shopping",
     icon: ShoppingBag,
     color: "hsl(var(--chart-shopping))",
-    subcategories: ["Clothes", "Skincare", "Accessories", "Miscellaneous", "Refund"],
+    subcategories: ["Clothes", "Skincare", "Accessories", "Amazon", "Miscellaneous", "Refund"],
   },
   {
     id: "entertainment",
@@ -61,7 +61,7 @@ export const categories: Category[] = [
     name: "Utilities",
     icon: Zap,
     color: "hsl(var(--chart-utilities))",
-    subcategories: ["Cook Salary", "Internet", "DEWA", "Mobile Recharge", "Chiller", "Refund"],
+    subcategories: ["Cook Salary", "Internet", "DEWA", "Mobile Recharge", "Chiller", "Water", "Refund"],
   },
   {
     id: "luxury",
