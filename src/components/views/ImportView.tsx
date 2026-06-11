@@ -316,7 +316,7 @@ export const ImportView: React.FC = () => {
                       <p className="font-bold text-lg text-foreground mb-1">Upload Statement PDF</p>
                       <p className="text-muted-foreground text-xs max-w-xs mx-auto">Drag and drop your credit card PDF statement here or click to browse files.</p>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC Statements</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC & Noon Statements</span>
                   </div>
                 )}
               </div>

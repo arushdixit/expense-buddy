@@ -18,6 +18,8 @@ _STYLE_A_DATE_RE = re.compile(
     r'[-]?(\d{1,2}-[A-Za-z]{3}-\d{2,4})\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})'
 )
 _STYLE_B_DATE_RE = re.compile(r'(\d{2}/\d{2}/\d{4})')
+_STANDALONE_B_DATE_RE = re.compile(r'^[-]?(\d{2}/\d{2}/\d{4})$')
+_STANDALONE_A_DATE_RE = re.compile(r'^[-]?(\d{1,2}-[A-Za-z]{3}-\d{2,4})$')
 
 # One compiled alternation replaces per-currency re.search() calls in a loop
 _FOREIGN_CURRENCY_RE = re.compile(
@@ -40,7 +42,7 @@ _ORPHAN_NUM_RE = re.compile(r'(\s+\d[\d,]*\.\d{2})+\s*$')
 _MULTI_SPACE_RE = re.compile(r'\s{2,}')
 
 # Transactions whose descriptions match any of these are silently dropped
-_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL")
+_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL", "PAYMENT RECEIVED")
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +133,8 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         return "Travel", "Transit"
     if "vfs" in desc_lower:
         return "Travel", "Visa"
+    if "driving" in desc_lower or "license" in desc_lower:
+        return "Misc", "License"
         
     # Defaults
     category = "Shopping"
@@ -176,8 +180,11 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         elif "food" in desc_lower:
             category = "Entertainment"
             subcategory = "Food Delivery"
-        else:
+        elif "minutes" in desc_lower:
             category = "Groceries"
+            subcategory = "Noon"
+        else:
+            category = "Shopping"
             subcategory = "Noon"
             
     elif "careem" in desc_lower:
@@ -527,16 +534,11 @@ def _build_transaction(
 # PDF parser
 # ---------------------------------------------------------------------------
 
-def parse_pdf(pdf_path: str) -> list[dict]:
+def parse_hsbc_pdf(doc) -> list[dict]:
     import time
     import sys
-    from collections import defaultdict
     
     t_start = time.perf_counter()
-    doc = fitz.open(pdf_path)
-    t_load = time.perf_counter() - t_start
-    sys.stderr.write(f"  [PDF TIMING] PyMuPDF open took {t_load:.4f} seconds\n")
-    
     transactions: list[dict] = []
     
     t_extract_total = 0.0
@@ -654,10 +656,143 @@ def parse_pdf(pdf_path: str) -> list[dict]:
         t_p_proc = time.perf_counter() - t_p_proc_start
         t_process_total += t_p_proc
         
-    sys.stderr.write(f"  [PDF TIMING] Total text extraction ({len(doc)} pages) took {t_extract_total:.4f} seconds\n")
-    sys.stderr.write(f"  [PDF TIMING] Total line processing took {t_process_total:.4f} seconds\n")
-    sys.stderr.write(f"  [PDF TIMING] Total parse_pdf execution took {time.perf_counter() - t_start:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] [HSBC] Total text extraction ({len(doc)} pages) took {t_extract_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] [HSBC] Total line processing took {t_process_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] [HSBC] Total parse_hsbc_pdf execution took {time.perf_counter() - t_start:.4f} seconds\n")
     return transactions
+
+
+def parse_noon_pdf(doc) -> list[dict]:
+    import time
+    import sys
+    
+    t_start = time.perf_counter()
+    transactions: list[dict] = []
+    
+    t_extract_total = 0.0
+    t_process_total = 0.0
+    
+    for page_idx in range(len(doc)):
+        page = doc[page_idx]
+        t_p_start = time.perf_counter()
+        # Extract text blocks
+        blocks = page.get_text("blocks")
+        t_p_extract = time.perf_counter() - t_p_start
+        t_extract_total += t_p_extract
+        
+        t_p_proc_start = time.perf_counter()
+        
+        # Filter empty or non-text blocks
+        blocks = [b for b in blocks if b[4].strip() and b[6] == 0]
+        
+        # Group blocks that vertically overlap
+        grouped_lines = []
+        for b in blocks:
+            x0, y0, x1, y1, text, block_no, block_type = b
+            h = y1 - y0
+            
+            assigned = False
+            for line in grouped_lines:
+                overlap = min(y1, line["y1"]) - max(y0, line["y0"])
+                if overlap > 0:
+                    line_h = line["y1"] - line["y0"]
+                    overlap_ratio = overlap / min(h, line_h)
+                    if overlap_ratio > 0.4:  # 40% vertical overlap
+                        line["blocks"].append((x0, text))
+                        line["y0"] = min(line["y0"], y0)
+                        line["y1"] = max(line["y1"], y1)
+                        assigned = True
+                        break
+            if not assigned:
+                grouped_lines.append({
+                    "y0": y0,
+                    "y1": y1,
+                    "blocks": [(x0, text)]
+                })
+                
+        # Sort groups from top to bottom
+        grouped_lines.sort(key=lambda l: l["y0"])
+        
+        # Reconstruct lines
+        lines = []
+        for group in grouped_lines:
+            # Sort blocks in line from left to right
+            blocks_sorted = sorted(group["blocks"], key=lambda x: x[0])
+            merged_texts = []
+            for x0, text in blocks_sorted:
+                clean_block_text = " ".join(text.split())
+                merged_texts.append(clean_block_text)
+            line_str = " ".join(merged_texts).strip()
+            if line_str:
+                lines.extend(split_concatenated_lines(line_str))
+                
+        pending_tx_date = None
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            standalone_b = _STANDALONE_B_DATE_RE.match(line)
+            if standalone_b:
+                pending_tx_date = standalone_b.group(1)
+                continue
+            standalone_a = _STANDALONE_A_DATE_RE.match(line)
+            if standalone_a:
+                pending_tx_date = standalone_a.group(1)
+                continue
+
+            # --- Style B ---
+            match_b = _STYLE_B_DATE_RE.search(line)
+            if match_b:
+                line_to_parse = line[match_b.start():]
+                tx_date_str = match_b.group(1)
+                rest = line_to_parse[match_b.end() - match_b.start():].strip()
+                
+                actual_date_str = tx_date_str
+                actual_parse_fn = parse_date_b
+                if pending_tx_date:
+                    actual_date_str = pending_tx_date
+                    actual_parse_fn = parse_date_b if '/' in pending_tx_date else parse_date_a
+                
+                tx = _build_transaction(rest, actual_date_str, actual_parse_fn, page_idx, extra_cleanup=False)
+                if tx:
+                    transactions.append(tx)
+                pending_tx_date = None
+                continue
+            
+            pending_tx_date = None
+        t_p_proc = time.perf_counter() - t_p_proc_start
+        t_process_total += t_p_proc
+        
+    sys.stderr.write(f"  [PDF TIMING] [Noon] Total text extraction ({len(doc)} pages) took {t_extract_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] [Noon] Total line processing took {t_process_total:.4f} seconds\n")
+    sys.stderr.write(f"  [PDF TIMING] [Noon] Total parse_noon_pdf execution took {time.perf_counter() - t_start:.4f} seconds\n")
+    return transactions
+
+
+def parse_pdf(pdf_path: str) -> list[dict]:
+    import time
+    import sys
+    
+    t_start = time.perf_counter()
+    doc = fitz.open(pdf_path)
+    t_load = time.perf_counter() - t_start
+    sys.stderr.write(f"  [PDF TIMING] PyMuPDF open took {t_load:.4f} seconds\n")
+    
+    # Detect Noon / Emirates NBD statement format by looking for "emirates nbd"
+    is_noon_statement = False
+    for page in doc:
+        page_text = page.get_text().lower()
+        if "emirates nbd" in page_text:
+            is_noon_statement = True
+            break
+            
+    if is_noon_statement:
+        sys.stderr.write("  [PDF PARSER] Routing to dedicated Noon parser...\n")
+        return parse_noon_pdf(doc)
+    else:
+        sys.stderr.write("  [PDF PARSER] Routing to standard HSBC parser...\n")
+        return parse_hsbc_pdf(doc)
 
 
 

@@ -47,7 +47,7 @@ export const categories: Category[] = [
     name: "Shopping",
     icon: ShoppingBag,
     color: "hsl(var(--chart-shopping))",
-    subcategories: ["Clothes", "Skincare", "Accessories", "Amazon", "Miscellaneous", "Refund"],
+    subcategories: ["Clothes", "Skincare", "Accessories", "Amazon", "Noon", "Miscellaneous", "Refund"],
   },
   {
     id: "entertainment",

@@ -51,3 +51,9 @@ statements/
 #backups
 backup/
 .vercel
+
+# test outputs
+scripts/test_output.json
+
+__pycache__/
+*.pyc
