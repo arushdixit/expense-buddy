@@ -19,7 +19,10 @@ export interface DbExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
 
 export interface DbSubcategory extends BaseSubcategory { }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Create Supabase client with placeholders if env vars are missing to prevent fatal startup crash
+export const supabase = createClient(
+    supabaseUrl || 'https://placeholder.supabase.co', 
+    supabaseAnonKey || 'placeholder'
+);
 
 export default supabase;
