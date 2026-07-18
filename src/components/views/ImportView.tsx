@@ -88,10 +88,15 @@ export const ImportView: React.FC = () => {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      if (
+        file.type === "application/pdf" ||
+        file.name.endsWith(".pdf") ||
+        file.type === "text/csv" ||
+        file.name.endsWith(".csv")
+      ) {
         await processFile(file);
       } else {
-        toast.error("Please drop a valid PDF statement file");
+        toast.error("Please drop a valid PDF or CSV statement file");
       }
     }
   };
@@ -321,7 +326,7 @@ export const ImportView: React.FC = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept="application/pdf"
+                  accept="application/pdf, text/csv, .csv"
                   className="hidden"
                 />
 
@@ -337,10 +342,10 @@ export const ImportView: React.FC = () => {
                       <FileUp className="h-8 w-8" />
                     </div>
                     <div>
-                      <p className="font-bold text-lg text-foreground mb-1">Upload Statement PDF</p>
-                      <p className="text-muted-foreground text-xs max-w-xs mx-auto">Drag and drop your credit card PDF statement here or click to browse files.</p>
+                      <p className="font-bold text-lg text-foreground mb-1">Upload Statement PDF or CSV</p>
+                      <p className="text-muted-foreground text-xs max-w-xs mx-auto">Drag and drop your PDF statement or Wio CSV file here or click to browse.</p>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC, Noon, ADCB, SIB, & ENBD Share</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC, Noon, ADCB, SIB, Share & Wio CSV</span>
                   </div>
                 )}
               </div>

@@ -22,7 +22,7 @@ _scripts_dir = os.path.abspath(
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
-from parse_statements import parse_pdf  # noqa: E402
+from parse_statements import parse_statement_file  # noqa: E402
 
 # CORS headers sent on every response
 _CORS_HEADERS: dict[str, str] = {
@@ -127,9 +127,13 @@ class handler(BaseHTTPRequestHandler):
             if password_list:
                 password = password_list[0].decode("utf-8").strip()
 
+            is_pdf = pdf_bytes.startswith(b"%PDF-")
+            suffix = ".pdf" if is_pdf else ".csv"
+            filename = "statement.pdf" if is_pdf else "statement.csv"
+
             t_write_start = time.perf_counter()
             # Write to a temp file and parse
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(pdf_bytes)
                 tmp_path = tmp.name
             t_write_end = time.perf_counter()
@@ -137,15 +141,15 @@ class handler(BaseHTTPRequestHandler):
 
             t_pdf_start = time.perf_counter()
             try:
-                transactions = parse_pdf(tmp_path, password=password)
+                transactions = parse_statement_file(tmp_path, filename=filename, password=password)
             except Exception as exc:
-                self._send_error(500, f"parse_pdf failed: {str(exc)}")
+                self._send_error(500, f"parse_statement_file failed: {str(exc)}")
                 return
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
             t_pdf_end = time.perf_counter()
-            sys.stderr.write(f"[TIMING] parse_pdf took {t_pdf_end - t_pdf_start:.4f} seconds\n")
+            sys.stderr.write(f"[TIMING] parse_statement_file took {t_pdf_end - t_pdf_start:.4f} seconds\n")
 
             t_json_start = time.perf_counter()
             body = json.dumps(transactions, ensure_ascii=False).encode("utf-8")

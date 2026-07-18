@@ -1039,6 +1039,86 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
 
 
 
+def parse_wio_csv(file_path: str) -> list[dict]:
+    import csv
+    transactions = []
+    with open(file_path, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        if not reader.fieldnames:
+            return []
+            
+        required_fields = {"Date", "Description", "Amount", "Account currency"}
+        if not required_fields.issubset(set(reader.fieldnames)):
+            raise ValueError("CSV header does not match Wio statement format.")
+            
+        for row in reader:
+            date_str = row["Date"].strip()
+            description = row["Description"].strip()
+            amount_str = row["Amount"].strip()
+            acc_currency = row["Account currency"].strip().upper()
+            notes = row.get("Notes", "").strip()
+            
+            try:
+                raw_amount = float(amount_str)
+            except ValueError:
+                continue
+                
+            # Wio: negative for purchases, positive for transfers/refunds.
+            # Invert: purchases are positive, refunds are negative.
+            is_refund = False
+            if raw_amount < 0:
+                amt_val = -raw_amount
+            else:
+                amt_val = -raw_amount
+                is_refund = True
+                
+            cleaned_desc = _clean_description(description)
+            desc_upper = cleaned_desc.upper()
+            notes_upper = notes.upper()
+            
+            if not cleaned_desc:
+                continue
+                
+            # Transaction Filtering: Skip incoming salaries, dividends, transfers to wife (Pamoli)
+            if "SALARY" in desc_upper or "DIVIDEND" in desc_upper or "PAMOLI" in desc_upper or "DIVIDEND" in notes_upper:
+                continue
+                
+            is_foreign = (acc_currency != "AED")
+            original_amount = None
+            original_currency = None
+            if is_foreign:
+                original_amount = abs(raw_amount)
+                original_currency = acc_currency
+                if acc_currency == "USD":
+                    amt_val = round(amt_val * 3.6725, 2)
+                    
+            cat, sub = categorize(cleaned_desc, amt_val, is_refund, is_foreign)
+            
+            tx = {
+                "date": date_str,
+                "description": cleaned_desc,
+                "amount": amt_val,
+                "category": cat,
+                "subcategory": sub,
+                "isRefund": is_refund,
+                "page": 1,
+            }
+            if is_foreign:
+                tx["isForeign"] = True
+                tx["originalAmount"] = original_amount
+                tx["originalCurrency"] = original_currency
+                
+            transactions.append(tx)
+            
+    return transactions
+
+
+def parse_statement_file(file_path: str, filename: str = "", password: str = None) -> list[dict]:
+    if filename.lower().endswith(".csv") or file_path.lower().endswith(".csv"):
+        return parse_wio_csv(file_path)
+    return parse_pdf(file_path, password)
+
+
 # ---------------------------------------------------------------------------
 # Local dev / testing entry point (not used in production)
 # ---------------------------------------------------------------------------
