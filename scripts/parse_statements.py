@@ -1022,20 +1022,34 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
         
     if "previous balance outstanding" in doc_text or "xxxxxxxxxxxx4381" in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to ADCB parser...\n")
-        return parse_adcb_pdf(doc)
+        txs = parse_adcb_pdf(doc)
+        for tx in txs:
+            tx["card"] = "ADCB"
+        return txs
     elif "5290" in doc_text and "details" in doc_text and "amount" in doc_text and "emirates nbd" not in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to SIB parser...\n")
-        return parse_sib_pdf(doc)
+        txs = parse_sib_pdf(doc)
+        for tx in txs:
+            tx["card"] = "SIB"
+        return txs
     elif "emirates nbd" in doc_text:
-        # Noon vs Share are both ENBD and can be parsed by Noon parser.
-        if "noon" in doc_text:
+        is_noon = "noon" in doc_text
+        if is_noon:
             sys.stderr.write("  [PDF PARSER] Routing to dedicated Noon parser...\n")
+            card_name = "Noon"
         else:
             sys.stderr.write("  [PDF PARSER] Routing to ENBD Share parser (using Noon layout)...\n")
-        return parse_noon_pdf(doc)
+            card_name = "Share"
+        txs = parse_noon_pdf(doc)
+        for tx in txs:
+            tx["card"] = card_name
+        return txs
     else:
         sys.stderr.write("  [PDF PARSER] Routing to standard HSBC parser...\n")
-        return parse_hsbc_pdf(doc)
+        txs = parse_hsbc_pdf(doc)
+        for tx in txs:
+            tx["card"] = "HSBC"
+        return txs
 
 
 
@@ -1102,6 +1116,7 @@ def parse_wio_csv(file_path: str) -> list[dict]:
                 "subcategory": sub,
                 "isRefund": is_refund,
                 "page": 1,
+                "card": "Wio",
             }
             if is_foreign:
                 tx["isForeign"] = True

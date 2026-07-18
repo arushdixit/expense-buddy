@@ -1,9 +1,8 @@
 import React from "react";
-import { LayoutDashboard, Calendar, ArrowLeftRight, TrendingUp, FileUp } from "lucide-react";
+import { LayoutDashboard, Calendar, ArrowLeftRight, TrendingUp, FileUp, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SyncStatus } from "./SyncStatus";
 
-export type TabId = "dashboard" | "monthly" | "compare" | "trends" | "import";
+export type TabId = "dashboard" | "monthly" | "compare" | "trends" | "import" | "coverage";
 
 interface BottomNavigationProps {
   activeTab: TabId;
@@ -13,6 +12,7 @@ interface BottomNavigationProps {
 const tabs = [
   { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
   { id: "monthly" as const, label: "Monthly", icon: Calendar },
+  { id: "coverage" as const, label: "Coverage", icon: CalendarClock },
   { id: "compare" as const, label: "Compare", icon: ArrowLeftRight },
   { id: "trends" as const, label: "Trends", icon: TrendingUp },
   { id: "import" as const, label: "Import", icon: FileUp },
@@ -44,10 +44,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           </button>
         );
       })}
-      {/* Sync Status Indicator */}
-      <div className="flex items-center justify-center">
-        <SyncStatus />
-      </div>
     </nav>
   );
 };

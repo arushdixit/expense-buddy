@@ -12,4 +12,5 @@ export interface ParsedTransaction {
     isForeign?: boolean;
     originalAmount?: number;
     originalCurrency?: string;
+    card?: string;
 }
