@@ -9,4 +9,7 @@ export interface ParsedTransaction {
     subcategory: string;
     isRefund: boolean;
     page: number;
+    isForeign?: boolean;
+    originalAmount?: number;
+    originalCurrency?: string;
 }

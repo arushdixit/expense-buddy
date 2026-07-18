@@ -122,6 +122,11 @@ class handler(BaseHTTPRequestHandler):
 
             pdf_bytes = pdf_list[0]
 
+            password_list = form.get("password")
+            password = None
+            if password_list:
+                password = password_list[0].decode("utf-8").strip()
+
             t_write_start = time.perf_counter()
             # Write to a temp file and parse
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -132,7 +137,7 @@ class handler(BaseHTTPRequestHandler):
 
             t_pdf_start = time.perf_counter()
             try:
-                transactions = parse_pdf(tmp_path)
+                transactions = parse_pdf(tmp_path, password=password)
             except Exception as exc:
                 self._send_error(500, f"parse_pdf failed: {str(exc)}")
                 return

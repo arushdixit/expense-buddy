@@ -42,7 +42,18 @@ _ORPHAN_NUM_RE = re.compile(r'(\s+\d[\d,]*\.\d{2})+\s*$')
 _MULTI_SPACE_RE = re.compile(r'\s{2,}')
 
 # Transactions whose descriptions match any of these are silently dropped
-_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL", "PAYMENT RECEIVED")
+_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL", "PAYMENT RECEIVED", "OUTSTANDING")
+
+_FOREIGN_AMT_RE = re.compile(
+    r'\b(AUD|BHD|CAD|CHF|CNY|DKK|EUR|GBP|HKD|INR|JPY|KWD|MXN|NOK|NZD|OMR|QAR|SAR|SEK|SGD|THB|TRY|USD|ZAR)\b\s*(-?\d+[\d,]*\.\d{2})|(-?\d+[\d,]*\.\d{2})\s*\b(AUD|BHD|CAD|CHF|CNY|DKK|EUR|GBP|HKD|INR|JPY|KWD|MXN|NOK|NZD|OMR|QAR|SAR|SEK|SGD|THB|TRY|USD|ZAR)\b',
+    re.IGNORECASE
+)
+_CONVERSION_RATE_RE = re.compile(r'\[1\s+[A-Z]{3}\s*=\s*AED\s*[\d.]+\]', re.IGNORECASE)
+_FOREIGN_VAL_CLEAN_RE = re.compile(
+    r'\b\d+[\d,]*\.\d{2}\s*\b(USD|EUR|GBP|AED|AUD|CAD|CHF|JPY|INR|SAR|QAR)\b|\b(USD|EUR|GBP|AED|AUD|CAD|CHF|JPY|INR|SAR|QAR)\b\s*-?\d+[\d,]*\.\d{2}',
+    re.IGNORECASE
+)
+_STYLE_C_DATE_RE = re.compile(r'^(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})$')
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +130,42 @@ def parse_date_b(date_str: str) -> str | None:
     month = parts[1].zfill(2)
     year = parts[2]
     return f"{year}-{month}-{day}"
+
+def parse_date_c(date_str: str) -> str | None:
+    parts = date_str.split()
+    if len(parts) != 3:
+        return None
+    day = parts[0].zfill(2)
+    month_str = parts[1].lower()
+    year = parts[2]
+    months = {
+        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+        'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+    }
+    month = months.get(month_str[:3])
+    if not month:
+        return None
+    return f"{year}-{month}-{day}"
+
+def extract_foreign_details(desc: str) -> tuple[str | None, float | None]:
+    match = _FOREIGN_AMT_RE.search(desc)
+    if match:
+        g1, g2, g3, g4 = match.groups()
+        if g1 and g2:
+            curr = g1.upper()
+            try:
+                val = abs(float(g2.replace(',', '')))
+                return curr, val
+            except ValueError:
+                pass
+        elif g3 and g4:
+            curr = g4.upper()
+            try:
+                val = abs(float(g3.replace(',', '')))
+                return curr, val
+            except ValueError:
+                pass
+    return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +465,9 @@ def _clean_description(description: str, extra_cleanup: bool = False) -> str:
     `extra_cleanup=True` enables Style-A-specific trailing amount removal and
     orphan numeric stripping that is not needed for Style B statements.
     """
+    description = _CONVERSION_RATE_RE.sub('', description)
+    description = _FOREIGN_VAL_CLEAN_RE.sub('', description)
+
     if extra_cleanup:
         description = _TRAILING_AMT_COMMA_RE.sub('', description)
         description = _TRAILING_AMT_RE.sub('', description)
@@ -425,6 +475,7 @@ def _clean_description(description: str, extra_cleanup: bool = False) -> str:
     description = (description
                    .replace("NFC - (AP-PAY)-", "")
                    .replace("IAP - (AP-PAY)-", "")
+                   .replace("|", "")
                    .strip())
     description = _CUR_RATE_RE.sub('', description)
     description = _CUR_CODE_RE.sub('', description)
@@ -506,6 +557,10 @@ def _build_transaction(
         or "PROC. FEE" in desc_upper
     )
 
+    orig_curr, orig_amt = None, None
+    if is_foreign:
+        orig_curr, orig_amt = extract_foreign_details(description)
+
     description = _clean_description(description, extra_cleanup=extra_cleanup)
     desc_upper = description.upper()
 
@@ -519,7 +574,7 @@ def _build_transaction(
 
     cat, sub = categorize(description, amt_val, is_refund, is_foreign)
 
-    return {
+    tx = {
         "date": std_date,
         "description": description,
         "amount": amt_val,
@@ -528,6 +583,11 @@ def _build_transaction(
         "isRefund": is_refund,
         "page": page_idx + 1,
     }
+    if is_foreign:
+        tx["isForeign"] = True
+        tx["originalAmount"] = orig_amt
+        tx["originalCurrency"] = orig_curr
+    return tx
 
 
 # ---------------------------------------------------------------------------
@@ -770,25 +830,208 @@ def parse_noon_pdf(doc) -> list[dict]:
     return transactions
 
 
-def parse_pdf(pdf_path: str) -> list[dict]:
+def parse_adcb_pdf(doc) -> list[dict]:
+    transactions = []
+    for page_idx in range(len(doc)):
+        page = doc[page_idx]
+        blocks = page.get_text("blocks")
+        blocks = [b for b in blocks if b[4].strip() and b[6] == 0]
+        grouped_lines = []
+        for b in blocks:
+            x0, y0, x1, y1, text, block_no, block_type = b
+            h = y1 - y0
+            assigned = False
+            for line in grouped_lines:
+                overlap = min(y1, line["y1"]) - max(y0, line["y0"])
+                if overlap > 0:
+                    line_h = line["y1"] - line["y0"]
+                    overlap_ratio = overlap / min(h, line_h)
+                    if overlap_ratio > 0.4:
+                        line["blocks"].append((x0, text))
+                        line["y0"] = min(line["y0"], y0)
+                        line["y1"] = max(line["y1"], y1)
+                        assigned = True
+                        break
+            if not assigned:
+                grouped_lines.append({
+                    "y0": y0,
+                    "y1": y1,
+                    "blocks": [(x0, text)]
+                })
+        grouped_lines.sort(key=lambda l: l["y0"])
+        lines = []
+        for group in grouped_lines:
+            blocks_sorted = sorted(group["blocks"], key=lambda x: x[0])
+            merged_texts = []
+            for x0, text in blocks_sorted:
+                clean_block_text = " ".join(text.split())
+                merged_texts.append(clean_block_text)
+            line_str = " ".join(merged_texts).strip()
+            if line_str:
+                lines.extend(split_concatenated_lines(line_str))
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            match_b = _STYLE_B_DATE_RE.search(line)
+            if match_b:
+                line_to_parse = line[match_b.start():]
+                tx_date_str = match_b.group(1)
+                rest = line_to_parse[match_b.end() - match_b.start():].strip()
+                tokens = rest.split()
+                if len(tokens) < 2:
+                    continue
+                last_token = tokens[-1]
+                if last_token == 'CR' and len(tokens) >= 2:
+                    last_token = tokens[-2] + ' CR'
+                    desc_tokens = list(tokens[:-2])
+                else:
+                    desc_tokens = list(tokens[:-1])
+                amt_val, is_ref = clean_amount(last_token)
+                if amt_val is None:
+                    continue
+                description = " ".join(desc_tokens).strip()
+                std_date = parse_date_b(tx_date_str)
+                if not std_date or not description:
+                    continue
+                desc_upper = description.upper()
+                is_foreign = bool(
+                    _FOREIGN_CURRENCY_RE.search(desc_upper)
+                    or "FOREIGN CURRENCY" in desc_upper
+                    or "PROC. FEE" in desc_upper
+                )
+                orig_curr, orig_amt = None, None
+                if is_foreign:
+                    orig_curr, orig_amt = extract_foreign_details(description)
+                cleaned_desc = _clean_description(description)
+                desc_upper = cleaned_desc.upper()
+                if not cleaned_desc or desc_upper.startswith("TO ") or any(kw in desc_upper for kw in _SKIP_KEYWORDS):
+                    continue
+                is_refund = is_ref or (amt_val < 0) or ("CASHBACK" in desc_upper) or ("PAYMENT" in desc_upper)
+                if is_refund and amt_val > 0:
+                    amt_val = -amt_val
+                cat, sub = categorize(cleaned_desc, amt_val, is_refund, is_foreign)
+                tx = {
+                    "date": std_date,
+                    "description": cleaned_desc,
+                    "amount": amt_val,
+                    "category": cat,
+                    "subcategory": sub,
+                    "isRefund": is_refund,
+                    "page": page_idx + 1,
+                }
+                if is_foreign:
+                    tx["isForeign"] = True
+                    tx["originalAmount"] = orig_amt
+                    tx["originalCurrency"] = orig_curr
+                transactions.append(tx)
+    return transactions
+
+
+def parse_sib_pdf(doc) -> list[dict]:
+    transactions = []
+    for page_idx in range(len(doc)):
+        page = doc[page_idx]
+        blocks = page.get_text("blocks")
+        blocks.sort(key=lambda b: (b[1], b[0]))
+        for b in blocks:
+            x0, y0, x1, y1, text, block_no, block_type = b
+            lines = [l.strip() for l in text.split('\n') if l.strip()]
+            if len(lines) >= 3:
+                date_match = _STYLE_C_DATE_RE.match(lines[0])
+                if date_match:
+                    date_str = lines[0]
+                    description = lines[1]
+                    amt_line = lines[2]
+                    amt_parts = amt_line.split()
+                    if len(amt_parts) >= 2:
+                        curr = amt_parts[0].upper()
+                        raw_amt_str = amt_parts[1]
+                        is_refund = False
+                        try:
+                            val = float(raw_amt_str.replace(',', ''))
+                            if val < 0:
+                                amt_val = -val
+                            else:
+                                amt_val = -val
+                                is_refund = True
+                        except ValueError:
+                            continue
+                        std_date = parse_date_c(date_str)
+                        if not std_date:
+                            continue
+                        cleaned_desc = _clean_description(description)
+                        is_foreign = (curr != "AED")
+                        original_amount = None
+                        original_currency = None
+                        if is_foreign:
+                            original_amount = amt_val
+                            original_currency = curr
+                            if curr == "USD":
+                                amt_val = round(amt_val * 3.8396, 2)
+                        if not cleaned_desc or cleaned_desc.upper().startswith("TO ") or any(kw in cleaned_desc.upper() for kw in _SKIP_KEYWORDS):
+                            continue
+                        cat, sub = categorize(cleaned_desc, amt_val, is_refund, is_foreign)
+                        tx = {
+                            "date": std_date,
+                            "description": cleaned_desc,
+                            "amount": amt_val,
+                            "category": cat,
+                            "subcategory": sub,
+                            "isRefund": is_refund,
+                            "page": page_idx + 1,
+                        }
+                        if is_foreign:
+                            tx["isForeign"] = True
+                            tx["originalAmount"] = original_amount
+                            tx["originalCurrency"] = original_currency
+                        transactions.append(tx)
+    return transactions
+
+
+def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
     import time
     import sys
     
     t_start = time.perf_counter()
     doc = fitz.open(pdf_path)
+    
+    # Handle decryption
+    if doc.is_encrypted:
+        passwords = []
+        if password:
+            passwords.append(password)
+        if "14561900" not in passwords:
+            passwords.append("14561900")
+        
+        authenticated = False
+        for pw in passwords:
+            if doc.authenticate(pw):
+                authenticated = True
+                break
+        if not authenticated:
+            raise ValueError("PDF statement is encrypted and decryption failed.")
+            
     t_load = time.perf_counter() - t_start
     sys.stderr.write(f"  [PDF TIMING] PyMuPDF open took {t_load:.4f} seconds\n")
     
-    # Detect Noon / Emirates NBD statement format by looking for "emirates nbd"
-    is_noon_statement = False
+    # Extract document text for routing
+    doc_text = ""
     for page in doc:
-        page_text = page.get_text().lower()
-        if "emirates nbd" in page_text:
-            is_noon_statement = True
-            break
-            
-    if is_noon_statement:
-        sys.stderr.write("  [PDF PARSER] Routing to dedicated Noon parser...\n")
+        doc_text += page.get_text().lower()
+        
+    if "previous balance outstanding" in doc_text or "xxxxxxxxxxxx4381" in doc_text:
+        sys.stderr.write("  [PDF PARSER] Routing to ADCB parser...\n")
+        return parse_adcb_pdf(doc)
+    elif "5290" in doc_text and "details" in doc_text and "amount" in doc_text and "emirates nbd" not in doc_text:
+        sys.stderr.write("  [PDF PARSER] Routing to SIB parser...\n")
+        return parse_sib_pdf(doc)
+    elif "emirates nbd" in doc_text:
+        # Noon vs Share are both ENBD and can be parsed by Noon parser.
+        if "noon" in doc_text:
+            sys.stderr.write("  [PDF PARSER] Routing to dedicated Noon parser...\n")
+        else:
+            sys.stderr.write("  [PDF PARSER] Routing to ENBD Share parser (using Noon layout)...\n")
         return parse_noon_pdf(doc)
     else:
         sys.stderr.write("  [PDF PARSER] Routing to standard HSBC parser...\n")

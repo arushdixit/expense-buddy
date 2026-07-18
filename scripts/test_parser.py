@@ -23,7 +23,7 @@ sys.path.insert(0, _root)
 
 from parse_statements import parse_pdf
 
-STATEMENTS_DIR = os.path.join(_root, "..", "statements")
+STATEMENTS_DIR = os.path.join(_root, "..", "statements", "Training Data")
 BACKUP_CSV = os.path.join(_root, "..", "backup", "expenses_rows.csv")
 
 # ── Load backup CSV ──────────────────────────────────────────────────────────

@@ -6,9 +6,28 @@ import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data
 import {
   FileUp, Loader2, CheckCircle2, Trash2, Filter,
   Database, RefreshCw, X, Check, Calendar, ArrowRightLeft,
-  ChevronDown, Search, AlertCircle
+  ChevronDown, Search, AlertCircle, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+
+const parseNoteDetails = (note?: string | null) => {
+  if (!note) return { cleanedNote: "No Details", isForeign: false, originalAmount: 0, originalCurrency: "" };
+  const origIndex = note.indexOf(" | Original: ");
+  let cleanedNote = note;
+  cleanedNote = cleanedNote.replace("Imported from Statement (", "").replace(")", "");
+  if (origIndex !== -1) {
+    const origPart = note.substring(origIndex + " | Original: ".length);
+    cleanedNote = note.substring(0, origIndex).replace("Imported from Statement (", "").replace(")", "");
+    const parts = origPart.split(" ");
+    return {
+      cleanedNote,
+      isForeign: true,
+      originalAmount: parseFloat(parts[0]) || 0,
+      originalCurrency: parts[1] || ""
+    };
+  }
+  return { cleanedNote, isForeign: false, originalAmount: 0, originalCurrency: "" };
+};
 
 export const ImportView: React.FC = () => {
   const {
@@ -28,6 +47,7 @@ export const ImportView: React.FC = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [parsedTxs, setParsedTxs] = useState<ParsedTransaction[]>([]);
   const [selectedTxIndexes, setSelectedTxIndexes] = useState<Set<number>>(new Set());
+  const [password, setPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter and search states
@@ -89,6 +109,9 @@ export const ImportView: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (password) {
+        formData.append("password", password);
+      }
 
       const res = await fetch("/api/parse_statement", {
         method: "POST",
@@ -210,7 +233,7 @@ export const ImportView: React.FC = () => {
           subcategory: tx.subcategory,
           amount: tx.amount,
           date: tx.date,
-          note: `Imported from Statement (${tx.description})`
+          note: `Imported from Statement (${tx.description})${tx.isForeign ? ` | Original: ${tx.originalAmount} ${tx.originalCurrency}` : ''}`
         };
       });
 
@@ -281,7 +304,8 @@ export const ImportView: React.FC = () => {
             className="space-y-6"
           >
             {parsedTxs.length === 0 ? (
-              /* PDF Drag and Drop Area */
+              <div className="space-y-4">
+                {/* PDF Drag and Drop Area */}
               <div
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
@@ -316,11 +340,24 @@ export const ImportView: React.FC = () => {
                       <p className="font-bold text-lg text-foreground mb-1">Upload Statement PDF</p>
                       <p className="text-muted-foreground text-xs max-w-xs mx-auto">Drag and drop your credit card PDF statement here or click to browse files.</p>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC & Noon Statements</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-secondary text-secondary-foreground border border-border/20">Supports HSBC, Noon, ADCB, SIB, & ENBD Share</span>
                   </div>
                 )}
               </div>
-            ) : (
+
+              {/* Password field */}
+              <div className="p-4 rounded-2xl bg-white/40 dark:bg-black/10 border border-white/20 dark:border-white/10 backdrop-blur-md shadow-sm">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Statement Password (Optional)</label>
+                <input
+                  type="password"
+                  placeholder="Enter statement password (default tried automatically)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-secondary/80 border border-border/40 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          ) : (
               /* Review Table UI */
               <div className="space-y-4">
                 {/* Search & Filter Options */}
@@ -374,15 +411,22 @@ export const ImportView: React.FC = () => {
                           }`}
                       >
                         {/* Upper row: Select + Date + Trash */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleSelect(originalIndex)}
                             className="h-4 w-4 rounded text-primary border-border focus:ring-primary cursor-pointer"
                           />
+                          <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full transition-all duration-200 shrink-0 ${
+                            isSelected 
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20" 
+                              : "bg-muted text-muted-foreground border border-border"
+                          }`}>
+                            {isSelected ? "Personal" : "Office"}
+                          </span>
 
-                          <div className="flex items-center gap-1.5 flex-1 bg-secondary/50 px-2.5 py-1 rounded-lg border border-border/30 max-w-[130px]">
+                          <div className="flex items-center gap-1.5 flex-1 bg-secondary/50 px-2.5 py-1 rounded-lg border border-border/30 max-w-[110px]">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             <input
                               type="text"
@@ -414,7 +458,7 @@ export const ImportView: React.FC = () => {
                         {/* Bottom Row: Amount + Category Dropdowns */}
                         <div className="flex gap-2 items-center">
                           {/* Editable Amount */}
-                          <div className="relative max-w-[100px]">
+                          <div className="relative max-w-[100px] shrink-0">
                             <input
                               type="number"
                               step="0.01"
@@ -424,6 +468,13 @@ export const ImportView: React.FC = () => {
                                 }`}
                             />
                           </div>
+
+                          {tx.isForeign && tx.originalAmount && tx.originalCurrency && (
+                            <div className="flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-500 bg-amber-500/10 px-2 py-1.5 rounded-xl border border-amber-500/20 font-bold shrink-0">
+                              <Globe className="h-3 w-3 shrink-0" />
+                              <span>{tx.originalCurrency} {tx.originalAmount.toFixed(2)}</span>
+                            </div>
+                          )}
 
                           {/* Category select */}
                           <div className="flex-1 relative">
@@ -515,36 +566,47 @@ export const ImportView: React.FC = () => {
                 </div>
 
                 <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
-                  {backupExpenses.map((expense) => (
-                    <div
-                      key={expense.id}
-                      className="p-3.5 rounded-xl bg-white/20 dark:bg-black/10 border border-white/20 dark:border-white/10 backdrop-blur-sm flex items-center justify-between gap-3 group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] text-muted-foreground font-semibold bg-secondary/50 px-2 py-0.5 rounded border border-border/20">{expense.date}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            {getCategoryById(expense.categoryId, customCategories)?.name || expense.categoryId}
-                          </span>
-                          <span className="text-[10px] font-medium text-muted-foreground italic truncate">/ {expense.subcategory || "Other"}</span>
+                  {backupExpenses.map((expense) => {
+                    const { cleanedNote, isForeign, originalAmount, originalCurrency } = parseNoteDetails(expense.note);
+                    return (
+                      <div
+                        key={expense.id}
+                        className="p-3.5 rounded-xl bg-white/20 dark:bg-black/10 border border-white/20 dark:border-white/10 backdrop-blur-sm flex items-center justify-between gap-3 group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] text-muted-foreground font-semibold bg-secondary/50 px-2 py-0.5 rounded border border-border/20">{expense.date}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              {getCategoryById(expense.categoryId, customCategories)?.name || expense.categoryId}
+                            </span>
+                            <span className="text-[10px] font-medium text-muted-foreground italic truncate">/ {expense.subcategory || "Other"}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-foreground truncate">{cleanedNote}</p>
                         </div>
-                        <p className="text-xs font-semibold text-foreground truncate">{expense.note ? expense.note.replace("Imported from Statement (", "").replace(")", "") : "No Details"}</p>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xs font-bold leading-none dirham-symbol ${expense.amount < 0 ? "text-success" : "text-foreground"}`}>
-                          {formatCurrency(expense.amount)}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right flex flex-col items-end shrink-0">
+                            <span className={`text-xs font-bold leading-none dirham-symbol ${expense.amount < 0 ? "text-success" : "text-foreground"}`}>
+                              {formatCurrency(expense.amount)}
+                            </span>
+                            {isForeign && originalAmount > 0 && originalCurrency && (
+                              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-0.5 mt-1">
+                                <Globe className="h-2.5 w-2.5 shrink-0" />
+                                <span>{originalCurrency} {originalAmount.toFixed(2)}</span>
+                              </span>
+                            )}
+                          </div>
 
-                        <button
-                          onClick={() => deleteBackupExpense(expense.id)}
-                          className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-all opacity-85 group-hover:opacity-100"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <button
+                            onClick={() => deleteBackupExpense(expense.id)}
+                            className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-all opacity-85 group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Queue Actions */}

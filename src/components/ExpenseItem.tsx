@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, Edit2 } from "lucide-react";
+import { Trash2, Edit2, Globe } from "lucide-react";
 import { Expense, getCategoryById, formatCurrency } from "@/lib/data";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,27 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
   const expenseDate = parseDateFromStorage(expense.date);
 
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const parseNoteDetails = (note?: string | null) => {
+    if (!note) return { cleanedNote: "", isForeign: false, originalAmount: 0, originalCurrency: "" };
+    const origIndex = note.indexOf(" | Original: ");
+    let cleanedNote = note;
+    cleanedNote = cleanedNote.replace("Imported from Statement (", "").replace(")", "");
+    if (origIndex !== -1) {
+      const origPart = note.substring(origIndex + " | Original: ".length);
+      cleanedNote = note.substring(0, origIndex).replace("Imported from Statement (", "").replace(")", "");
+      const parts = origPart.split(" ");
+      return {
+        cleanedNote,
+        isForeign: true,
+        originalAmount: parseFloat(parts[0]) || 0,
+        originalCurrency: parts[1] || ""
+      };
+    }
+    return { cleanedNote, isForeign: false, originalAmount: 0, originalCurrency: "" };
+  };
+
+  const { cleanedNote, isForeign, originalAmount, originalCurrency } = parseNoteDetails(expense.note);
 
   const handleLongPress = () => {
     setShowActions(true);
@@ -93,14 +114,23 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium truncate">{category.name}</div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground flex flex-col gap-0.5">
             {expense.subcategory && (
               <span>{expense.subcategory}</span>
             )}
+            {cleanedNote && (
+              <span className="text-xs text-muted-foreground/75 truncate">{cleanedNote}</span>
+            )}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right flex flex-col items-end shrink-0">
           <div className="font-semibold dirham-symbol">{formatCurrency(expense.amount)}</div>
+          {isForeign && originalAmount > 0 && originalCurrency && (
+            <div className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-0.5 mt-0.5">
+              <Globe className="h-3 w-3 shrink-0" />
+              <span>{originalCurrency} {originalAmount.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {showActions && (
