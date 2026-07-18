@@ -1,0 +1,44 @@
+[
+  {
+    "card": "Noon",
+    "startDate": "2026-05-26",
+    "endDate": "2026-06-23",
+    "filename": "2026-06-25_Noon_Statement.pdf",
+    "importedAt": 1784364164828
+  },
+  {
+    "card": "ADCB",
+    "startDate": "2026-06-23",
+    "endDate": "2026-07-05",
+    "filename": "2026-07-05_ADCB_Statement.pdf",
+    "importedAt": 1784364082748
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-06-06",
+    "endDate": "2026-07-01",
+    "filename": "2026-07-10_HSBC_Statement.pdf",
+    "importedAt": 1784363979522
+  },
+  {
+    "card": "SIB",
+    "startDate": "2026-06-29",
+    "endDate": "2026-07-13",
+    "filename": "2026-07-14_SIB_Statement.pdf",
+    "importedAt": 1784364294980
+  },
+  {
+    "card": "Share",
+    "startDate": "2026-06-25",
+    "endDate": "2026-07-13",
+    "filename": "2026-07-15_Share_Statement.pdf",
+    "importedAt": 1784364252866
+  },
+  {
+    "card": "Wio",
+    "startDate": "2026-06-01",
+    "endDate": "2026-07-18",
+    "filename": "Wio statement (2026.06.01-2026.07.18).csv",
+    "importedAt": 1784379611156
+  }
+]

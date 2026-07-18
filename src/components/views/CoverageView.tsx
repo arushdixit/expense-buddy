@@ -1,10 +1,14 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useExpenses } from "@/context/ExpenseContext";
-import { getMonthName, getExpensesByMonth } from "@/lib/data";
+import { getStatementRecords, seedStatementRecords, StatementRecord } from "@/lib/statementParser";
+import { getMonthName } from "@/lib/data";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ShieldCheck, AlertTriangle, FileText, CheckCircle2, 
+  History, Calendar, Info
+} from "lucide-react";
+import { format } from "date-fns";
 
 const CARD_COLORS: Record<string, string> = {
   Wio: "#5700FF",    // Electric Violet
@@ -15,284 +19,245 @@ const CARD_COLORS: Record<string, string> = {
   Share: "#00A3A0",  // SHARE Teal
 };
 
-const CARD_STATEMENT_DAYS: Record<string, number> = {
-  ADCB: 5,
-  HSBC: 10,
-  SIB: 14,
-  Share: 15,
-  Noon: 25,
-  Wio: 0 // Will map dynamically to last day of month
+const formatDateReadable = (dateStr: string) => {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    return format(d, "MMM dd, yyyy");
+  } catch (e) {
+    return dateStr;
+  }
 };
 
-// Helper to detect which card/bank an expense belongs to
-const detectCard = (noteText: string, subcatText: string): string | null => {
-  const noteUpper = noteText.toUpperCase();
-  const subcatUpper = subcatText.toUpperCase();
-
-  // 1. Check explicit tag
-  if (noteUpper.includes("CARD: ADCB")) return "ADCB";
-  if (noteUpper.includes("CARD: SIB")) return "SIB";
-  if (noteUpper.includes("CARD: SHARE")) return "Share";
-  if (noteUpper.includes("CARD: NOON")) return "Noon";
-  if (noteUpper.includes("CARD: HSBC")) return "HSBC";
-  if (noteUpper.includes("CARD: WIO")) return "Wio";
-
-  // 2. Check keywords
-  if (noteUpper.includes("ADCB") || noteUpper.includes("TAKEDA") || noteUpper.includes("MBTA") || noteUpper.includes("7-ELEVEN") || noteUpper.includes("ROCKIN BURGERS")) return "ADCB";
-  if (noteUpper.includes("SIB") || noteUpper.includes("DOORDASH") || noteUpper.includes("UBER EATS") || noteUpper.includes("THE LIBERTY HOTEL") || noteUpper.includes("ZARA.COM") || noteUpper.includes("TKD FASHION")) return "SIB";
-  if (noteUpper.includes("SHARE") || noteUpper.includes("URBANCLAP")) return "Share";
-  if (noteUpper.includes("NOON")) return "Noon";
-  if (noteUpper.includes("HSBC")) return "HSBC";
-  if (noteUpper.includes("WIO")) return "Wio";
-
-  // Fallbacks for statement formats
-  if (noteUpper.includes("IMPORTED FROM STATEMENT")) {
-    if (
-      noteUpper.includes("TEMU") || 
-      noteUpper.includes("WEST ZONE") || 
-      noteUpper.includes("NATIONAL TAXI") || 
-      noteUpper.includes("BABEL DU QLUB") || 
-      noteUpper.includes("KAMAT RESTAURANT") || 
-      noteUpper.includes("PAUL") || 
-      noteUpper.includes("DUBAYPAY RTA") || 
-      noteUpper.includes("RAJU OMLET") ||
-      subcatUpper.includes("WIO")
-    ) {
-      return "Wio";
+// Calculate expected latest statement date based on today's date and card cycle
+const getExpectedStatementDate = (card: string, today: Date): { dateStr: string; label: string } => {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+  
+  if (card === "Wio") {
+    // Wio statement is monthly and ends on the last day of the previous calendar month.
+    // (Since the current calendar month is still open/active and hasn't closed yet)
+    const prevMonthLastDay = new Date(y, m, 0).getDate();
+    let prevM = m - 1;
+    let prevY = y;
+    if (prevM < 0) {
+      prevM = 11;
+      prevY = y - 1;
     }
-    return "HSBC"; // Legacy default
+    const padM = String(prevM + 1).padStart(2, "0");
+    const padD = String(prevMonthLastDay).padStart(2, "0");
+    return {
+      dateStr: `${prevY}-${padM}-${padD}`,
+      label: `${getMonthName(prevM)} ${prevMonthLastDay}, ${prevY}`
+    };
   }
 
-  return null;
+  const statementDay = {
+    ADCB: 5,
+    HSBC: 10,
+    SIB: 14,
+    Share: 15,
+    Noon: 25
+  }[card] || 15;
+
+  let targetYear = y;
+  let targetMonth = m;
+
+  if (d < statementDay) {
+    // Current month's statement is not generated yet. Latest expected is previous month.
+    targetMonth = m - 1;
+    if (targetMonth < 0) {
+      targetMonth = 11;
+      targetYear = y - 1;
+    }
+  }
+
+  const padM = String(targetMonth + 1).padStart(2, "0");
+  const padD = String(statementDay).padStart(2, "0");
+  return {
+    dateStr: `${targetYear}-${padM}-${padD}`,
+    label: `${getMonthName(targetMonth)} ${statementDay}, ${targetYear}`
+  };
 };
 
 export const CoverageView: React.FC = () => {
   const { expenses } = useExpenses();
-  const now = new Date();
-  
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
-  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [records, setRecords] = useState<StatementRecord[]>([]);
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  // Seed history on mount
+  useEffect(() => {
+    const seed = async () => {
+      await seedStatementRecords();
+      setRecords(getStatementRecords());
+    };
+    seed();
+  }, [expenses]);
 
-  // Disable navigating earlier than June 2026
-  const isAtMinMonth = currentYear === 2026 && currentMonth === 5; // 5 is June
-  
-  const goToPreviousMonth = () => {
-    if (isAtMinMonth) return;
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear((prev) => prev - 1);
-    } else {
-      setCurrentMonth((prev) => prev - 1);
-    }
-  };
+  const today = new Date();
 
-  const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear((prev) => prev + 1);
-    } else {
-      setCurrentMonth((prev) => prev + 1);
-    }
-  };
+  // Compute status for all 6 cards
+  const cardsStatus = Object.keys(CARD_COLORS).map((cardKey) => {
+    const cardRecords = records.filter((r) => r.card === cardKey);
+    const sorted = [...cardRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
+    const latestRecord = sorted[0] || null;
 
-  // Filter expenses for selected month
-  const monthlyExpenses = getExpensesByMonth(expenses, currentYear, currentMonth);
-
-  // Group by card and find maximum day covered
-  const cardDataList = Object.keys(CARD_COLORS).map((cardKey) => {
-    const cardExpenses = monthlyExpenses.filter((exp) => {
-      const cardDetected = detectCard(exp.note || "", exp.subcategory || "");
-      return cardDetected === cardKey;
-    });
-
-    let maxDay = 0;
-    let latestDateStr = "";
-
-    if (cardExpenses.length > 0) {
-      // Find latest transaction date
-      latestDateStr = cardExpenses.reduce(
-        (max, exp) => (exp.date > max ? exp.date : max),
-        cardExpenses[0].date
-      );
-      maxDay = parseInt(latestDateStr.split("-")[2], 10);
-    }
-
-    const statementDay = CARD_STATEMENT_DAYS[cardKey] === 0 ? daysInMonth : CARD_STATEMENT_DAYS[cardKey];
+    const expected = getExpectedStatementDate(cardKey, today);
     
-    // Warning Logic
     let isWarning = false;
-    let warningReason = "";
-    
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
-    
-    if (isCurrentMonth) {
-      const todayDay = today.getDate();
-      if (todayDay > statementDay && maxDay < statementDay) {
-        isWarning = true;
-        warningReason = `Statement generated on the ${statementDay}th but not imported yet`;
-      }
-    } else {
-      // Past month must have 100% full coverage up to the end of the month
-      if (maxDay < daysInMonth) {
-        isWarning = true;
-        warningReason = `Statement incomplete - last imported transaction was on the ${maxDay || 0}th`;
-      }
+    let warningMessage = "";
+
+    if (!latestRecord) {
+      isWarning = true;
+      warningMessage = `No statements imported. Expected coverage up to ${expected.label}.`;
+    } else if (latestRecord.endDate < expected.dateStr) {
+      isWarning = true;
+      warningMessage = `Statement due. Covered up to ${formatDateReadable(latestRecord.endDate)}, but expected up to ${expected.label}.`;
     }
 
     return {
       key: cardKey,
       color: CARD_COLORS[cardKey],
-      maxDay,
-      latestDateStr,
-      statementDay,
+      latestRecord,
+      expected,
       isWarning,
-      warningReason,
-      hasData: cardExpenses.length > 0,
+      warningMessage,
     };
   });
 
-  // Timeline Ruler Ticks (Days 1, 5, 10, 15, 20, 25, and Last Day)
-  const ticks = [1, 5, 10, 15, 20, 25, daysInMonth];
+  const upToDateCount = cardsStatus.filter((c) => !c.isWarning).length;
+  
+  // Timeline sorted by importedAt descending
+  const sortedRecords = [...records].sort((a, b) => b.importedAt - a.importedAt);
 
   return (
     <div className="pb-24 px-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="mt-4 space-y-1">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Statement Coverage</h1>
-        <div className="flex items-center gap-2 bg-muted/50 rounded-2xl p-1 border border-border/40 backdrop-blur-md">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goToPreviousMonth}
-            disabled={isAtMinMonth}
-            className="h-8 w-8 rounded-xl disabled:opacity-30"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-semibold px-2 min-w-[100px] text-center">
-            {getMonthName(currentMonth)} {currentYear}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goToNextMonth}
-            className="h-8 w-8 rounded-xl"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <p className="text-muted-foreground text-xs">
+          Track coverage periods and missing statement uploads.
+        </p>
       </div>
 
-      <Card className="p-6 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 shadow-xl backdrop-blur-md space-y-8">
-        <div>
-          <h2 className="font-bold text-lg mb-1 flex items-center gap-2 text-foreground">
-            <Calendar className="h-5 w-5 text-primary" />
-            Coverage Timeline
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            Review statement coverage range for each bank card below.
-          </p>
-        </div>
-
-        {/* Horizontal Timeline Container */}
-        <div className="relative pt-6">
-          {/* Timeline Ruler */}
-          <div className="relative h-6 flex justify-between text-[10px] text-muted-foreground font-bold border-b border-border/40 pb-2 mb-6">
-            {ticks.map((tick) => {
-              const pct = ((tick - 1) / (daysInMonth - 1)) * 100;
-              return (
-                <div
-                  key={tick}
-                  className="absolute transform -translate-x-1/2 flex flex-col items-center gap-1"
-                  style={{ left: `${pct}%` }}
-                >
-                  <span>Day {tick}</span>
-                  {/* Guideline */}
-                  <div className="absolute top-6 w-[1px] h-[340px] border-l border-dashed border-border/20 z-0 pointer-events-none" />
-                </div>
-              );
-            })}
+      {/* Summary Scoreboard */}
+      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-
-          {/* Card Bars */}
-          <div className="space-y-7 relative z-10">
-            {cardDataList.map((card) => {
-              const widthPct = card.hasData ? (card.maxDay / daysInMonth) * 100 : 0;
-
-              return (
-                <div key={card.key} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {/* Card Pill Dot */}
-                      <span
-                        className="w-3.5 h-3.5 rounded-full shadow-inner border border-white/20"
-                        style={{ backgroundColor: card.color }}
-                      />
-                      <span className="font-bold text-sm text-foreground">{card.key}</span>
-                      <span className="text-[10px] text-muted-foreground px-2 py-0.5 bg-muted/50 rounded-full border border-border/30">
-                        Stmt Cycle: {card.statementDay === daysInMonth ? "End of Month" : `${card.statementDay}th`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {card.isWarning ? (
-                        <div className="flex items-center gap-1 text-xs text-yellow-500 font-bold px-2 py-0.5 bg-yellow-500/10 rounded-full border border-yellow-500/20">
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          <span>Needs Update</span>
-                        </div>
-                      ) : card.hasData ? (
-                        <div className="flex items-center gap-1 text-xs text-emerald-500 font-bold px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>Up to Date</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No Data</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Horizontal Bar Chart Track */}
-                  <div className="h-4 bg-muted/60 dark:bg-neutral-800/40 rounded-full w-full overflow-hidden border border-border/20 shadow-inner">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${widthPct}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                      className="h-full rounded-full relative"
-                      style={{ backgroundColor: card.color }}
-                    >
-                      {/* Subtle micro-shine layer */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-white/10" />
-                    </motion.div>
-                  </div>
-
-                  {/* Date details & explanations */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {card.hasData
-                        ? `Covered from Day 1 to Day ${card.maxDay}`
-                        : "No data imported"}
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {card.hasData
-                        ? `Till ${getMonthName(currentMonth).substring(0, 3)} ${card.maxDay}`
-                        : "Import Required"}
-                    </span>
-                  </div>
-
-                  {card.isWarning && (
-                    <p className="text-[11px] text-yellow-600 dark:text-yellow-500/90 italic bg-yellow-500/[0.04] p-2 rounded-xl border border-yellow-500/10">
-                      ⚠️ {card.warningReason}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+          <div>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Account Sync Status</p>
+            <p className="font-bold text-sm text-foreground">
+              {upToDateCount} of 6 accounts up to date
+            </p>
           </div>
         </div>
+        <Badge variant={upToDateCount === 6 ? "default" : "secondary"} className="rounded-full">
+          {upToDateCount === 6 ? "Ready" : `${6 - upToDateCount} Due`}
+        </Badge>
       </Card>
+
+      {/* Cards List */}
+      <div className="space-y-4">
+        {cardsStatus.map((card) => (
+          <Card 
+            key={card.key}
+            className="p-5 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md space-y-3 hover:scale-[1.01] transition-transform duration-200"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span 
+                  className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
+                  style={{ backgroundColor: card.color }}
+                />
+                <span className="font-bold text-base text-foreground">{card.key}</span>
+              </div>
+              
+              <div>
+                {card.isWarning ? (
+                  <Badge className="bg-yellow-500/10 hover:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 rounded-full flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Statement Due
+                  </Badge>
+                ) : (
+                  <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Up to Date
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-0.5">
+                <p className="text-muted-foreground font-medium">Covered Period</p>
+                <p className="font-bold text-foreground">
+                  {card.latestRecord 
+                    ? `${formatDateReadable(card.latestRecord.startDate)} – ${formatDateReadable(card.latestRecord.endDate)}`
+                    : "No data"}
+                </p>
+              </div>
+
+              <div className="space-y-0.5 text-right">
+                <p className="text-muted-foreground font-medium">Source Statement</p>
+                <p className="font-semibold text-foreground truncate max-w-[150px] ml-auto">
+                  {card.latestRecord ? card.latestRecord.filename : "Pending Import"}
+                </p>
+              </div>
+            </div>
+
+            {card.isWarning && (
+              <div className="flex gap-2 items-start bg-yellow-500/[0.04] p-3 rounded-2xl border border-yellow-500/10 text-xs text-yellow-600 dark:text-yellow-500/90 font-medium">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{card.warningMessage}</span>
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* History Log */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 px-1">
+          <History className="h-4 w-4" />
+          Import History Log
+        </h2>
+
+        {sortedRecords.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            No statement files recorded in the import log yet.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {sortedRecords.map((rec, idx) => (
+              <div 
+                key={`${rec.card}_${rec.endDate}_${idx}`}
+                className="flex items-center justify-between bg-card/40 border border-border/40 p-3 rounded-2xl text-xs"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground truncate max-w-[180px]">{rec.filename}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {rec.card} • {formatDateReadable(rec.startDate)} to {formatDateReadable(rec.endDate)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <p className="font-medium text-foreground">Imported</p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

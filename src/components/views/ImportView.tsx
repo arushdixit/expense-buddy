@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
-import { ParsedTransaction } from "@/lib/statementParser";
+import { ParsedTransaction, addStatementRecord } from "@/lib/statementParser";
 import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data";
 import {
   FileUp, Loader2, CheckCircle2, Trash2, Filter,
@@ -48,6 +48,7 @@ export const ImportView: React.FC = () => {
   const [parsedTxs, setParsedTxs] = useState<ParsedTransaction[]>([]);
   const [selectedTxIndexes, setSelectedTxIndexes] = useState<Set<number>>(new Set());
   const [password, setPassword] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter and search states
@@ -129,6 +130,7 @@ export const ImportView: React.FC = () => {
       }
 
       const txs: ParsedTransaction[] = await res.json();
+      setUploadedFileName(file.name);
 
       // Auto-assign local database category ids if found
       const finalizedTxs = txs.map(tx => {
@@ -230,6 +232,13 @@ export const ImportView: React.FC = () => {
     }
 
     try {
+      if (selectedList.length > 0) {
+        const minDate = selectedList.reduce((min, tx) => tx.date < min ? tx.date : min, selectedList[0].date);
+        const maxDate = selectedList.reduce((max, tx) => tx.date > max ? tx.date : max, selectedList[0].date);
+        const card = selectedList[0].card || "HSBC";
+        addStatementRecord(card, minDate, maxDate, uploadedFileName);
+      }
+
       // Map view categories back to db category ids
       const payload: Omit<Expense, "id">[] = selectedList.map(tx => {
         const matched = allCategoriesList.find(c => c.id === tx.category);
