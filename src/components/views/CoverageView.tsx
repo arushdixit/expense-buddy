@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from "react";
 import { useExpenses } from "@/context/ExpenseContext";
 import { getStatementRecords, seedStatementRecords, StatementRecord } from "@/lib/statementParser";
 import { getMonthName } from "@/lib/data";
@@ -8,10 +8,64 @@ import { Button } from "@/components/ui/button";
 import {
   ShieldCheck, AlertTriangle, FileText, CheckCircle2,
   History, Calendar as CalendarIcon, Info, ChevronLeft, ChevronRight,
-  Upload, Sparkles, Layers, ArrowUpRight
+  Upload, Layers, RefreshCw
 } from "lucide-react";
-import { format, getDaysInMonth, parseISO, isSameMonth, isSameYear } from "date-fns";
+import { format, getDaysInMonth } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Error boundary to prevent white-screen crashes if local storage has corrupt data
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class CoverageViewErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("CoverageView Error Boundary caught an error:", error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 max-w-lg mx-auto my-12 text-center space-y-4">
+          <Card className="p-6 rounded-3xl border border-destructive/30 bg-destructive/5 space-y-4">
+            <div className="h-12 w-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">Something went wrong loading Coverage</h2>
+            <p className="text-xs text-muted-foreground">
+              {this.state.error?.message || "An unexpected error occurred while processing statement records."}
+            </p>
+            <Button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              size="sm"
+              className="rounded-full gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reload Page
+            </Button>
+          </Card>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const CARD_COLORS: Record<string, string> = {
   Wio: "#5700FF",    // Electric Violet
@@ -32,21 +86,40 @@ const CARD_BILLING_DAYS: Record<string, { day: number; label: string }> = {
   Wio: { day: 31, label: "Monthly (End of Month)" },
 };
 
+// Safe date formatting helpers using string splitting to avoid Invalid Date / timezone errors
 const formatDateReadable = (dateStr: string) => {
-  if (!dateStr) return "";
+  if (!dateStr || typeof dateStr !== "string") return "";
   try {
-    const d = parseISO(dateStr);
-    return format(d, "MMM dd, yyyy");
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        const dateObj = new Date(y, m, d);
+        return format(dateObj, "MMM dd, yyyy");
+      }
+    }
+    return dateStr;
   } catch (e) {
     return dateStr;
   }
 };
 
 const formatDateShort = (dateStr: string) => {
-  if (!dateStr) return "";
+  if (!dateStr || typeof dateStr !== "string") return "";
   try {
-    const d = parseISO(dateStr);
-    return format(d, "MMM dd");
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        const dateObj = new Date(y, m, d);
+        return format(dateObj, "MMM dd");
+      }
+    }
+    return dateStr;
   } catch (e) {
     return dateStr;
   }
@@ -65,40 +138,53 @@ interface CoverageViewProps {
   onNavigateToImport?: () => void;
 }
 
-export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
+const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
   const { expenses } = useExpenses();
   const [records, setRecords] = useState<StatementRecord[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [activeTooltipCard, setActiveTooltipCard] = useState<string | null>(null);
 
-  // Seed history on mount
+  // Seed history on mount safely
   useEffect(() => {
     const seed = async () => {
-      await seedStatementRecords();
-      const recs = getStatementRecords();
-      setRecords(recs);
+      try {
+        await seedStatementRecords();
+        const recs = getStatementRecords() || [];
+        setRecords(recs);
 
-      // Auto-select latest month with statement records if available
-      if (recs.length > 0) {
-        const sorted = [...recs].sort((a, b) => b.endDate.localeCompare(a.endDate));
-        try {
-          const latestDate = parseISO(sorted[0].endDate);
-          setSelectedDate(new Date(latestDate.getFullYear(), latestDate.getMonth(), 1));
-        } catch (e) {
-          // fallback to current date
+        // Auto-select latest month with statement records if available
+        if (Array.isArray(recs) && recs.length > 0) {
+          const sorted = [...recs]
+            .filter((r) => r && typeof r.endDate === "string")
+            .sort((a, b) => b.endDate.localeCompare(a.endDate));
+
+          if (sorted[0]?.endDate) {
+            const parts = sorted[0].endDate.split("-");
+            if (parts.length === 3) {
+              const y = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10) - 1;
+              if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 0 && m <= 11) {
+                setSelectedDate(new Date(y, m, 1));
+              }
+            }
+          }
         }
+      } catch (e) {
+        console.error("Error initializing coverage records:", e);
       }
     };
     seed();
   }, [expenses]);
 
-  const selectedYear = selectedDate.getFullYear();
-  const selectedMonth = selectedDate.getMonth();
-  const daysInSelectedMonth = getDaysInMonth(selectedDate);
+  // Ensure selectedDate is valid
+  const validDate = selectedDate instanceof Date && !isNaN(selectedDate.getTime()) ? selectedDate : new Date();
+  const selectedYear = validDate.getFullYear();
+  const selectedMonth = validDate.getMonth();
+  const daysInSelectedMonth = Math.max(getDaysInMonth(validDate), 28);
   const selectedMonthName = getMonthName(selectedMonth);
 
   const today = new Date();
-  const isCurrentMonth = isSameMonth(selectedDate, today) && isSameYear(selectedDate, today);
+  const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
   const todayDay = isCurrentMonth ? today.getDate() : null;
 
   // Month navigation handlers
@@ -119,31 +205,36 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const monthEndStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInSelectedMonth).padStart(2, "0")}`;
 
   // Unique card list (combining default CARD_COLORS and any extra cards in records)
-  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...records.map((r) => r.card)]));
+  const validRecords = Array.isArray(records) ? records.filter((r) => r && typeof r.card === "string") : [];
+  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...validRecords.map((r) => r.card)]));
 
   // Compute timeline data for each card in the selected month
   const cardsCoverageData = allCardKeys.map((cardKey) => {
     const color = CARD_COLORS[cardKey] || "#888888";
     const billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on ${15}th` };
-    
-    // Filter records for this card
-    const cardRecords = records.filter((r) => r.card === cardKey);
-    const sortedAll = [...cardRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
+
+    const cardRecords = validRecords.filter((r) => r.card === cardKey);
+    const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
     const latestOverallRecord = sortedAll[0] || null;
 
-    // Segments that overlap with the selected month
     const segments: CoverageSegment[] = [];
 
     cardRecords.forEach((rec) => {
+      if (!rec || !rec.startDate || !rec.endDate) return;
+
       // Check overlap with [monthStartStr, monthEndStr]
       if (rec.startDate <= monthEndStr && rec.endDate >= monthStartStr) {
         const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
         const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
 
-        const startDay = parseInt(overlapStartStr.split("-")[2], 10);
-        const endDay = parseInt(overlapEndStr.split("-")[2], 10);
+        const startParts = overlapStartStr.split("-");
+        const endParts = overlapEndStr.split("-");
+        if (startParts.length !== 3 || endParts.length !== 3) return;
 
-        if (startDay <= endDay) {
+        const startDay = parseInt(startParts[2], 10);
+        const endDay = parseInt(endParts[2], 10);
+
+        if (!isNaN(startDay) && !isNaN(endDay) && startDay <= endDay && startDay >= 1 && endDay <= daysInSelectedMonth) {
           const daysCoveredInMonth = endDay - startDay + 1;
           const leftPercent = ((startDay - 1) / daysInSelectedMonth) * 100;
           const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
@@ -152,15 +243,14 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
             record: rec,
             startDay,
             endDay,
-            leftPercent,
-            widthPercent,
+            leftPercent: Math.max(0, Math.min(100, leftPercent)),
+            widthPercent: Math.max(0, Math.min(100, widthPercent)),
             daysCoveredInMonth,
           });
         }
       }
     });
 
-    // Total unique days covered in this month
     const coveredDaysSet = new Set<number>();
     segments.forEach((seg) => {
       for (let d = seg.startDay; d <= seg.endDay; d++) {
@@ -171,11 +261,9 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const totalDaysCoveredInMonth = coveredDaysSet.size;
     const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
 
-    // Latest statement end date in this month or overall
     const latestMonthRecord = [...segments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
     const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
 
-    // Status evaluation
     let status: "full" | "partial" | "missing" = "missing";
     if (totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
       status = "full";
@@ -183,7 +271,6 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       status = "partial";
     }
 
-    // Expected target date for current/past month
     const statementDueDay = billingInfo.day === 31 ? daysInSelectedMonth : billingInfo.day;
     const isPastDue = isCurrentMonth && today.getDate() > statementDueDay && (!maxCoveredDateStr || maxCoveredDateStr < `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`);
 
@@ -216,12 +303,16 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   };
   const axisTicks = generateTicks();
 
-  // Timeline Day Headers
+  // Timeline Day Headers - Division-by-zero protected
   const getTickPosition = (day: number) => {
-    return ((day - 1) / (daysInSelectedMonth - 1)) * 100;
+    if (daysInSelectedMonth <= 1) return 0;
+    const pct = ((day - 1) / (daysInSelectedMonth - 1)) * 100;
+    return Math.max(0, Math.min(100, pct));
   };
 
-  const todayPosition = todayDay ? ((todayDay - 1) / (daysInSelectedMonth - 1)) * 100 : null;
+  const todayPosition = todayDay && daysInSelectedMonth > 1
+    ? Math.max(0, Math.min(100, ((todayDay - 1) / (daysInSelectedMonth - 1)) * 100))
+    : null;
 
   return (
     <div className="pb-24 px-4 space-y-6 max-w-4xl mx-auto">
@@ -536,17 +627,17 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       <div className="space-y-3">
         <h2 className="text-sm font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 px-1">
           <History className="h-4 w-4" />
-          All Ingested Statement Files ({records.length})
+          All Ingested Statement Files ({validRecords.length})
         </h2>
 
-        {records.length === 0 ? (
+        {validRecords.length === 0 ? (
           <Card className="p-6 text-center text-xs text-muted-foreground border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20">
             No statement files recorded in the import log yet.
           </Card>
         ) : (
           <div className="space-y-2.5">
-            {[...records]
-              .sort((a, b) => b.importedAt - a.importedAt)
+            {[...validRecords]
+              .sort((a, b) => (b.importedAt || 0) - (a.importedAt || 0))
               .map((rec, idx) => (
                 <div
                   key={`${rec.card}_${rec.endDate}_${idx}`}
@@ -557,10 +648,10 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                       className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
                       style={{ backgroundColor: CARD_COLORS[rec.card] || "#666" }}
                     >
-                      {rec.card.substring(0, 3)}
+                      {(rec.card || "---").substring(0, 3)}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate max-w-[200px]">{rec.filename}</p>
+                      <p className="font-bold text-foreground truncate max-w-[200px]">{rec.filename || "Uploaded File"}</p>
                       <p className="text-[11px] text-muted-foreground">
                         {rec.card} • {formatDateReadable(rec.startDate)} to {formatDateReadable(rec.endDate)}
                       </p>
@@ -570,7 +661,7 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                   <div className="text-right shrink-0">
                     <p className="font-semibold text-foreground">{formatDateShort(rec.endDate)}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
+                      {rec.importedAt ? format(new Date(rec.importedAt), "MMM dd, HH:mm") : ""}
                     </p>
                   </div>
                 </div>
@@ -579,5 +670,13 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         )}
       </div>
     </div>
+  );
+};
+
+export const CoverageView: React.FC<CoverageViewProps> = (props) => {
+  return (
+    <CoverageViewErrorBoundary>
+      <CoverageViewContent {...props} />
+    </CoverageViewErrorBoundary>
   );
 };
