@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ShieldCheck, AlertTriangle, FileText, CheckCircle2,
   History, Calendar as CalendarIcon, Info, ChevronLeft, ChevronRight,
-  Upload, Layers, RefreshCw
+  Upload, Layers, RefreshCw, Clock, CalendarDays
 } from "lucide-react";
 import { format, getDaysInMonth } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -125,6 +125,79 @@ const formatDateShort = (dateStr: string) => {
   }
 };
 
+// Calculate next statement date and days remaining relative to today
+const getCardNextStatementInfo = (
+  cardKey: string,
+  maxCoveredDateStr: string | null,
+  today: Date = new Date()
+) => {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+
+  const daysInCurrentMonth = getDaysInMonth(today);
+  const billingConfig = CARD_BILLING_DAYS[cardKey]?.day || 15;
+  const targetDay = billingConfig === 31 ? daysInCurrentMonth : billingConfig;
+
+  // Current cycle statement date string
+  const currentCycleDateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+
+  let nextStatementDate: Date;
+  let isOverdue = false;
+
+  // Check if statement for current month's billing date has been uploaded
+  const isCurrentCycleCovered = maxCoveredDateStr ? maxCoveredDateStr >= currentCycleDateStr : false;
+
+  if (d > targetDay) {
+    if (isCurrentCycleCovered) {
+      // Current cycle is done! Next statement is in next month
+      let nextM = m + 1;
+      let nextY = y;
+      if (nextM > 11) {
+        nextM = 0;
+        nextY = y + 1;
+      }
+      const daysInNextMonth = getDaysInMonth(new Date(nextY, nextM, 1));
+      const nextDayNum = Math.min(targetDay, daysInNextMonth);
+      nextStatementDate = new Date(nextY, nextM, nextDayNum);
+    } else {
+      // Past statement day and no statement imported -> Overdue
+      isOverdue = true;
+      nextStatementDate = new Date(y, m, targetDay);
+    }
+  } else {
+    // Current month's statement date is coming up or today
+    nextStatementDate = new Date(y, m, targetDay);
+  }
+
+  // Days difference from today to next statement date
+  const todayMidnight = new Date(y, m, d);
+  const diffTime = nextStatementDate.getTime() - todayMidnight.getTime();
+  const daysDiff = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  let label = "";
+
+  if (isOverdue) {
+    const daysOverdue = Math.abs(daysDiff);
+    label = `Overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"}`;
+  } else if (daysDiff === 0) {
+    label = `Due Today! (${format(nextStatementDate, "MMM dd")})`;
+  } else if (daysDiff === 1) {
+    label = `Due Tomorrow (${format(nextStatementDate, "MMM dd")})`;
+  } else {
+    label = `Next: ${format(nextStatementDate, "MMM dd")} (in ${daysDiff} days)`;
+  }
+
+  return {
+    nextStatementDate,
+    formattedNextDate: format(nextStatementDate, "MMM dd"),
+    daysDiff,
+    isOverdue,
+    isCurrentCycleCovered,
+    label,
+  };
+};
+
 interface CoverageSegment {
   record: StatementRecord;
   startDay: number;
@@ -211,7 +284,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   // Compute timeline data for each card in the selected month
   const cardsCoverageData = allCardKeys.map((cardKey) => {
     const color = CARD_COLORS[cardKey] || "#888888";
-    const billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on ${15}th` };
+    
+    // Dynamic billing info (Wio automatically gets current month's end day, e.g. 31 for July)
+    let billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on 15th` };
+    if (cardKey === "Wio") {
+      billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
+    }
 
     const cardRecords = validRecords.filter((r) => r.card === cardKey);
     const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
@@ -264,15 +342,31 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const latestMonthRecord = [...segments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
     const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
 
-    let status: "full" | "partial" | "missing" = "missing";
-    if (totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
+    // Compute smart next statement date and days remaining info
+    const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
+
+    // Smart Status Evaluation:
+    // Missing is ONLY declared if statement end date has passed AND no statement for that cycle has been uploaded.
+    const statementDueDay = billingInfo.day > daysInSelectedMonth ? daysInSelectedMonth : billingInfo.day;
+    const targetDateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`;
+
+    const isPastSelectedMonth = selectedDate < new Date(today.getFullYear(), today.getMonth(), 1);
+    const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
+    const isTargetStatementCovered = maxCoveredDateStr ? maxCoveredDateStr >= targetDateStr : false;
+
+    let status: "full" | "partial" | "awaiting" | "missing" = "missing";
+
+    if (isTargetStatementCovered || totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
       status = "full";
     } else if (totalDaysCoveredInMonth > 0) {
       status = "partial";
+    } else if (!hasBillingDateArrived) {
+      // Billing cycle is still active / in progress -> Awaiting Statement (NOT MISSING!)
+      status = "awaiting";
+    } else {
+      // Billing date has passed and statement is not uploaded -> Missing
+      status = "missing";
     }
-
-    const statementDueDay = billingInfo.day === 31 ? daysInSelectedMonth : billingInfo.day;
-    const isPastDue = isCurrentMonth && today.getDate() > statementDueDay && (!maxCoveredDateStr || maxCoveredDateStr < `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`);
 
     return {
       cardKey,
@@ -284,34 +378,35 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       latestOverallRecord,
       latestMonthRecord,
       maxCoveredDateStr,
+      nextStatementInfo,
       status,
-      isPastDue,
+      hasBillingDateArrived,
     };
   });
 
   const cardsCoveredCount = cardsCoverageData.filter((c) => c.status === "full").length;
-  const cardsPartialCount = cardsCoverageData.filter((c) => c.status === "partial").length;
+  const cardsAwaitingCount = cardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
   const cardsMissingCount = cardsCoverageData.filter((c) => c.status === "missing").length;
 
-  // Timeline Ticks (e.g. 1, 5, 10, 15, 20, 25, 30/31)
+  // Smart Timeline Ticks based on exact month length
   const generateTicks = () => {
-    const ticks = [1, 5, 10, 15, 20, 25];
-    if (daysInSelectedMonth >= 28) ticks.push(28);
-    if (daysInSelectedMonth >= 30) ticks.push(30);
-    if (daysInSelectedMonth === 31) ticks.push(31);
+    const baseTicks = [5, 10, 15, 20, 25];
+    const validBase = baseTicks.filter((t) => daysInSelectedMonth - t >= 3);
+    const ticks = [1, ...validBase, daysInSelectedMonth];
     return Array.from(new Set(ticks)).sort((a, b) => a - b);
   };
   const axisTicks = generateTicks();
 
-  // Timeline Day Headers - Division-by-zero protected
+  // Tick positioning: Day 1 at 0%, Day N at 100%, intermediate day d at (d / N) * 100%
   const getTickPosition = (day: number) => {
-    if (daysInSelectedMonth <= 1) return 0;
-    const pct = ((day - 1) / (daysInSelectedMonth - 1)) * 100;
+    if (day === 1) return 0;
+    if (day === daysInSelectedMonth) return 100;
+    const pct = (day / daysInSelectedMonth) * 100;
     return Math.max(0, Math.min(100, pct));
   };
 
   const todayPosition = todayDay && daysInSelectedMonth > 1
-    ? Math.max(0, Math.min(100, ((todayDay - 1) / (daysInSelectedMonth - 1)) * 100))
+    ? Math.max(0, Math.min(100, (todayDay / daysInSelectedMonth) * 100))
     : null;
 
   return (
@@ -324,7 +419,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
             Statement Coverage View
           </h1>
           <p className="text-muted-foreground text-xs mt-0.5">
-            Timeline overview of ingested statement periods per credit card.
+            Timeline overview of ingested statement periods and upcoming statement due dates.
           </p>
         </div>
 
@@ -358,6 +453,9 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               <span className="font-extrabold text-lg tracking-tight text-foreground">
                 {selectedMonthName} {selectedYear}
               </span>
+              <span className="text-xs text-muted-foreground font-semibold bg-muted/60 px-2 py-0.5 rounded-full border border-border/40">
+                {daysInSelectedMonth} Days
+              </span>
             </div>
 
             <Button
@@ -385,15 +483,15 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         {/* Month Summary Stats Pill */}
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center text-xs">
           <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Full Coverage</p>
+            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Fully Covered</p>
             <p className="text-base font-extrabold text-emerald-700 dark:text-emerald-300">{cardsCoveredCount} Cards</p>
           </div>
-          <div className="bg-yellow-500/10 border border-yellow-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-yellow-600 dark:text-yellow-400 tracking-wider">Partial Coverage</p>
-            <p className="text-base font-extrabold text-yellow-700 dark:text-yellow-300">{cardsPartialCount} Cards</p>
+          <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-2xl">
+            <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">Active / Awaiting</p>
+            <p className="text-base font-extrabold text-blue-700 dark:text-blue-300">{cardsAwaitingCount} Cards</p>
           </div>
           <div className="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">Missing Statement</p>
+            <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">Statement Overdue</p>
             <p className="text-base font-extrabold text-rose-700 dark:text-rose-300">{cardsMissingCount} Cards</p>
           </div>
         </div>
@@ -406,20 +504,27 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground px-1">
             <span>Timeline (Day 1 to Day {daysInSelectedMonth})</span>
-            <span>{selectedMonthName} {selectedYear}</span>
+            <span>{selectedMonthName} {selectedYear} ({daysInSelectedMonth} Days)</span>
           </div>
 
           {/* Top Axis Bar */}
           <div className="relative h-9 w-full bg-muted/40 rounded-2xl border border-border/40 px-3 flex items-center">
             {axisTicks.map((day) => {
               const posPercent = getTickPosition(day);
+              const isEndTick = day === daysInSelectedMonth;
+              const isStartTick = day === 1;
+
               return (
                 <div
                   key={day}
-                  className="absolute transform -translate-x-1/2 flex flex-col items-center"
+                  className={`absolute flex flex-col items-center ${
+                    isStartTick ? "translate-x-0" : isEndTick ? "-translate-x-full" : "-translate-x-1/2"
+                  }`}
                   style={{ left: `${posPercent}%` }}
                 >
-                  <span className="text-[11px] font-bold text-foreground bg-background/80 px-1.5 py-0.5 rounded-md shadow-xs border border-border/30">
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs border ${
+                    isEndTick ? "bg-primary/15 text-primary border-primary/30 font-extrabold" : "bg-background/80 text-foreground border-border/30"
+                  }`}>
                     Day {day}
                   </span>
                 </div>
@@ -466,154 +571,179 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
           {/* Card Rows List */}
           <div className="space-y-5 relative z-10">
-            {cardsCoverageData.map((card) => (
-              <div key={card.cardKey} className="space-y-2 group">
-                {/* Row Card Header */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-md shrink-0"
-                      style={{ backgroundColor: card.color }}
-                    />
-                    <span className="font-extrabold text-sm text-foreground">{card.cardKey}</span>
-                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                      ({card.billingInfo.label})
-                    </span>
-                  </div>
+            {cardsCoverageData.map((card) => {
+              const { nextStatementInfo } = card;
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      {card.segments.length > 0
-                        ? `${card.totalDaysCoveredInMonth} / ${daysInSelectedMonth} days (${card.coveragePercentage}%)`
-                        : "No data"}
-                    </span>
-
-                    {card.status === "full" && (
-                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 rounded-full px-2 py-0 text-[10px]">
-                        Fully Covered
-                      </Badge>
-                    )}
-                    {card.status === "partial" && (
-                      <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30 rounded-full px-2 py-0 text-[10px]">
-                        Up to Day {Math.max(...card.segments.map((s) => s.endDay))}
-                      </Badge>
-                    )}
-                    {card.status === "missing" && (
-                      <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 rounded-full px-2 py-0 text-[10px]">
-                        {card.isPastDue ? "Statement Due!" : "Missing"}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Horizontal Timeline Bar Container */}
-                <div className="relative h-10 w-full bg-muted/30 rounded-2xl border border-border/40 overflow-hidden flex items-center shadow-inner">
-                  {/* Uncovered background pattern */}
-                  <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#374151_1px,transparent_1px)] [background-size:8px_8px] opacity-40" />
-
-                  {/* Render Coverage Bar Segments */}
-                  {card.segments.length === 0 ? (
-                    <div className="w-full text-center text-[11px] text-muted-foreground/60 font-medium italic z-10">
-                      No statement uploaded covering {selectedMonthName}
+              return (
+                <div key={card.cardKey} className="space-y-2 group">
+                  {/* Row Card Header with Smart Next Statement Info */}
+                  <div className="flex items-center justify-between text-xs flex-wrap gap-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-md shrink-0"
+                        style={{ backgroundColor: card.color }}
+                      />
+                      <span className="font-extrabold text-sm text-foreground">{card.cardKey}</span>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        ({card.billingInfo.label})
+                      </span>
                     </div>
-                  ) : (
-                    card.segments.map((seg, idx) => (
-                      <motion.div
-                        key={`${seg.record.filename}_${idx}`}
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 0.4, delay: idx * 0.1 }}
-                        className="absolute h-full rounded-xl shadow-md border border-white/30 flex items-center px-3 cursor-pointer group/bar overflow-hidden"
-                        style={{
-                          left: `${seg.leftPercent}%`,
-                          width: `${seg.widthPercent}%`,
-                          backgroundColor: card.color,
-                          transformOrigin: "left center",
-                        }}
-                        onClick={() => setActiveTooltipCard(activeTooltipCard === `${card.cardKey}_${idx}` ? null : `${card.cardKey}_${idx}`)}
-                      >
-                        {/* Shimmer overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity" />
 
-                        {/* Bar Label */}
-                        <span className="text-white text-[11px] font-bold truncate drop-shadow-sm z-10">
-                          {seg.widthPercent > 12 ? (
-                            `Day ${seg.startDay} – ${seg.endDay} (${seg.daysCoveredInMonth}d)`
-                          ) : (
-                            `Day ${seg.endDay}`
-                          )}
-                        </span>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
+                    {/* Smart Status & Next Statement Badge */}
+                    <div className="flex items-center gap-2">
+                      {card.status === "full" && (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          Fully Covered
+                        </Badge>
+                      )}
 
-                {/* Detailed Popup / Card Info when active or hovered */}
-                <AnimatePresence>
-                  {card.segments.map((seg, idx) => {
-                    const isTooltipActive = activeTooltipCard === `${card.cardKey}_${idx}`;
-                    if (!isTooltipActive) return null;
+                      {card.status === "awaiting" && (
+                        <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {nextStatementInfo.label}
+                        </Badge>
+                      )}
 
-                    return (
-                      <motion.div
-                        key={`tooltip_${idx}`}
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-card border border-border p-3 rounded-2xl text-xs space-y-2 shadow-lg"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-foreground flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-primary" />
-                            {seg.record.filename}
+                      {card.status === "partial" && (
+                        <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
+                          <Info className="h-3 w-3 shrink-0" />
+                          Partial (Up to Day {Math.max(...card.segments.map((s) => s.endDay))})
+                        </Badge>
+                      )}
+
+                      {card.status === "missing" && (
+                        <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          {nextStatementInfo.isOverdue ? nextStatementInfo.label : "Statement Missing"}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Horizontal Timeline Bar Container */}
+                  <div className="relative h-10 w-full bg-muted/30 rounded-2xl border border-border/40 overflow-hidden flex items-center shadow-inner">
+                    {/* Uncovered background pattern */}
+                    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#374151_1px,transparent_1px)] [background-size:8px_8px] opacity-40" />
+
+                    {/* Render Coverage Bar Segments */}
+                    {card.segments.length === 0 ? (
+                      <div className="w-full text-center text-[11px] text-muted-foreground/60 font-medium italic z-10 flex items-center justify-center gap-1.5">
+                        {card.status === "awaiting" ? (
+                          <>
+                            <Clock className="h-3.5 w-3.5 text-blue-500" />
+                            <span>Billing cycle in progress — {nextStatementInfo.label}</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+                            <span>No statement uploaded covering {selectedMonthName}</span>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      card.segments.map((seg, idx) => (
+                        <motion.div
+                          key={`${seg.record.filename}_${idx}`}
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ duration: 0.4, delay: idx * 0.1 }}
+                          className="absolute h-full rounded-xl shadow-md border border-white/30 flex items-center px-3 cursor-pointer group/bar overflow-hidden"
+                          style={{
+                            left: `${seg.leftPercent}%`,
+                            width: `${seg.widthPercent}%`,
+                            backgroundColor: card.color,
+                            transformOrigin: "left center",
+                          }}
+                          onClick={() => setActiveTooltipCard(activeTooltipCard === `${card.cardKey}_${idx}` ? null : `${card.cardKey}_${idx}`)}
+                        >
+                          {/* Shimmer overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity" />
+
+                          {/* Bar Label */}
+                          <span className="text-white text-[11px] font-bold truncate drop-shadow-sm z-10">
+                            {seg.widthPercent > 12 ? (
+                              `Day ${seg.startDay} – ${seg.endDay} (${seg.daysCoveredInMonth}d)`
+                            ) : (
+                              `Day ${seg.endDay}`
+                            )}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2 text-muted-foreground"
-                            onClick={() => setActiveTooltipCard(null)}
-                          >
-                            Close
-                          </Button>
-                        </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-muted/40 p-2 rounded-xl">
-                          <div>
-                            <p className="text-muted-foreground font-medium">Statement Range</p>
-                            <p className="font-bold text-foreground">
-                              {formatDateShort(seg.record.startDate)} – {formatDateShort(seg.record.endDate)}
-                            </p>
+                  {/* Detailed Popup / Card Info when active or hovered */}
+                  <AnimatePresence>
+                    {card.segments.map((seg, idx) => {
+                      const isTooltipActive = activeTooltipCard === `${card.cardKey}_${idx}`;
+                      if (!isTooltipActive) return null;
+
+                      return (
+                        <motion.div
+                          key={`tooltip_${idx}`}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-card border border-border p-3 rounded-2xl text-xs space-y-2 shadow-lg"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-foreground flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5 text-primary" />
+                              {seg.record.filename}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] px-2 text-muted-foreground"
+                              onClick={() => setActiveTooltipCard(null)}
+                            >
+                              Close
+                            </Button>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Covered in {selectedMonthName}</p>
-                            <p className="font-bold text-foreground">
-                              Day {seg.startDay} to Day {seg.endDay} ({seg.daysCoveredInMonth} days)
-                            </p>
+
+                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-muted/40 p-2 rounded-xl">
+                            <div>
+                              <p className="text-muted-foreground font-medium">Statement Range</p>
+                              <p className="font-bold text-foreground">
+                                {formatDateShort(seg.record.startDate)} – {formatDateShort(seg.record.endDate)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground font-medium">Covered in {selectedMonthName}</p>
+                              <p className="font-bold text-foreground">
+                                Day {seg.startDay} to Day {seg.endDay} ({seg.daysCoveredInMonth} days)
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            ))}
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Legend Footer */}
         <div className="pt-4 border-t border-border/40 flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-3">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-md bg-emerald-500" />
               <span>Full Month</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-md bg-blue-500" />
+              <span>Awaiting Cycle End</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-md bg-yellow-500" />
               <span>Partial Month</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-muted border border-border" />
-              <span>Uncovered Days</span>
+              <span className="w-3 h-3 rounded-md bg-rose-500" />
+              <span>Overdue / Missing</span>
             </div>
           </div>
 
