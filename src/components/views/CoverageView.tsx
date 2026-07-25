@@ -4,11 +4,14 @@ import { getStatementRecords, seedStatementRecords, StatementRecord } from "@/li
 import { getMonthName } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ShieldCheck, AlertTriangle, FileText, CheckCircle2, 
-  History, Calendar, Info
+import { Button } from "@/components/ui/button";
+import {
+  ShieldCheck, AlertTriangle, FileText, CheckCircle2,
+  History, Calendar as CalendarIcon, Info, ChevronLeft, ChevronRight,
+  Upload, Sparkles, Layers, ArrowUpRight
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, getDaysInMonth, parseISO, isSameMonth, isSameYear } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CARD_COLORS: Record<string, string> = {
   Wio: "#5700FF",    // Electric Violet
@@ -19,242 +22,559 @@ const CARD_COLORS: Record<string, string> = {
   Share: "#00A3A0",  // SHARE Teal
 };
 
+// Billing cycle statement generation days
+const CARD_BILLING_DAYS: Record<string, { day: number; label: string }> = {
+  ADCB: { day: 5, label: "Statement on 5th" },
+  HSBC: { day: 10, label: "Statement on 10th" },
+  SIB: { day: 14, label: "Statement on 14th" },
+  Share: { day: 15, label: "Statement on 15th" },
+  Noon: { day: 25, label: "Statement on 25th" },
+  Wio: { day: 31, label: "Monthly (End of Month)" },
+};
+
 const formatDateReadable = (dateStr: string) => {
   if (!dateStr) return "";
   try {
-    const d = new Date(dateStr);
+    const d = parseISO(dateStr);
     return format(d, "MMM dd, yyyy");
   } catch (e) {
     return dateStr;
   }
 };
 
-// Calculate expected latest statement date based on today's date and card cycle
-const getExpectedStatementDate = (card: string, today: Date): { dateStr: string; label: string } => {
-  const y = today.getFullYear();
-  const m = today.getMonth();
-  const d = today.getDate();
-  
-  if (card === "Wio") {
-    // Wio statement is monthly and ends on the last day of the previous calendar month.
-    // (Since the current calendar month is still open/active and hasn't closed yet)
-    const prevMonthLastDay = new Date(y, m, 0).getDate();
-    let prevM = m - 1;
-    let prevY = y;
-    if (prevM < 0) {
-      prevM = 11;
-      prevY = y - 1;
-    }
-    const padM = String(prevM + 1).padStart(2, "0");
-    const padD = String(prevMonthLastDay).padStart(2, "0");
-    return {
-      dateStr: `${prevY}-${padM}-${padD}`,
-      label: `${getMonthName(prevM)} ${prevMonthLastDay}, ${prevY}`
-    };
+const formatDateShort = (dateStr: string) => {
+  if (!dateStr) return "";
+  try {
+    const d = parseISO(dateStr);
+    return format(d, "MMM dd");
+  } catch (e) {
+    return dateStr;
   }
-
-  const statementDay = {
-    ADCB: 5,
-    HSBC: 10,
-    SIB: 14,
-    Share: 15,
-    Noon: 25
-  }[card] || 15;
-
-  let targetYear = y;
-  let targetMonth = m;
-
-  if (d < statementDay) {
-    // Current month's statement is not generated yet. Latest expected is previous month.
-    targetMonth = m - 1;
-    if (targetMonth < 0) {
-      targetMonth = 11;
-      targetYear = y - 1;
-    }
-  }
-
-  const padM = String(targetMonth + 1).padStart(2, "0");
-  const padD = String(statementDay).padStart(2, "0");
-  return {
-    dateStr: `${targetYear}-${padM}-${padD}`,
-    label: `${getMonthName(targetMonth)} ${statementDay}, ${targetYear}`
-  };
 };
 
-export const CoverageView: React.FC = () => {
+interface CoverageSegment {
+  record: StatementRecord;
+  startDay: number;
+  endDay: number;
+  leftPercent: number;
+  widthPercent: number;
+  daysCoveredInMonth: number;
+}
+
+interface CoverageViewProps {
+  onNavigateToImport?: () => void;
+}
+
+export const CoverageView: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
   const { expenses } = useExpenses();
   const [records, setRecords] = useState<StatementRecord[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTooltipCard, setActiveTooltipCard] = useState<string | null>(null);
 
   // Seed history on mount
   useEffect(() => {
     const seed = async () => {
       await seedStatementRecords();
-      setRecords(getStatementRecords());
+      const recs = getStatementRecords();
+      setRecords(recs);
+
+      // Auto-select latest month with statement records if available
+      if (recs.length > 0) {
+        const sorted = [...recs].sort((a, b) => b.endDate.localeCompare(a.endDate));
+        try {
+          const latestDate = parseISO(sorted[0].endDate);
+          setSelectedDate(new Date(latestDate.getFullYear(), latestDate.getMonth(), 1));
+        } catch (e) {
+          // fallback to current date
+        }
+      }
     };
     seed();
   }, [expenses]);
 
+  const selectedYear = selectedDate.getFullYear();
+  const selectedMonth = selectedDate.getMonth();
+  const daysInSelectedMonth = getDaysInMonth(selectedDate);
+  const selectedMonthName = getMonthName(selectedMonth);
+
   const today = new Date();
+  const isCurrentMonth = isSameMonth(selectedDate, today) && isSameYear(selectedDate, today);
+  const todayDay = isCurrentMonth ? today.getDate() : null;
 
-  // Compute status for all 6 cards
-  const cardsStatus = Object.keys(CARD_COLORS).map((cardKey) => {
-    const cardRecords = records.filter((r) => r.card === cardKey);
-    const sorted = [...cardRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
-    const latestRecord = sorted[0] || null;
+  // Month navigation handlers
+  const handlePrevMonth = () => {
+    setSelectedDate(new Date(selectedYear, selectedMonth - 1, 1));
+  };
 
-    const expected = getExpectedStatementDate(cardKey, today);
+  const handleNextMonth = () => {
+    setSelectedDate(new Date(selectedYear, selectedMonth + 1, 1));
+  };
+
+  const handleJumpToCurrentMonth = () => {
+    setSelectedDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  };
+
+  // String formatting for current month start/end
+  const monthStartStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
+  const monthEndStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInSelectedMonth).padStart(2, "0")}`;
+
+  // Unique card list (combining default CARD_COLORS and any extra cards in records)
+  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...records.map((r) => r.card)]));
+
+  // Compute timeline data for each card in the selected month
+  const cardsCoverageData = allCardKeys.map((cardKey) => {
+    const color = CARD_COLORS[cardKey] || "#888888";
+    const billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on ${15}th` };
     
-    let isWarning = false;
-    let warningMessage = "";
+    // Filter records for this card
+    const cardRecords = records.filter((r) => r.card === cardKey);
+    const sortedAll = [...cardRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
+    const latestOverallRecord = sortedAll[0] || null;
 
-    if (!latestRecord) {
-      isWarning = true;
-      warningMessage = `No statements imported. Expected coverage up to ${expected.label}.`;
-    } else if (latestRecord.endDate < expected.dateStr) {
-      isWarning = true;
-      warningMessage = `Statement due. Covered up to ${formatDateReadable(latestRecord.endDate)}, but expected up to ${expected.label}.`;
+    // Segments that overlap with the selected month
+    const segments: CoverageSegment[] = [];
+
+    cardRecords.forEach((rec) => {
+      // Check overlap with [monthStartStr, monthEndStr]
+      if (rec.startDate <= monthEndStr && rec.endDate >= monthStartStr) {
+        const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
+        const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
+
+        const startDay = parseInt(overlapStartStr.split("-")[2], 10);
+        const endDay = parseInt(overlapEndStr.split("-")[2], 10);
+
+        if (startDay <= endDay) {
+          const daysCoveredInMonth = endDay - startDay + 1;
+          const leftPercent = ((startDay - 1) / daysInSelectedMonth) * 100;
+          const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
+
+          segments.push({
+            record: rec,
+            startDay,
+            endDay,
+            leftPercent,
+            widthPercent,
+            daysCoveredInMonth,
+          });
+        }
+      }
+    });
+
+    // Total unique days covered in this month
+    const coveredDaysSet = new Set<number>();
+    segments.forEach((seg) => {
+      for (let d = seg.startDay; d <= seg.endDay; d++) {
+        coveredDaysSet.add(d);
+      }
+    });
+
+    const totalDaysCoveredInMonth = coveredDaysSet.size;
+    const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
+
+    // Latest statement end date in this month or overall
+    const latestMonthRecord = [...segments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
+    const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
+
+    // Status evaluation
+    let status: "full" | "partial" | "missing" = "missing";
+    if (totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
+      status = "full";
+    } else if (totalDaysCoveredInMonth > 0) {
+      status = "partial";
     }
 
+    // Expected target date for current/past month
+    const statementDueDay = billingInfo.day === 31 ? daysInSelectedMonth : billingInfo.day;
+    const isPastDue = isCurrentMonth && today.getDate() > statementDueDay && (!maxCoveredDateStr || maxCoveredDateStr < `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`);
+
     return {
-      key: cardKey,
-      color: CARD_COLORS[cardKey],
-      latestRecord,
-      expected,
-      isWarning,
-      warningMessage,
+      cardKey,
+      color,
+      billingInfo,
+      segments,
+      totalDaysCoveredInMonth,
+      coveragePercentage,
+      latestOverallRecord,
+      latestMonthRecord,
+      maxCoveredDateStr,
+      status,
+      isPastDue,
     };
   });
 
-  const upToDateCount = cardsStatus.filter((c) => !c.isWarning).length;
-  
-  // Timeline sorted by importedAt descending
-  const sortedRecords = [...records].sort((a, b) => b.importedAt - a.importedAt);
+  const cardsCoveredCount = cardsCoverageData.filter((c) => c.status === "full").length;
+  const cardsPartialCount = cardsCoverageData.filter((c) => c.status === "partial").length;
+  const cardsMissingCount = cardsCoverageData.filter((c) => c.status === "missing").length;
+
+  // Timeline Ticks (e.g. 1, 5, 10, 15, 20, 25, 30/31)
+  const generateTicks = () => {
+    const ticks = [1, 5, 10, 15, 20, 25];
+    if (daysInSelectedMonth >= 28) ticks.push(28);
+    if (daysInSelectedMonth >= 30) ticks.push(30);
+    if (daysInSelectedMonth === 31) ticks.push(31);
+    return Array.from(new Set(ticks)).sort((a, b) => a - b);
+  };
+  const axisTicks = generateTicks();
+
+  // Timeline Day Headers
+  const getTickPosition = (day: number) => {
+    return ((day - 1) / (daysInSelectedMonth - 1)) * 100;
+  };
+
+  const todayPosition = todayDay ? ((todayDay - 1) / (daysInSelectedMonth - 1)) * 100 : null;
 
   return (
-    <div className="pb-24 px-4 space-y-6">
+    <div className="pb-24 px-4 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mt-4 space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Statement Coverage</h1>
-        <p className="text-muted-foreground text-xs">
-          Track coverage periods and missing statement uploads.
-        </p>
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Layers className="h-6 w-6 text-primary" />
+            Statement Coverage View
+          </h1>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Timeline overview of ingested statement periods per credit card.
+          </p>
+        </div>
+
+        {onNavigateToImport && (
+          <Button
+            onClick={onNavigateToImport}
+            size="sm"
+            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-1.5 self-start sm:self-auto"
+          >
+            <Upload className="h-4 w-4" />
+            Import Statement
+          </Button>
+        )}
       </div>
 
-      {/* Summary Scoreboard */}
-      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-            <ShieldCheck className="h-5 w-5" />
+      {/* Month Navigator Bar */}
+      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handlePrevMonth}
+              className="h-9 w-9 rounded-2xl border-white/20 dark:border-white/10 bg-background/50 hover:bg-background/80"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <span className="font-extrabold text-lg tracking-tight text-foreground">
+                {selectedMonthName} {selectedYear}
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleNextMonth}
+              className="h-9 w-9 rounded-2xl border-white/20 dark:border-white/10 bg-background/50 hover:bg-background/80"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Account Sync Status</p>
-            <p className="font-bold text-sm text-foreground">
-              {upToDateCount} of 6 accounts up to date
-            </p>
+
+          {!isCurrentMonth && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleJumpToCurrentMonth}
+              className="text-xs text-primary hover:text-primary/80 font-bold rounded-full bg-primary/10 hover:bg-primary/20 px-3"
+            >
+              Jump to Today
+            </Button>
+          )}
+        </div>
+
+        {/* Month Summary Stats Pill */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center text-xs">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl">
+            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Full Coverage</p>
+            <p className="text-base font-extrabold text-emerald-700 dark:text-emerald-300">{cardsCoveredCount} Cards</p>
+          </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/20 p-2.5 rounded-2xl">
+            <p className="text-[10px] uppercase font-bold text-yellow-600 dark:text-yellow-400 tracking-wider">Partial Coverage</p>
+            <p className="text-base font-extrabold text-yellow-700 dark:text-yellow-300">{cardsPartialCount} Cards</p>
+          </div>
+          <div className="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-2xl">
+            <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">Missing Statement</p>
+            <p className="text-base font-extrabold text-rose-700 dark:text-rose-300">{cardsMissingCount} Cards</p>
           </div>
         </div>
-        <Badge variant={upToDateCount === 6 ? "default" : "secondary"} className="rounded-full">
-          {upToDateCount === 6 ? "Ready" : `${6 - upToDateCount} Due`}
-        </Badge>
       </Card>
 
-      {/* Cards List */}
-      <div className="space-y-4">
-        {cardsStatus.map((card) => (
-          <Card 
-            key={card.key}
-            className="p-5 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md space-y-3 hover:scale-[1.01] transition-transform duration-200"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span 
-                  className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
-                  style={{ backgroundColor: card.color }}
-                />
-                <span className="font-bold text-base text-foreground">{card.key}</span>
-              </div>
-              
-              <div>
-                {card.isWarning ? (
-                  <Badge className="bg-yellow-500/10 hover:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 rounded-full flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Statement Due
-                  </Badge>
-                ) : (
-                  <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Up to Date
-                  </Badge>
-                )}
-              </div>
-            </div>
+      {/* Main Horizontal Coverage Timeline Chart */}
+      <Card className="p-4 sm:p-6 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md shadow-xl space-y-6 overflow-hidden">
+        
+        {/* Chart Header & Day Axis Line */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground px-1">
+            <span>Timeline (Day 1 to Day {daysInSelectedMonth})</span>
+            <span>{selectedMonthName} {selectedYear}</span>
+          </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="space-y-0.5">
-                <p className="text-muted-foreground font-medium">Covered Period</p>
-                <p className="font-bold text-foreground">
-                  {card.latestRecord 
-                    ? `${formatDateReadable(card.latestRecord.startDate)} – ${formatDateReadable(card.latestRecord.endDate)}`
-                    : "No data"}
-                </p>
-              </div>
+          {/* Top Axis Bar */}
+          <div className="relative h-9 w-full bg-muted/40 rounded-2xl border border-border/40 px-3 flex items-center">
+            {axisTicks.map((day) => {
+              const posPercent = getTickPosition(day);
+              return (
+                <div
+                  key={day}
+                  className="absolute transform -translate-x-1/2 flex flex-col items-center"
+                  style={{ left: `${posPercent}%` }}
+                >
+                  <span className="text-[11px] font-bold text-foreground bg-background/80 px-1.5 py-0.5 rounded-md shadow-xs border border-border/30">
+                    Day {day}
+                  </span>
+                </div>
+              );
+            })}
 
-              <div className="space-y-0.5 text-right">
-                <p className="text-muted-foreground font-medium">Source Statement</p>
-                <p className="font-semibold text-foreground truncate max-w-[150px] ml-auto">
-                  {card.latestRecord ? card.latestRecord.filename : "Pending Import"}
-                </p>
-              </div>
-            </div>
-
-            {card.isWarning && (
-              <div className="flex gap-2 items-start bg-yellow-500/[0.04] p-3 rounded-2xl border border-yellow-500/10 text-xs text-yellow-600 dark:text-yellow-500/90 font-medium">
-                <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{card.warningMessage}</span>
+            {/* Today Marker on Axis */}
+            {isCurrentMonth && todayDay && todayPosition !== null && (
+              <div
+                className="absolute z-20 top-0 bottom-0 transform -translate-x-1/2 flex flex-col items-center"
+                style={{ left: `${todayPosition}%` }}
+              >
+                <div className="bg-primary text-primary-foreground font-black text-[9px] px-1.5 py-0.5 rounded-b-md uppercase tracking-wider shadow-md animate-pulse">
+                  TODAY (Day {todayDay})
+                </div>
               </div>
             )}
-          </Card>
-        ))}
-      </div>
+          </div>
+        </div>
 
-      {/* History Log */}
+        {/* Card Coverage Rows */}
+        <div className="space-y-4 relative">
+          {/* Vertical Grid Lines across rows */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            {axisTicks.map((day) => {
+              const posPercent = getTickPosition(day);
+              return (
+                <div
+                  key={`grid_${day}`}
+                  className="absolute top-0 bottom-0 border-l border-dashed border-border/30"
+                  style={{ left: `${posPercent}%` }}
+                />
+              );
+            })}
+
+            {/* Vertical Today Line across all rows */}
+            {isCurrentMonth && todayPosition !== null && (
+              <div
+                className="absolute top-0 bottom-0 border-l-2 border-primary/80 shadow-[0_0_8px_rgba(87,0,255,0.4)] z-10"
+                style={{ left: `${todayPosition}%` }}
+              />
+            )}
+          </div>
+
+          {/* Card Rows List */}
+          <div className="space-y-5 relative z-10">
+            {cardsCoverageData.map((card) => (
+              <div key={card.cardKey} className="space-y-2 group">
+                {/* Row Card Header */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-md shrink-0"
+                      style={{ backgroundColor: card.color }}
+                    />
+                    <span className="font-extrabold text-sm text-foreground">{card.cardKey}</span>
+                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                      ({card.billingInfo.label})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      {card.segments.length > 0
+                        ? `${card.totalDaysCoveredInMonth} / ${daysInSelectedMonth} days (${card.coveragePercentage}%)`
+                        : "No data"}
+                    </span>
+
+                    {card.status === "full" && (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 rounded-full px-2 py-0 text-[10px]">
+                        Fully Covered
+                      </Badge>
+                    )}
+                    {card.status === "partial" && (
+                      <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30 rounded-full px-2 py-0 text-[10px]">
+                        Up to Day {Math.max(...card.segments.map((s) => s.endDay))}
+                      </Badge>
+                    )}
+                    {card.status === "missing" && (
+                      <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 rounded-full px-2 py-0 text-[10px]">
+                        {card.isPastDue ? "Statement Due!" : "Missing"}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Horizontal Timeline Bar Container */}
+                <div className="relative h-10 w-full bg-muted/30 rounded-2xl border border-border/40 overflow-hidden flex items-center shadow-inner">
+                  {/* Uncovered background pattern */}
+                  <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#374151_1px,transparent_1px)] [background-size:8px_8px] opacity-40" />
+
+                  {/* Render Coverage Bar Segments */}
+                  {card.segments.length === 0 ? (
+                    <div className="w-full text-center text-[11px] text-muted-foreground/60 font-medium italic z-10">
+                      No statement uploaded covering {selectedMonthName}
+                    </div>
+                  ) : (
+                    card.segments.map((seg, idx) => (
+                      <motion.div
+                        key={`${seg.record.filename}_${idx}`}
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 0.4, delay: idx * 0.1 }}
+                        className="absolute h-full rounded-xl shadow-md border border-white/30 flex items-center px-3 cursor-pointer group/bar overflow-hidden"
+                        style={{
+                          left: `${seg.leftPercent}%`,
+                          width: `${seg.widthPercent}%`,
+                          backgroundColor: card.color,
+                          transformOrigin: "left center",
+                        }}
+                        onClick={() => setActiveTooltipCard(activeTooltipCard === `${card.cardKey}_${idx}` ? null : `${card.cardKey}_${idx}`)}
+                      >
+                        {/* Shimmer overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity" />
+
+                        {/* Bar Label */}
+                        <span className="text-white text-[11px] font-bold truncate drop-shadow-sm z-10">
+                          {seg.widthPercent > 12 ? (
+                            `Day ${seg.startDay} – ${seg.endDay} (${seg.daysCoveredInMonth}d)`
+                          ) : (
+                            `Day ${seg.endDay}`
+                          )}
+                        </span>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+
+                {/* Detailed Popup / Card Info when active or hovered */}
+                <AnimatePresence>
+                  {card.segments.map((seg, idx) => {
+                    const isTooltipActive = activeTooltipCard === `${card.cardKey}_${idx}`;
+                    if (!isTooltipActive) return null;
+
+                    return (
+                      <motion.div
+                        key={`tooltip_${idx}`}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-card border border-border p-3 rounded-2xl text-xs space-y-2 shadow-lg"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-primary" />
+                            {seg.record.filename}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 text-muted-foreground"
+                            onClick={() => setActiveTooltipCard(null)}
+                          >
+                            Close
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-muted/40 p-2 rounded-xl">
+                          <div>
+                            <p className="text-muted-foreground font-medium">Statement Range</p>
+                            <p className="font-bold text-foreground">
+                              {formatDateShort(seg.record.startDate)} – {formatDateShort(seg.record.endDate)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-medium">Covered in {selectedMonthName}</p>
+                            <p className="font-bold text-foreground">
+                              Day {seg.startDay} to Day {seg.endDay} ({seg.daysCoveredInMonth} days)
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Legend Footer */}
+        <div className="pt-4 border-t border-border/40 flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-md bg-emerald-500" />
+              <span>Full Month</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-md bg-yellow-500" />
+              <span>Partial Month</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-md bg-muted border border-border" />
+              <span>Uncovered Days</span>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-muted-foreground/80 italic">
+            * Tap any colored segment to view source statement details
+          </div>
+        </div>
+      </Card>
+
+      {/* Historical Upload Log */}
       <div className="space-y-3">
         <h2 className="text-sm font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 px-1">
           <History className="h-4 w-4" />
-          Import History Log
+          All Ingested Statement Files ({records.length})
         </h2>
 
-        {sortedRecords.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">
+        {records.length === 0 ? (
+          <Card className="p-6 text-center text-xs text-muted-foreground border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20">
             No statement files recorded in the import log yet.
-          </p>
+          </Card>
         ) : (
           <div className="space-y-2.5">
-            {sortedRecords.map((rec, idx) => (
-              <div 
-                key={`${rec.card}_${rec.endDate}_${idx}`}
-                className="flex items-center justify-between bg-card/40 border border-border/40 p-3 rounded-2xl text-xs"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0">
-                    <FileText className="h-4 w-4" />
+            {[...records]
+              .sort((a, b) => b.importedAt - a.importedAt)
+              .map((rec, idx) => (
+                <div
+                  key={`${rec.card}_${rec.endDate}_${idx}`}
+                  className="flex items-center justify-between bg-white/40 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/10 p-3 rounded-2xl text-xs hover:border-primary/40 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
+                      style={{ backgroundColor: CARD_COLORS[rec.card] || "#666" }}
+                    >
+                      {rec.card.substring(0, 3)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground truncate max-w-[200px]">{rec.filename}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {rec.card} • {formatDateReadable(rec.startDate)} to {formatDateReadable(rec.endDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-foreground truncate max-w-[180px]">{rec.filename}</p>
+
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold text-foreground">{formatDateShort(rec.endDate)}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {rec.card} • {formatDateReadable(rec.startDate)} to {formatDateReadable(rec.endDate)}
+                      {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
                     </p>
                   </div>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <p className="font-medium text-foreground">Imported</p>
-                  <p className="text-[9px] text-muted-foreground">
-                    {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>

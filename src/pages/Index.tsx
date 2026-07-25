@@ -136,7 +136,7 @@ const Index: React.FC = () => {
       case "monthly":
         return <MonthlyView onEdit={handleEdit} />;
       case "coverage":
-        return <CoverageView />;
+        return <CoverageView onNavigateToImport={() => setActiveTab("import")} />;
       case "compare":
         return <CompareView />;
       case "trends":
