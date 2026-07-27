@@ -15,11 +15,15 @@
             "maxDuration": 60,
             "includeFiles": "scripts/**"
         },
-        "api/auth_me.py": {
+        "api/auth/me.py": {
             "maxDuration": 15
         }
     },
     "rewrites": [
+        {
+            "source": "/api/auth/me",
+            "destination": "/api/auth/me.py"
+        },
         {
             "source": "/api/(.*)",
             "destination": "/api/$1"

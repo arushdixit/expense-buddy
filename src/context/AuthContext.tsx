@@ -25,53 +25,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [householdId, setHouseholdId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchHouseholdId = async (userId: string, email?: string) => {
+    const fetchHouseholdId = async (userId: string, email?: string): Promise<string | null> => {
         try {
-            // First check by ID or email in profiles
-            let query = supabase.from('profiles').select('household_id');
+            let matchedProfile: { id: string; household_id: string | null } | null = null;
+
+            // 1. Primary lookup: Match existing profile in Supabase by email
             if (email) {
-                query = query.or(`id.eq.${userId},email.eq.${email}`);
-            } else {
-                query = query.eq('id', userId);
-            }
-
-            const { data, error } = await query.maybeSingle();
-
-            if (error) {
-                console.error('Error fetching profile:', error.message);
-            }
-
-            if (!data) {
-                // Profile missing - create or assign household
-                let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
-                let hId = household?.id;
-
-                if (!hId) {
-                    const { data: newH, error: hError } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
-                    if (hError) console.error('Failed to create household:', hError.message);
-                    hId = newH?.id;
-                }
-
-                const { data: newProfile, error: createError } = await supabase
+                const { data: pByEmail } = await supabase
                     .from('profiles')
-                    .insert({
-                        id: userId,
-                        email: email,
-                        household_id: hId || null
-                    })
-                    .select()
+                    .select('id, household_id')
+                    .eq('email', email)
                     .maybeSingle();
-
-                if (createError) {
-                    console.error('Failed to create profile:', createError.message);
-                } else if (newProfile) {
-                    setHouseholdId(newProfile.household_id);
+                if (pByEmail) {
+                    matchedProfile = pByEmail;
                 }
-            } else {
-                setHouseholdId(data.household_id);
             }
+
+            // 2. Secondary lookup: Match profile by ID
+            if (!matchedProfile && userId) {
+                const { data: pById } = await supabase
+                    .from('profiles')
+                    .select('id, household_id')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (pById) {
+                    matchedProfile = pById;
+                }
+            }
+
+            if (matchedProfile) {
+                const hId = matchedProfile.household_id;
+                setHouseholdId(hId);
+
+                // Ensure user context uses the exact profile.id from database
+                if (matchedProfile.id) {
+                    setCfUser({
+                        id: matchedProfile.id,
+                        email: email || '',
+                    });
+                }
+                return hId;
+            }
+
+            // 3. If no profile exists, link to primary household or create one
+            let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
+            let hId = household?.id;
+
+            if (!hId) {
+                const { data: newH, error: hError } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
+                if (hError) console.error('Failed to create household:', hError.message);
+                hId = newH?.id;
+            }
+
+            const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: userId,
+                    email: email,
+                    household_id: hId || null
+                })
+                .select()
+                .maybeSingle();
+
+            if (createError) {
+                console.error('Failed to create profile:', createError.message);
+            } else if (newProfile) {
+                setHouseholdId(newProfile.household_id);
+                return newProfile.household_id;
+            }
+
+            setHouseholdId(hId || null);
+            return hId || null;
         } catch (err) {
             console.error('Error in fetchHouseholdId:', err);
+            return null;
         }
     };
 
@@ -82,13 +109,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const cfUser: CfUser | null = await fetchCfIdentity();
 
                 if (cfUser) {
+                    // Look up profile & household in database
+                    const hId = await fetchHouseholdId(cfUser.id, cfUser.email);
+                    const activeUser = setCfUser(null) || cfUser;
+
                     const syntheticUser: User = {
-                        id: cfUser.id,
+                        id: activeUser.id,
                         app_metadata: { provider: 'cloudflare_google_oauth' },
-                        user_metadata: { name: cfUser.name, email: cfUser.email },
+                        user_metadata: { name: activeUser.name, email: activeUser.email },
                         aud: 'authenticated',
                         created_at: new Date().toISOString(),
-                        email: cfUser.email,
+                        email: activeUser.email,
                         phone: '',
                         role: 'authenticated',
                         updated_at: new Date().toISOString(),
@@ -105,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     setUser(syntheticUser);
                     setSession(syntheticSession);
-                    await fetchHouseholdId(cfUser.id, cfUser.email);
+                    setHouseholdId(hId);
                 } else {
                     setUser(null);
                     setSession(null);
@@ -145,4 +176,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
     return useContext(AuthContext);
 };
-

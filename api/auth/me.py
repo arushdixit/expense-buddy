@@ -1,5 +1,5 @@
 """
-api/auth_me.py
+api/auth/me.py
 Vercel Python serverless function for resolving Cloudflare Access Google OAuth identity.
 Checks Cloudflare Access HTTP headers:
 - Cf-Access-Authenticated-User-Email
@@ -31,7 +31,7 @@ class handler(BaseHTTPRequestHandler):
 
         # Fallback for local development or direct access without Cloudflare proxy
         if not cf_email:
-            dev_email = os.environ.get("VITE_DEV_USER_EMAIL", "dev@arushpamoli.com")
+            dev_email = os.environ.get("VITE_DEV_USER_EMAIL", "dixit.arush@gmail.com")
             cf_email = dev_email
 
         # Derive a stable deterministic UUID from email address namespace
