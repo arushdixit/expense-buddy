@@ -388,12 +388,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const cardsAwaitingCount = cardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
   const cardsMissingCount = cardsCoverageData.filter((c) => c.status === "missing").length;
 
-  // Smart Timeline Ticks based on exact month length
+  // Statement billing days: Day 5 (ADCB), Day 10 (HSBC), Day 14 (SIB), Day 15 (Share), Day 25 (Noon), End of Month (Wio)
   const generateTicks = () => {
-    const baseTicks = [5, 10, 15, 20, 25];
-    const validBase = baseTicks.filter((t) => daysInSelectedMonth - t >= 3);
-    const ticks = [1, ...validBase, daysInSelectedMonth];
-    return Array.from(new Set(ticks)).sort((a, b) => a - b);
+    const expectedDays = [1, 5, 10, 14, 15, 25, daysInSelectedMonth];
+    return Array.from(new Set(expectedDays))
+      .filter((d) => d <= daysInSelectedMonth)
+      .sort((a, b) => a - b);
   };
   const axisTicks = generateTicks();
 
@@ -414,13 +414,9 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       {/* Header */}
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Layers className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Statement Coverage View
           </h1>
-          <p className="text-muted-foreground text-xs mt-0.5">
-            Timeline overview of ingested statement periods and upcoming statement due dates.
-          </p>
         </div>
 
         {onNavigateToImport && (
@@ -453,9 +449,6 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               <span className="font-extrabold text-lg tracking-tight text-foreground">
                 {selectedMonthName} {selectedYear}
               </span>
-              <span className="text-xs text-muted-foreground font-semibold bg-muted/60 px-2 py-0.5 rounded-full border border-border/40">
-                {daysInSelectedMonth} Days
-              </span>
             </div>
 
             <Button
@@ -467,31 +460,20 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
-
-          {!isCurrentMonth && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleJumpToCurrentMonth}
-              className="text-xs text-primary hover:text-primary/80 font-bold rounded-full bg-primary/10 hover:bg-primary/20 px-3"
-            >
-              Jump to Today
-            </Button>
-          )}
         </div>
 
-        {/* Month Summary Stats Pill */}
+        {/* Month Summary Stats Chips */}
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center text-xs">
           <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Fully Covered</p>
+            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Covered</p>
             <p className="text-base font-extrabold text-emerald-700 dark:text-emerald-300">{cardsCoveredCount} Cards</p>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">Active / Awaiting</p>
+            <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">Awaiting</p>
             <p className="text-base font-extrabold text-blue-700 dark:text-blue-300">{cardsAwaitingCount} Cards</p>
           </div>
           <div className="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-2xl">
-            <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">Statement Overdue</p>
+            <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">Overdue</p>
             <p className="text-base font-extrabold text-rose-700 dark:text-rose-300">{cardsMissingCount} Cards</p>
           </div>
         </div>
@@ -500,61 +482,53 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       {/* Main Horizontal Coverage Timeline Chart */}
       <Card className="p-4 sm:p-6 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md shadow-xl space-y-6 overflow-hidden">
         
-        {/* Chart Header & Day Axis Line */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground px-1">
-            <span>Timeline (Day 1 to Day {daysInSelectedMonth})</span>
-            <span>{selectedMonthName} {selectedYear} ({daysInSelectedMonth} Days)</span>
-          </div>
+        {/* Day Axis Line */}
+        <div className="relative h-9 w-full bg-muted/40 rounded-2xl border border-border/40 px-3 flex items-center">
+          {axisTicks.map((day) => {
+            const posPercent = getTickPosition(day);
+            const isEndTick = day === daysInSelectedMonth;
+            const isStartTick = day === 1;
 
-          {/* Top Axis Bar */}
-          <div className="relative h-9 w-full bg-muted/40 rounded-2xl border border-border/40 px-3 flex items-center">
-            {axisTicks.map((day) => {
-              const posPercent = getTickPosition(day);
-              const isEndTick = day === daysInSelectedMonth;
-              const isStartTick = day === 1;
-
-              return (
-                <div
-                  key={day}
-                  className={`absolute flex flex-col items-center ${
-                    isStartTick ? "translate-x-0" : isEndTick ? "-translate-x-full" : "-translate-x-1/2"
-                  }`}
-                  style={{ left: `${posPercent}%` }}
-                >
-                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs border ${
-                    isEndTick ? "bg-primary/15 text-primary border-primary/30 font-extrabold" : "bg-background/80 text-foreground border-border/30"
-                  }`}>
-                    Day {day}
-                  </span>
-                </div>
-              );
-            })}
-
-            {/* Today Marker on Axis */}
-            {isCurrentMonth && todayDay && todayPosition !== null && (
+            return (
               <div
-                className="absolute z-20 top-0 bottom-0 transform -translate-x-1/2 flex flex-col items-center"
-                style={{ left: `${todayPosition}%` }}
+                key={day}
+                className={`absolute flex flex-col items-center ${
+                  isStartTick ? "translate-x-0" : isEndTick ? "-translate-x-full" : "-translate-x-1/2"
+                }`}
+                style={{ left: `${posPercent}%` }}
               >
-                <div className="bg-primary text-primary-foreground font-black text-[9px] px-1.5 py-0.5 rounded-b-md uppercase tracking-wider shadow-md animate-pulse">
-                  TODAY (Day {todayDay})
-                </div>
+                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs border ${
+                  isEndTick ? "bg-primary/15 text-primary border-primary/30 font-extrabold" : "bg-background/80 text-foreground border-border/30"
+                }`}>
+                  Day {day}
+                </span>
               </div>
-            )}
-          </div>
+            );
+          })}
+
+          {/* Today Marker on Axis */}
+          {isCurrentMonth && todayDay && todayPosition !== null && (
+            <div
+              className="absolute z-20 top-0 bottom-0 transform -translate-x-1/2 flex flex-col items-center"
+              style={{ left: `${todayPosition}%` }}
+            >
+              <div className="bg-primary text-primary-foreground font-black text-[9px] px-1.5 py-0.5 rounded-b-md uppercase tracking-wider shadow-md animate-pulse">
+                TODAY (Day {todayDay})
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Card Coverage Rows */}
         <div className="space-y-4 relative">
-          {/* Vertical Grid Lines across rows */}
+          {/* Light Dashed Vertical Grid Lines down from expected statement days */}
           <div className="absolute inset-0 pointer-events-none z-0">
             {axisTicks.map((day) => {
               const posPercent = getTickPosition(day);
               return (
                 <div
                   key={`grid_${day}`}
-                  className="absolute top-0 bottom-0 border-l border-dashed border-border/30"
+                  className="absolute top-0 bottom-0 border-l border-dashed border-primary/20"
                   style={{ left: `${posPercent}%` }}
                 />
               );
