@@ -33,9 +33,9 @@ export const TrendsView: React.FC = () => {
     ? expenses.filter((exp) => exp.categoryId === selectedCategoryId)
     : expenses;
 
-  // Get last 6 months data
+  // Get last 12 months data
   let monthlyData = [];
-  for (let i = 5; i >= 0; i--) {
+  for (let i = 11; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthExpenses = getExpensesByMonth(
       filteredExpenses,
@@ -93,7 +93,7 @@ export const TrendsView: React.FC = () => {
       >
         <div>
           <h1 className="text-2xl font-bold">Spending Trends</h1>
-          <p className="text-muted-foreground">Last 6 months overview</p>
+          <p className="text-muted-foreground">Last 12 months overview</p>
         </div>
         <button
           onClick={handleExport}
