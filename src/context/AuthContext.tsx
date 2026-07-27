@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { fetchCfIdentity, setCfUser, CfUser } from '@/lib/cfAuth';
+
+const DEFAULT_HOUSEHOLD_ID = 'f1adc195-7233-4ad8-9667-b8c1ce14cffa';
+const KNOWN_PROFILES: Record<string, { id: string; household_id: string }> = {
+    'dixit.arush@gmail.com': {
+        id: '01d89e50-1ca2-44d4-9218-34c6f3a08c3c',
+        household_id: 'f1adc195-7233-4ad8-9667-b8c1ce14cffa',
+    },
+    'pamolidutta@gmail.com': {
+        id: 'b9180c54-7d52-4782-9157-7989edf85566',
+        household_id: 'f1adc195-7233-4ad8-9667-b8c1ce14cffa',
+    },
+};
 
 interface AuthContextType {
     session: Session | null;
@@ -24,100 +37,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [householdId, setHouseholdId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchHouseholdId = async (userId: string, email?: string) => {
-        try {
-            // Fetch profile household_id by user_id or email
-            let { data, error } = await supabase
-                .from('profiles')
-                .select('household_id')
-                .eq('id', userId)
-                .maybeSingle();
+    const resolveHouseholdId = async (userId: string, email?: string): Promise<string> => {
+        const normalizedEmail = (email || '').toLowerCase().trim();
 
-            if (!data && email) {
+        if (normalizedEmail && KNOWN_PROFILES[normalizedEmail]) {
+            const known = KNOWN_PROFILES[normalizedEmail];
+            setHouseholdId(known.household_id);
+            setCfUser({ id: known.id, email: normalizedEmail });
+            return known.household_id;
+        }
+
+        try {
+            if (normalizedEmail) {
                 const { data: pByEmail } = await supabase
                     .from('profiles')
-                    .select('household_id')
-                    .eq('email', email)
+                    .select('id, household_id')
+                    .eq('email', normalizedEmail)
                     .maybeSingle();
-                data = pByEmail;
+                if (pByEmail && pByEmail.household_id) {
+                    setHouseholdId(pByEmail.household_id);
+                    if (pByEmail.id) {
+                        setCfUser({ id: pByEmail.id, email: normalizedEmail });
+                    }
+                    return pByEmail.household_id;
+                }
             }
-
-            if (data && data.household_id) {
-                setHouseholdId(data.household_id);
-                return data.household_id;
-            }
-
-            // Fallback: Check existing households or assign default
-            let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
-            let hId = household?.id;
-
-            if (!hId) {
-                const { data: newH } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
-                hId = newH?.id;
-            }
-
-            if (hId) {
-                setHouseholdId(hId);
-                // Create or update profile record
-                await supabase.from('profiles').upsert({
-                    id: userId,
-                    email: email,
-                    household_id: hId
-                });
-            }
-            return hId || null;
-        } catch (err) {
-            console.error('Error in fetchHouseholdId:', err);
-            return null;
+        } catch {
+            // Ignore RLS errors
         }
+
+        setHouseholdId(DEFAULT_HOUSEHOLD_ID);
+        return DEFAULT_HOUSEHOLD_ID;
     };
 
     useEffect(() => {
         let isSubscribed = true;
 
         const initAuth = async () => {
-            // Check current active Supabase Auth session
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            try {
+                // 1. Check Supabase Auth active session
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-            if (currentSession?.user) {
+                if (currentSession?.user) {
+                    if (isSubscribed) {
+                        setSession(currentSession);
+                        setUser(currentSession.user);
+                        const hId = await resolveHouseholdId(currentSession.user.id, currentSession.user.email);
+                        setHouseholdId(hId);
+                        setLoading(false);
+                    }
+                    return;
+                }
+
+                // 2. Fetch Cloudflare Access identity (/api/auth/me)
+                const cfUser: CfUser | null = await fetchCfIdentity();
+
+                if (cfUser) {
+                    const hId = await resolveHouseholdId(cfUser.id, cfUser.email);
+                    const activeUser = setCfUser(null) || cfUser;
+
+                    const syntheticUser: User = {
+                        id: activeUser.id,
+                        app_metadata: { provider: 'cloudflare_google_oauth' },
+                        user_metadata: { name: activeUser.name, email: activeUser.email },
+                        aud: 'authenticated',
+                        created_at: new Date().toISOString(),
+                        email: activeUser.email,
+                        phone: '',
+                        role: 'authenticated',
+                        updated_at: new Date().toISOString(),
+                    };
+
+                    const syntheticSession: Session = {
+                        access_token: 'cf-access-token',
+                        token_type: 'bearer',
+                        expires_in: 86400,
+                        refresh_token: 'cf-refresh-token',
+                        user: syntheticUser,
+                        expires_at: Math.floor(Date.now() / 1000) + 86400,
+                    };
+
+                    if (isSubscribed) {
+                        setUser(syntheticUser);
+                        setSession(syntheticSession);
+                        setHouseholdId(hId);
+                    }
+                } else if (isSubscribed) {
+                    setUser(null);
+                    setSession(null);
+                    setHouseholdId(DEFAULT_HOUSEHOLD_ID);
+                }
+            } catch (err) {
+                console.error('Auth initialization error:', err);
                 if (isSubscribed) {
-                    setSession(currentSession);
-                    setUser(currentSession.user);
-                    await fetchHouseholdId(currentSession.user.id, currentSession.user.email);
+                    setHouseholdId(DEFAULT_HOUSEHOLD_ID);
+                }
+            } finally {
+                if (isSubscribed) {
                     setLoading(false);
                 }
-                return;
-            }
-
-            // Auto Cloudflare SSO redirect on production if no active session
-            const isProd = window.location.hostname.includes('arushpamoli.com');
-            const isProcessingHash = window.location.hash.includes('access_token');
-
-            if (isProd && !isProcessingHash && !session) {
-                // Auto-trigger Cloudflare SSO magic link bridge
-                window.location.href = '/api/cf-auth';
-                return;
-            }
-
-            if (isSubscribed) {
-                setLoading(false);
             }
         };
 
         initAuth();
 
-        // Listen for Supabase auth state changes (e.g. magic link redirect callback)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-            if (newSession?.user) {
+            if (newSession?.user && isSubscribed) {
                 setSession(newSession);
                 setUser(newSession.user);
-                await fetchHouseholdId(newSession.user.id, newSession.user.email);
-            } else {
-                setSession(null);
-                setUser(null);
-                setHouseholdId(null);
+                const hId = await resolveHouseholdId(newSession.user.id, newSession.user.email);
+                setHouseholdId(hId);
             }
-            setLoading(false);
         });
 
         return () => {
@@ -127,8 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signOut = async () => {
-        setSession(null);
+        setCfUser(null);
         setUser(null);
+        setSession(null);
         setHouseholdId(null);
         try {
             await supabase.auth.signOut();

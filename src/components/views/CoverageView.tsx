@@ -247,7 +247,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       }
     };
     seed();
-  }, [expenses]);
+  }, []);
 
   // Ensure selectedDate is valid
   const validDate = selectedDate instanceof Date && !isNaN(selectedDate.getTime()) ? selectedDate : new Date();
