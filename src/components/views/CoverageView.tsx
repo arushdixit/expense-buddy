@@ -263,7 +263,8 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const daysInSelectedMonth = Math.max(getDaysInMonth(selectedDate), 28);
   const selectedMonthName = getMonthName(selectedMonth);
 
-  const todayDay = isCurrentMonth ? now.getDate() : null;
+  const today = now;
+  const todayDay = isCurrentMonth ? today.getDate() : null;
 
   // String formatting for current month start/end
   const monthStartStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
