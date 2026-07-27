@@ -6,6 +6,21 @@
 
 import { supabase, DbExpense } from './supabase';
 import { generateId } from './db';
+import { getCfUser } from './cfAuth';
+
+const getCurrentUser = async (): Promise<{ id: string; email?: string } | null> => {
+    const cfUser = getCfUser();
+    if (cfUser) {
+        return { id: cfUser.id, email: cfUser.email };
+    }
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) return { id: user.id, email: user.email };
+    } catch {
+        // Ignore fallback error
+    }
+    return null;
+};
 
 // ----- Types -----
 
@@ -93,7 +108,7 @@ export const expenseApi = {
     },
 
     async create(expense: Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string }): Promise<ApiExpense> {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         let hId = expense.household_id;
@@ -164,7 +179,7 @@ export const expenseApi = {
 
     async upsertBulk(expenses: (Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string })[]): Promise<ApiExpense[]> {
         if (expenses.length === 0) return [];
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         let hId: string | null = null;
@@ -236,7 +251,7 @@ export const subcategoryApi = {
     },
 
     async create(category: string, name: string): Promise<ApiSubcategory> {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         const { data: profile } = await supabase
@@ -291,7 +306,7 @@ export const categoryApi = {
     },
 
     async create(name: string, color: string): Promise<ApiCategory> {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         const { data: profile } = await supabase
@@ -356,7 +371,7 @@ export const expenseBackupApi = {
     },
 
     async create(expense: Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string }): Promise<ApiExpense> {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         let hId = expense.household_id;
@@ -426,7 +441,7 @@ export const expenseBackupApi = {
 
     async upsertBulk(expenses: (Omit<ApiExpense, 'id' | 'created_at'> & { id?: string; household_id?: string })[]): Promise<ApiExpense[]> {
         if (expenses.length === 0) return [];
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         if (!user) throw new Error('Authentication required');
 
         let hId: string | null = null;

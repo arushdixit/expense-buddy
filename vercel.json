@@ -14,6 +14,9 @@
         "api/parse_statement.py": {
             "maxDuration": 60,
             "includeFiles": "scripts/**"
+        },
+        "api/auth_me.py": {
+            "maxDuration": 15
         }
     },
     "rewrites": [
@@ -50,6 +53,27 @@
                 {
                     "key": "Content-Type",
                     "value": "application/manifest+json"
+                },
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "*"
+                }
+            ]
+        },
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Credentials",
+                    "value": "true"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Authorization, Content-Type, Cf-Access-Jwt-Assertion, Cf-Access-Authenticated-User-Email"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, OPTIONS, PUT, DELETE"
                 }
             ]
         }

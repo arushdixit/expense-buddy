@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { fetchCfIdentity, setCfUser, CfUser } from '@/lib/cfAuth';
 
 interface AuthContextType {
     session: Session | null;
@@ -26,19 +27,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
-            let { data, error } = await supabase
-                .from('profiles')
-                .select('household_id')
-                .eq('id', userId)
-                .maybeSingle();
+            // First check by ID or email in profiles
+            let query = supabase.from('profiles').select('household_id');
+            if (email) {
+                query = query.or(`id.eq.${userId},email.eq.${email}`);
+            } else {
+                query = query.eq('id', userId);
+            }
+
+            const { data, error } = await query.maybeSingle();
 
             if (error) {
                 console.error('Error fetching profile:', error.message);
-                return;
             }
 
             if (!data) {
-                // Profile missing - create one
+                // Profile missing - create or assign household
                 let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
                 let hId = household?.id;
 
@@ -72,31 +76,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) fetchHouseholdId(session.user.id, session.user.email);
-            setLoading(false);
-        });
+        const initAuth = async () => {
+            try {
+                // Fetch Cloudflare Access identity
+                const cfUser: CfUser | null = await fetchCfIdentity();
 
-        // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchHouseholdId(session.user.id, session.user.email);
-            } else {
-                setHouseholdId(null);
+                if (cfUser) {
+                    const syntheticUser: User = {
+                        id: cfUser.id,
+                        app_metadata: { provider: 'cloudflare_google_oauth' },
+                        user_metadata: { name: cfUser.name, email: cfUser.email },
+                        aud: 'authenticated',
+                        created_at: new Date().toISOString(),
+                        email: cfUser.email,
+                        phone: '',
+                        role: 'authenticated',
+                        updated_at: new Date().toISOString(),
+                    };
+
+                    const syntheticSession: Session = {
+                        access_token: 'cf-access-token',
+                        token_type: 'bearer',
+                        expires_in: 86400,
+                        refresh_token: 'cf-refresh-token',
+                        user: syntheticUser,
+                        expires_at: Math.floor(Date.now() / 1000) + 86400,
+                    };
+
+                    setUser(syntheticUser);
+                    setSession(syntheticSession);
+                    await fetchHouseholdId(cfUser.id, cfUser.email);
+                } else {
+                    setUser(null);
+                    setSession(null);
+                    setHouseholdId(null);
+                }
+            } catch (err) {
+                console.error('Auth initialization failed:', err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
-        });
+        };
 
-        return () => subscription.unsubscribe();
+        initAuth();
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        setCfUser(null);
+        setUser(null);
+        setSession(null);
+        setHouseholdId(null);
+        try {
+            await supabase.auth.signOut();
+        } catch {
+            // Ignore Supabase auth errors
+        }
+        // Redirect to Cloudflare Access logout URL
+        window.location.href = '/cdn-cgi/access/logout';
     };
 
     return (
@@ -109,3 +145,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
     return useContext(AuthContext);
 };
+

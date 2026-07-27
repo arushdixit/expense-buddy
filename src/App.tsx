@@ -9,11 +9,11 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const AppRoutes = () => {
-  const { session, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -21,8 +21,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={session ? <Index /> : <Navigate to="/auth" />} />
-      <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/" />} />
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
