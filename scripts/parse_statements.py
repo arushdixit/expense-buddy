@@ -224,12 +224,12 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         elif "noon one" in desc_lower or "noonone" in desc_lower:
             category = "Misc"
             subcategory = "Noon One"
-        elif "food" in desc_lower:
-            category = "Entertainment"
-            subcategory = "Food Delivery"
-        elif "minutes" in desc_lower:
+        elif any(x in desc_lower for x in ["minutes", "now", "grocery", "groceries", "supermarket", "daily"]):
             category = "Groceries"
             subcategory = "Noon"
+        elif any(x in desc_lower for x in ["food", "dubai", "eats", "restaurant"]):
+            category = "Entertainment"
+            subcategory = "Food Delivery"
         else:
             category = "Shopping"
             subcategory = "Noon"
