@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import { fetchCfIdentity, setCfUser, CfUser } from '@/lib/cfAuth';
+import { fetchCfIdentity, setCfUser, getCfUser, CfUser } from '@/lib/cfAuth';
 
 const DEFAULT_HOUSEHOLD_ID = 'f1adc195-7233-4ad8-9667-b8c1ce14cffa';
 const KNOWN_PROFILES: Record<string, { id: string; household_id: string }> = {
@@ -13,6 +13,31 @@ const KNOWN_PROFILES: Record<string, { id: string; household_id: string }> = {
         id: 'b9180c54-7d52-4782-9157-7989edf85566',
         household_id: 'f1adc195-7233-4ad8-9667-b8c1ce14cffa',
     },
+};
+
+const createSyntheticSession = (cfUser: CfUser): { user: User; session: Session } => {
+    const syntheticUser: User = {
+        id: cfUser.id,
+        app_metadata: { provider: 'cloudflare_google_oauth' },
+        user_metadata: { name: cfUser.name || cfUser.email.split('@')[0], email: cfUser.email },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        email: cfUser.email,
+        phone: '',
+        role: 'authenticated',
+        updated_at: new Date().toISOString(),
+    };
+
+    const syntheticSession: Session = {
+        access_token: 'cf-access-token',
+        token_type: 'bearer',
+        expires_in: 86400,
+        refresh_token: 'cf-refresh-token',
+        user: syntheticUser,
+        expires_at: Math.floor(Date.now() / 1000) + 86400,
+    };
+
+    return { user: syntheticUser, session: syntheticSession };
 };
 
 interface AuthContextType {
@@ -32,10 +57,13 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
-    const [householdId, setHouseholdId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const initialCfUser = getCfUser();
+    const initialSessionData = initialCfUser ? createSyntheticSession(initialCfUser) : null;
+
+    const [user, setUser] = useState<User | null>(initialSessionData?.user || null);
+    const [session, setSession] = useState<Session | null>(initialSessionData?.session || null);
+    const [householdId, setHouseholdId] = useState<string | null>(DEFAULT_HOUSEHOLD_ID);
+    const [loading, setLoading] = useState<boolean>(!initialSessionData);
 
     const resolveHouseholdId = async (userId: string, email?: string): Promise<string> => {
         const normalizedEmail = (email || '').toLowerCase().trim();
@@ -94,35 +122,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 if (cfUser) {
                     const hId = await resolveHouseholdId(cfUser.id, cfUser.email);
-                    const activeUser = setCfUser(null) || cfUser;
-
-                    const syntheticUser: User = {
-                        id: activeUser.id,
-                        app_metadata: { provider: 'cloudflare_google_oauth' },
-                        user_metadata: { name: activeUser.name, email: activeUser.email },
-                        aud: 'authenticated',
-                        created_at: new Date().toISOString(),
-                        email: activeUser.email,
-                        phone: '',
-                        role: 'authenticated',
-                        updated_at: new Date().toISOString(),
-                    };
-
-                    const syntheticSession: Session = {
-                        access_token: 'cf-access-token',
-                        token_type: 'bearer',
-                        expires_in: 86400,
-                        refresh_token: 'cf-refresh-token',
-                        user: syntheticUser,
-                        expires_at: Math.floor(Date.now() / 1000) + 86400,
-                    };
+                    const { user: syntheticUser, session: syntheticSession } = createSyntheticSession(cfUser);
 
                     if (isSubscribed) {
                         setUser(syntheticUser);
                         setSession(syntheticSession);
                         setHouseholdId(hId);
                     }
-                } else if (isSubscribed) {
+                } else if (isSubscribed && !initialSessionData) {
                     setUser(null);
                     setSession(null);
                     setHouseholdId(DEFAULT_HOUSEHOLD_ID);

@@ -16,15 +16,18 @@ export const setCfUser = (user: CfUser | null) => {
     cachedUser = user;
     if (user) {
         try {
-            localStorage.setItem('cf_auth_user', JSON.stringify(user));
+            const val = JSON.stringify(user);
+            localStorage.setItem('cf_auth_user', val);
+            document.cookie = `cf_auth_user=${encodeURIComponent(val)}; path=/; max-age=31536000; SameSite=Lax`;
         } catch (e) {
-            console.warn('Unable to store cf_auth_user in localStorage', e);
+            console.warn('Unable to store cf_auth_user', e);
         }
     } else {
         try {
             localStorage.removeItem('cf_auth_user');
+            document.cookie = 'cf_auth_user=; path=/; max-age=0; SameSite=Lax';
         } catch (e) {
-            console.warn('Unable to remove cf_auth_user from localStorage', e);
+            console.warn('Unable to remove cf_auth_user', e);
         }
     }
 };
@@ -40,6 +43,20 @@ export const getCfUser = (): CfUser | null => {
     } catch {
         // Fallback if parsing fails
     }
+
+    try {
+        const match = document.cookie.match(/(?:^|; )cf_auth_user=([^;]*)/);
+        if (match && match[1]) {
+            const parsed = JSON.parse(decodeURIComponent(match[1]));
+            if (parsed && parsed.email) {
+                cachedUser = parsed;
+                return cachedUser;
+            }
+        }
+    } catch {
+        // Fallback if cookie parsing fails
+    }
+
     return null;
 };
 
