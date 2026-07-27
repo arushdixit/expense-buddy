@@ -212,9 +212,10 @@ interface CoverageViewProps {
 }
 
 const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
-  const { expenses } = useExpenses();
+  const now = new Date();
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [records, setRecords] = useState<StatementRecord[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [activeTooltipCard, setActiveTooltipCard] = useState<string | null>(null);
 
   // Seed history on mount safely
@@ -224,24 +225,6 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         await seedStatementRecords();
         const recs = getStatementRecords() || [];
         setRecords(recs);
-
-        // Auto-select latest month with statement records if available
-        if (Array.isArray(recs) && recs.length > 0) {
-          const sorted = [...recs]
-            .filter((r) => r && typeof r.endDate === "string")
-            .sort((a, b) => b.endDate.localeCompare(a.endDate));
-
-          if (sorted[0]?.endDate) {
-            const parts = sorted[0].endDate.split("-");
-            if (parts.length === 3) {
-              const y = parseInt(parts[0], 10);
-              const m = parseInt(parts[1], 10) - 1;
-              if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 0 && m <= 11) {
-                setSelectedDate(new Date(y, m, 1));
-              }
-            }
-          }
-        }
       } catch (e) {
         console.error("Error initializing coverage records:", e);
       }
@@ -249,29 +232,38 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     seed();
   }, []);
 
-  // Ensure selectedDate is valid
-  const validDate = selectedDate instanceof Date && !isNaN(selectedDate.getTime()) ? selectedDate : new Date();
-  const selectedYear = validDate.getFullYear();
-  const selectedMonth = validDate.getMonth();
-  const daysInSelectedMonth = Math.max(getDaysInMonth(validDate), 28);
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((prev) => prev - 1);
+    } else {
+      setCurrentMonth((prev) => prev - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    const isCurrentMonth =
+      currentMonth === now.getMonth() && currentYear === now.getFullYear();
+    if (isCurrentMonth) return;
+
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((prev) => prev + 1);
+    } else {
+      setCurrentMonth((prev) => prev + 1);
+    }
+  };
+
+  const isCurrentMonth =
+    currentMonth === now.getMonth() && currentYear === now.getFullYear();
+
+  const selectedYear = currentYear;
+  const selectedMonth = currentMonth;
+  const selectedDate = new Date(selectedYear, selectedMonth, 1);
+  const daysInSelectedMonth = Math.max(getDaysInMonth(selectedDate), 28);
   const selectedMonthName = getMonthName(selectedMonth);
 
-  const today = new Date();
-  const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
-  const todayDay = isCurrentMonth ? today.getDate() : null;
-
-  // Month navigation handlers
-  const handlePrevMonth = () => {
-    setSelectedDate(new Date(selectedYear, selectedMonth - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setSelectedDate(new Date(selectedYear, selectedMonth + 1, 1));
-  };
-
-  const handleJumpToCurrentMonth = () => {
-    setSelectedDate(new Date(today.getFullYear(), today.getMonth(), 1));
-  };
+  const todayDay = isCurrentMonth ? now.getDate() : null;
 
   // String formatting for current month start/end
   const monthStartStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
@@ -430,39 +422,36 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         </div>
       </div>
 
-      {/* Month Navigator Bar */}
-      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handlePrevMonth}
-              className="h-9 w-9 rounded-2xl border-white/20 dark:border-white/10 bg-background/50 hover:bg-background/80"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              <span className="font-extrabold text-lg tracking-tight text-foreground">
-                {selectedMonthName} {selectedYear}
-              </span>
-            </div>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleNextMonth}
-              className="h-9 w-9 rounded-2xl border-white/20 dark:border-white/10 bg-background/50 hover:bg-background/80"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
+      {/* Month Selector */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-center gap-4 py-2"
+      >
+        <button
+          onClick={goToPreviousMonth}
+          className="touch-target p-2 rounded-full hover:bg-secondary transition-colors"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <div className="month-selector min-w-[180px] justify-center">
+          <span className="font-semibold text-lg">
+            {getMonthName(currentMonth)} {currentYear}
+          </span>
         </div>
+        <button
+          onClick={goToNextMonth}
+          className={`touch-target p-2 rounded-full hover:bg-secondary transition-colors ${
+            isCurrentMonth ? "opacity-30 pointer-events-none" : ""
+          }`}
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      </motion.div>
 
-        {/* Month Summary Stats Chips */}
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center text-xs">
+      {/* Month Summary Stats Chips */}
+      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg">
+        <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl">
             <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Covered</p>
             <p className="text-base font-extrabold text-emerald-700 dark:text-emerald-300">{cardsCoveredCount} Cards</p>
