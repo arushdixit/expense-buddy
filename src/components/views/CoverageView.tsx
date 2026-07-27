@@ -291,7 +291,17 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
     }
 
-    const cardRecords = validRecords.filter((r) => r.card === cardKey);
+    const rawCardRecords = validRecords.filter((r) => r.card === cardKey);
+    const uniqueMap = new Map<string, StatementRecord>();
+    rawCardRecords.forEach((rec) => {
+      const key = rec.filename || `${rec.startDate}_${rec.endDate}`;
+      const existing = uniqueMap.get(key);
+      if (!existing || (rec.importedAt || 0) >= (existing.importedAt || 0)) {
+        uniqueMap.set(key, rec);
+      }
+    });
+    const cardRecords = Array.from(uniqueMap.values());
+
     const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
     const latestOverallRecord = sortedAll[0] || null;
 

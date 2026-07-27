@@ -43,9 +43,9 @@ export const addStatementRecord = (
 ): void => {
     try {
         const records = getStatementRecords();
-        // Check for duplicate cycle
+        // Check for duplicate cycle or filename
         const existingIdx = records.findIndex(
-            (r) => r.card === card && r.startDate === startDate && r.endDate === endDate
+            (r) => r.card === card && (r.filename === filename || (r.startDate === startDate && r.endDate === endDate))
         );
 
         const newRecord: StatementRecord = {
@@ -68,28 +68,19 @@ export const addStatementRecord = (
     }
 };
 
-// Seed historical statements and merge with existing records
+// Seed historical statements and replace stale records cleanly
 export const seedStatementRecords = async (): Promise<void> => {
     try {
         const res = await fetch("/seeded_coverage.json");
         if (!res.ok) throw new Error("Failed to load seeded coverage data");
         const seeded: StatementRecord[] = await res.json();
 
-        const existingStr = localStorage.getItem("statement_coverage");
-        const existingRecords: StatementRecord[] = existingStr ? JSON.parse(existingStr) : [];
-
         const recordMap = new Map<string, StatementRecord>();
         if (Array.isArray(seeded)) {
             seeded.forEach(r => {
                 if (r && r.card && r.startDate && r.endDate) {
-                    recordMap.set(`${r.card}_${r.startDate}_${r.endDate}`, r);
-                }
-            });
-        }
-        if (Array.isArray(existingRecords)) {
-            existingRecords.forEach(r => {
-                if (r && r.card && r.startDate && r.endDate) {
-                    recordMap.set(`${r.card}_${r.startDate}_${r.endDate}`, r);
+                    const key = `${r.card}_${r.filename || r.endDate}`;
+                    recordMap.set(key, r);
                 }
             });
         }
