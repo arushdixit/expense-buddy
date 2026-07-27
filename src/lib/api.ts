@@ -9,15 +9,15 @@ import { generateId } from './db';
 import { getCfUser } from './cfAuth';
 
 const getCurrentUser = async (): Promise<{ id: string; email?: string } | null> => {
-    const cfUser = getCfUser();
-    if (cfUser) {
-        return { id: cfUser.id, email: cfUser.email };
-    }
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) return { id: user.id, email: user.email };
     } catch {
         // Ignore fallback error
+    }
+    const cfUser = getCfUser();
+    if (cfUser) {
+        return { id: cfUser.id, email: cfUser.email };
     }
     return null;
 };

@@ -1,19 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import { fetchCfIdentity, setCfUser, CfUser } from '@/lib/cfAuth';
-
-const DEFAULT_HOUSEHOLD_ID = 'f1adc195-7233-4ad8-9667-b8c1ce14cffa';
-const KNOWN_PROFILES: Record<string, { id: string; household_id: string }> = {
-    'dixit.arush@gmail.com': {
-        id: '01d89e50-1ca2-44d4-9218-34c6f3a08c3c',
-        household_id: 'f1adc195-7233-4ad8-9667-b8c1ce14cffa',
-    },
-    'pamolidutta@gmail.com': {
-        id: 'b9180c54-7d52-4782-9157-7989edf85566',
-        household_id: 'f1adc195-7233-4ad8-9667-b8c1ce14cffa',
-    },
-};
 
 interface AuthContextType {
     session: Session | null;
@@ -37,98 +24,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [householdId, setHouseholdId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchHouseholdId = async (userId: string, email?: string): Promise<string | null> => {
-        const normalizedEmail = (email || '').toLowerCase().strip ? (email || '').toLowerCase().trim() : (email || '').toLowerCase();
-
-        if (normalizedEmail && KNOWN_PROFILES[normalizedEmail]) {
-            const known = KNOWN_PROFILES[normalizedEmail];
-            setHouseholdId(known.household_id);
-            setCfUser({ id: known.id, email: normalizedEmail });
-            return known.household_id;
-        }
-
+    const fetchHouseholdId = async (userId: string, email?: string) => {
         try {
-            // Check Supabase profiles table if available
-            if (normalizedEmail) {
+            // Fetch profile household_id by user_id or email
+            let { data, error } = await supabase
+                .from('profiles')
+                .select('household_id')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (!data && email) {
                 const { data: pByEmail } = await supabase
                     .from('profiles')
-                    .select('id, household_id')
-                    .eq('email', normalizedEmail)
+                    .select('household_id')
+                    .eq('email', email)
                     .maybeSingle();
-                if (pByEmail && pByEmail.household_id) {
-                    setHouseholdId(pByEmail.household_id);
-                    if (pByEmail.id) {
-                        setCfUser({ id: pByEmail.id, email: normalizedEmail });
-                    }
-                    return pByEmail.household_id;
-                }
+                data = pByEmail;
             }
-        } catch {
-            // Ignore RLS read errors
-        }
 
-        // Fallback to primary household ID without attempting failing POST queries
-        setHouseholdId(DEFAULT_HOUSEHOLD_ID);
-        return DEFAULT_HOUSEHOLD_ID;
+            if (data && data.household_id) {
+                setHouseholdId(data.household_id);
+                return data.household_id;
+            }
+
+            // Fallback: Check existing households or assign default
+            let { data: household } = await supabase.from('households').select('id').limit(1).maybeSingle();
+            let hId = household?.id;
+
+            if (!hId) {
+                const { data: newH } = await supabase.from('households').insert({ name: 'Our Home' }).select().maybeSingle();
+                hId = newH?.id;
+            }
+
+            if (hId) {
+                setHouseholdId(hId);
+                // Create or update profile record
+                await supabase.from('profiles').upsert({
+                    id: userId,
+                    email: email,
+                    household_id: hId
+                });
+            }
+            return hId || null;
+        } catch (err) {
+            console.error('Error in fetchHouseholdId:', err);
+            return null;
+        }
     };
 
     useEffect(() => {
+        let isSubscribed = true;
+
         const initAuth = async () => {
-            try {
-                const cfUser: CfUser | null = await fetchCfIdentity();
+            // Check current active Supabase Auth session
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-                if (cfUser) {
-                    const hId = await fetchHouseholdId(cfUser.id, cfUser.email);
-                    const activeUser = setCfUser(null) || cfUser;
-
-                    const syntheticUser: User = {
-                        id: activeUser.id,
-                        app_metadata: { provider: 'cloudflare_google_oauth' },
-                        user_metadata: { name: activeUser.name, email: activeUser.email },
-                        aud: 'authenticated',
-                        created_at: new Date().toISOString(),
-                        email: activeUser.email,
-                        phone: '',
-                        role: 'authenticated',
-                        updated_at: new Date().toISOString(),
-                    };
-
-                    const syntheticSession: Session = {
-                        access_token: 'cf-access-token',
-                        token_type: 'bearer',
-                        expires_in: 86400,
-                        refresh_token: 'cf-refresh-token',
-                        user: syntheticUser,
-                        expires_at: Math.floor(Date.now() / 1000) + 86400,
-                    };
-
-                    setUser(syntheticUser);
-                    setSession(syntheticSession);
-                    setHouseholdId(hId);
-                } else {
-                    setUser(null);
-                    setSession(null);
-                    setHouseholdId(null);
+            if (currentSession?.user) {
+                if (isSubscribed) {
+                    setSession(currentSession);
+                    setUser(currentSession.user);
+                    await fetchHouseholdId(currentSession.user.id, currentSession.user.email);
+                    setLoading(false);
                 }
-            } catch (err) {
-                console.error('Auth initialization failed:', err);
-            } finally {
+                return;
+            }
+
+            // Auto Cloudflare SSO redirect on production if no active session
+            const isProd = window.location.hostname.includes('arushpamoli.com');
+            const isProcessingHash = window.location.hash.includes('access_token');
+
+            if (isProd && !isProcessingHash && !session) {
+                // Auto-trigger Cloudflare SSO magic link bridge
+                window.location.href = '/api/cf-auth';
+                return;
+            }
+
+            if (isSubscribed) {
                 setLoading(false);
             }
         };
 
         initAuth();
+
+        // Listen for Supabase auth state changes (e.g. magic link redirect callback)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+            if (newSession?.user) {
+                setSession(newSession);
+                setUser(newSession.user);
+                await fetchHouseholdId(newSession.user.id, newSession.user.email);
+            } else {
+                setSession(null);
+                setUser(null);
+                setHouseholdId(null);
+            }
+            setLoading(false);
+        });
+
+        return () => {
+            isSubscribed = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const signOut = async () => {
-        setCfUser(null);
-        setUser(null);
         setSession(null);
+        setUser(null);
         setHouseholdId(null);
         try {
             await supabase.auth.signOut();
         } catch {
-            // Ignore Supabase auth errors
+            // Ignore auth errors
         }
         window.location.href = '/cdn-cgi/access/logout';
     };

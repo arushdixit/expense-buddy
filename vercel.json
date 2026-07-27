@@ -17,9 +17,16 @@
         },
         "api/auth/me.py": {
             "maxDuration": 15
+        },
+        "api/cf_auth.py": {
+            "maxDuration": 15
         }
     },
     "rewrites": [
+        {
+            "source": "/api/cf-auth",
+            "destination": "/api/cf_auth.py"
+        },
         {
             "source": "/api/auth/me",
             "destination": "/api/auth/me.py"
