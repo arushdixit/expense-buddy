@@ -472,7 +472,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       <Card className="p-4 sm:p-6 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md shadow-xl space-y-6 overflow-hidden">
         
         {/* Day Axis Line */}
-        <div className="relative h-9 w-full bg-muted/40 rounded-2xl border border-border/40 px-3 flex items-center">
+        <div className="relative h-8 w-full bg-muted/30 rounded-xl border border-border/30 px-2 flex items-center">
           {axisTicks.map((day) => {
             const posPercent = getTickPosition(day);
             const isEndTick = day === daysInSelectedMonth;
@@ -481,15 +481,14 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
             return (
               <div
                 key={day}
-                className={`absolute flex flex-col items-center ${
+                className={`absolute flex flex-col items-center z-10 ${
                   isStartTick ? "translate-x-0" : isEndTick ? "-translate-x-full" : "-translate-x-1/2"
                 }`}
                 style={{ left: `${posPercent}%` }}
               >
-                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs border ${
-                  isEndTick ? "bg-primary/15 text-primary border-primary/30 font-extrabold" : "bg-background/80 text-foreground border-border/30"
-                }`}>
-                  Day {day}
+                <div className="h-1.5 w-0.5 bg-muted-foreground/40 rounded-full mb-0.5" />
+                <span className="text-[10px] font-bold text-muted-foreground tracking-tight">
+                  {day}
                 </span>
               </div>
             );
@@ -498,11 +497,11 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
           {/* Today Marker on Axis */}
           {isCurrentMonth && todayDay && todayPosition !== null && (
             <div
-              className="absolute z-20 top-0 bottom-0 transform -translate-x-1/2 flex flex-col items-center"
+              className="absolute z-20 top-0 bottom-0 transform -translate-x-1/2 flex flex-col items-center justify-center"
               style={{ left: `${todayPosition}%` }}
             >
-              <div className="bg-primary text-primary-foreground font-black text-[9px] px-1.5 py-0.5 rounded-b-md uppercase tracking-wider shadow-md animate-pulse">
-                TODAY (Day {todayDay})
+              <div className="bg-primary text-primary-foreground font-extrabold text-[9px] px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                TODAY ({todayDay})
               </div>
             </div>
           )}
@@ -517,7 +516,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               return (
                 <div
                   key={`grid_${day}`}
-                  className="absolute top-0 bottom-0 border-l border-dashed border-primary/20"
+                  className="absolute top-0 bottom-0 border-l border-dashed border-muted-foreground/15"
                   style={{ left: `${posPercent}%` }}
                 />
               );
@@ -526,7 +525,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
             {/* Vertical Today Line across all rows */}
             {isCurrentMonth && todayPosition !== null && (
               <div
-                className="absolute top-0 bottom-0 border-l-2 border-primary/80 shadow-[0_0_8px_rgba(87,0,255,0.4)] z-10"
+                className="absolute top-0 bottom-0 border-l-2 border-primary/70 shadow-[0_0_6px_rgba(87,0,255,0.3)] z-10"
                 style={{ left: `${todayPosition}%` }}
               />
             )}

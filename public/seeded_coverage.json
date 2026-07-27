@@ -1,65 +1,65 @@
 [
   {
     "card": "HSBC",
-    "startDate": "2025-10-19",
-    "endDate": "2025-12-09",
+    "startDate": "2025-11-11",
+    "endDate": "2025-12-10",
     "filename": "2025-12-10_Statement.pdf",
     "importedAt": 1781349055859
   },
   {
     "card": "HSBC",
-    "startDate": "2025-12-09",
-    "endDate": "2026-01-08",
+    "startDate": "2025-12-11",
+    "endDate": "2026-01-11",
     "filename": "Dec to Jan 2026.pdf",
     "importedAt": 1780575758000
   },
   {
     "card": "HSBC",
-    "startDate": "2025-12-30",
-    "endDate": "2026-02-08",
+    "startDate": "2026-01-12",
+    "endDate": "2026-02-10",
     "filename": "Jan to Feb 2026.pdf",
     "importedAt": 1780575758000
   },
   {
     "card": "Noon",
-    "startDate": "2026-02-21",
-    "endDate": "2026-02-24",
-    "filename": "Noon Feb Statement.pdf",
+    "startDate": "2026-02-12",
+    "endDate": "2026-02-25",
+    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25022026_1582_NOONCC_20260226-070854153_E3305625_26022026.pdf.pdf",
     "importedAt": 1781186551214
   },
   {
     "card": "Noon",
-    "startDate": "2026-02-25",
-    "endDate": "2026-03-13",
-    "filename": "Noon Mar Statement.pdf",
+    "startDate": "2026-02-26",
+    "endDate": "2026-03-25",
+    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25032026_1582_NOONCC_20260326-065631487_E3305625_26032026.pdf.pdf",
     "importedAt": 1781186541278
   },
   {
     "card": "HSBC",
-    "startDate": "2026-02-09",
-    "endDate": "2026-03-08",
+    "startDate": "2026-02-11",
+    "endDate": "2026-03-10",
     "filename": "Feb to Mar 2026.pdf",
     "importedAt": 1780575756000
   },
   {
     "card": "HSBC",
-    "startDate": "2026-03-10",
-    "endDate": "2026-04-08",
+    "startDate": "2026-03-11",
+    "endDate": "2026-04-10",
     "filename": "Mar to Apr 2026.pdf",
     "importedAt": 1780575758000
   },
   {
     "card": "HSBC",
-    "startDate": "2026-04-20",
-    "endDate": "2026-05-08",
+    "startDate": "2026-04-11",
+    "endDate": "2026-05-10",
     "filename": "Apr to May 2026.pdf",
     "importedAt": 1780575758000
   },
   {
     "card": "Noon",
-    "startDate": "2026-04-28",
-    "endDate": "2026-05-23",
-    "filename": "Noon May Statement.pdf",
+    "startDate": "2026-04-26",
+    "endDate": "2026-05-25",
+    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25052026_1582_NOONCC_20260526-072727980_E3305625_26052026.pdf.pdf",
     "importedAt": 1781186553406
   },
   {
@@ -72,7 +72,7 @@
   {
     "card": "Noon",
     "startDate": "2026-05-26",
-    "endDate": "2026-06-23",
+    "endDate": "2026-06-25",
     "filename": "2026-06-25_Noon_Statement.pdf",
     "importedAt": 1784364164828
   },
@@ -85,29 +85,29 @@
   },
   {
     "card": "HSBC",
-    "startDate": "2026-06-06",
-    "endDate": "2026-07-01",
+    "startDate": "2026-06-11",
+    "endDate": "2026-07-10",
     "filename": "2026-07-10_HSBC_Statement.pdf",
     "importedAt": 1784363979522
   },
   {
     "card": "SIB",
-    "startDate": "2026-06-29",
-    "endDate": "2026-07-13",
+    "startDate": "2026-06-14",
+    "endDate": "2026-07-14",
     "filename": "2026-07-14_SIB_Statement.pdf",
     "importedAt": 1784364294980
   },
   {
     "card": "Share",
-    "startDate": "2026-06-25",
-    "endDate": "2026-07-13",
+    "startDate": "2026-06-17",
+    "endDate": "2026-07-15",
     "filename": "2026-07-15_Share_Statement.pdf",
     "importedAt": 1784364252866
   },
   {
     "card": "Noon",
-    "startDate": "2026-06-24",
-    "endDate": "2026-07-22",
+    "startDate": "2026-06-26",
+    "endDate": "2026-07-25",
     "filename": "2026-07-25_Noon_Statement.pdf",
     "importedAt": 1785169888751
   },
