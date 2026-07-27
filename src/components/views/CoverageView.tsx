@@ -412,23 +412,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   return (
     <div className="pb-24 px-4 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="mt-4 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Statement Coverage View
           </h1>
         </div>
-
-        {onNavigateToImport && (
-          <Button
-            onClick={onNavigateToImport}
-            size="sm"
-            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-1.5 self-start sm:self-auto"
-          >
-            <Upload className="h-4 w-4" />
-            Import Statement
-          </Button>
-        )}
       </div>
 
       {/* Month Navigator Bar */}
