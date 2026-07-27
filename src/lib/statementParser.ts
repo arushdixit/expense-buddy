@@ -68,19 +68,34 @@ export const addStatementRecord = (
     }
 };
 
-// Seed historical statements if not seeded yet
+// Seed historical statements and merge with existing records
 export const seedStatementRecords = async (): Promise<void> => {
     try {
-        const existing = localStorage.getItem("statement_coverage");
-        if (existing) return; // already seeded
-
         const res = await fetch("/seeded_coverage.json");
         if (!res.ok) throw new Error("Failed to load seeded coverage data");
         const seeded: StatementRecord[] = await res.json();
-        
-        if (seeded && seeded.length > 0) {
-            localStorage.setItem("statement_coverage", JSON.stringify(seeded));
+
+        const existingStr = localStorage.getItem("statement_coverage");
+        const existingRecords: StatementRecord[] = existingStr ? JSON.parse(existingStr) : [];
+
+        const recordMap = new Map<string, StatementRecord>();
+        if (Array.isArray(seeded)) {
+            seeded.forEach(r => {
+                if (r && r.card && r.startDate && r.endDate) {
+                    recordMap.set(`${r.card}_${r.startDate}_${r.endDate}`, r);
+                }
+            });
         }
+        if (Array.isArray(existingRecords)) {
+            existingRecords.forEach(r => {
+                if (r && r.card && r.startDate && r.endDate) {
+                    recordMap.set(`${r.card}_${r.startDate}_${r.endDate}`, r);
+                }
+            });
+        }
+
+        const merged = Array.from(recordMap.values());
+        localStorage.setItem("statement_coverage", JSON.stringify(merged));
     } catch (e) {
         console.error("Failed to seed statement coverage records:", e);
     }

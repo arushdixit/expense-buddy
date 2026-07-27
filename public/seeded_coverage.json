@@ -1,5 +1,75 @@
 [
   {
+    "card": "HSBC",
+    "startDate": "2025-10-19",
+    "endDate": "2025-12-09",
+    "filename": "2025-12-10_Statement.pdf",
+    "importedAt": 1781349055859
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2025-12-09",
+    "endDate": "2026-01-08",
+    "filename": "Dec to Jan 2026.pdf",
+    "importedAt": 1780575758000
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2025-12-30",
+    "endDate": "2026-02-08",
+    "filename": "Jan to Feb 2026.pdf",
+    "importedAt": 1780575758000
+  },
+  {
+    "card": "Noon",
+    "startDate": "2026-02-21",
+    "endDate": "2026-02-24",
+    "filename": "Noon Feb Statement.pdf",
+    "importedAt": 1781186551214
+  },
+  {
+    "card": "Noon",
+    "startDate": "2026-02-25",
+    "endDate": "2026-03-13",
+    "filename": "Noon Mar Statement.pdf",
+    "importedAt": 1781186541278
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-02-09",
+    "endDate": "2026-03-08",
+    "filename": "Feb to Mar 2026.pdf",
+    "importedAt": 1780575756000
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-03-10",
+    "endDate": "2026-04-08",
+    "filename": "Mar to Apr 2026.pdf",
+    "importedAt": 1780575758000
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-04-20",
+    "endDate": "2026-05-08",
+    "filename": "Apr to May 2026.pdf",
+    "importedAt": 1780575758000
+  },
+  {
+    "card": "Noon",
+    "startDate": "2026-04-28",
+    "endDate": "2026-05-23",
+    "filename": "Noon May Statement.pdf",
+    "importedAt": 1781186553406
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-05-11",
+    "endDate": "2026-06-02",
+    "filename": "May to June 2026.pdf",
+    "importedAt": 1780575758000
+  },
+  {
     "card": "Noon",
     "startDate": "2026-05-26",
     "endDate": "2026-06-23",
@@ -33,6 +103,13 @@
     "endDate": "2026-07-13",
     "filename": "2026-07-15_Share_Statement.pdf",
     "importedAt": 1784364252866
+  },
+  {
+    "card": "Noon",
+    "startDate": "2026-06-24",
+    "endDate": "2026-07-22",
+    "filename": "2026-07-25_Noon_Statement.pdf",
+    "importedAt": 1785169888751
   },
   {
     "card": "Wio",
