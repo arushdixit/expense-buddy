@@ -174,9 +174,19 @@ export const getShortMonthName = (monthIndex: number): string => {
   return months[monthIndex];
 };
 
-export const getCategoryById = (id: string, customCategories: Category[] = []): Category | undefined => {
+export const getCategoryById = (id: string, customCategories: Category[] = []): Category => {
   const allCategories = [...categories, ...customCategories];
-  return allCategories.find(cat => cat.id === id);
+  const found = allCategories.find(cat => cat.id === id || cat.name.toLowerCase() === id.toLowerCase());
+  if (found) return found;
+
+  const { icon, color } = getCategoryIconAndColor(id);
+  const displayName = id.charAt(0).toUpperCase() + id.slice(1);
+  return {
+    id,
+    name: displayName,
+    icon,
+    color,
+  };
 };
 
 export const calculateCategoryTotals = (expenses: Expense[]): Record<string, number> => {

@@ -64,7 +64,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
         value,
         color: selectedCategory?.color || "hsl(var(--primary))",
       }))
-      .filter((item) => item.value > 0)
+      .filter((item) => Math.abs(item.value) > 0)
       .sort((a, b) => b.value - a.value)
     : allCategories
       .map((cat) => ({
@@ -72,7 +72,7 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
         value: categoryTotals[cat.id] || 0,
         color: cat.color,
       }))
-      .filter((item) => item.value > 0)
+      .filter((item) => Math.abs(item.value) > 0)
       .sort((a, b) => b.value - a.value);
 
   const goToPreviousMonth = () => {

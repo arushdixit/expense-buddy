@@ -124,7 +124,9 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
           </div>
         </div>
         <div className="text-right flex flex-col items-end shrink-0">
-          <div className="font-semibold dirham-symbol">{formatCurrency(expense.amount)}</div>
+          <div className={cn("font-semibold dirham-symbol", expense.amount < 0 && "text-emerald-600 dark:text-emerald-400 font-bold")}>
+            {formatCurrency(expense.amount)}
+          </div>
           {isForeign && originalAmount > 0 && originalCurrency && (
             <div className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-0.5 mt-0.5">
               <Globe className="h-3 w-3 shrink-0" />
