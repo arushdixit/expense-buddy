@@ -340,11 +340,6 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const combinedRecords = [...validRecords, ...dynamicExpenseRecords];
   const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...combinedRecords.map((r) => r.card)]));
 
-  // Compute total spending across all cards for selected month
-  const totalSpentAllCardsInMonth = expenses
-    .filter((exp) => exp.date && exp.date.startsWith(monthPrefix))
-    .reduce((sum, exp) => sum + (exp.amount || 0), 0);
-
   // Compute timeline data for each card in the selected month
   const cardsCoverageData = allCardKeys.map((cardKey) => {
     const color = CARD_COLORS[cardKey] || "#888888";
@@ -369,7 +364,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
     const latestOverallRecord = sortedAll[0] || null;
 
-    const segments: CoverageSegment[] = [];
+    const rawSegments: CoverageSegment[] = [];
 
     cardRecords.forEach((rec) => {
       if (!rec || !rec.startDate || !rec.endDate) return;
@@ -391,7 +386,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
           const leftPercent = ((startDay - 1) / daysInSelectedMonth) * 100;
           const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
 
-          segments.push({
+          rawSegments.push({
             record: rec,
             startDay,
             endDay,
@@ -403,8 +398,29 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       }
     });
 
+    // Sort segments by startDay ascending
+    rawSegments.sort((a, b) => a.startDay - b.startDay);
+
+    // Adjust segment positions to prevent visual overlapping between consecutive statement ranges
+    const segments: CoverageSegment[] = rawSegments.map((seg, idx) => {
+      if (idx === 0) return { ...seg };
+      const prevSeg = rawSegments[idx - 1];
+      if (prevSeg.endDay >= seg.startDay) {
+        const adjustedStartDay = prevSeg.endDay;
+        const adjustedDays = Math.max(1, seg.endDay - adjustedStartDay);
+        const leftPercent = (adjustedStartDay / daysInSelectedMonth) * 100;
+        const widthPercent = (adjustedDays / daysInSelectedMonth) * 100;
+        return {
+          ...seg,
+          leftPercent: Math.max(0, Math.min(100, leftPercent)),
+          widthPercent: Math.max(0, Math.min(100 - leftPercent, widthPercent)),
+        };
+      }
+      return { ...seg };
+    });
+
     const coveredDaysSet = new Set<number>();
-    segments.forEach((seg) => {
+    rawSegments.forEach((seg) => {
       for (let d = seg.startDay; d <= seg.endDay; d++) {
         coveredDaysSet.add(d);
       }
@@ -413,19 +429,33 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const totalDaysCoveredInMonth = coveredDaysSet.size;
     const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
 
-    const latestMonthRecord = [...segments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
+    const latestMonthRecord = [...rawSegments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
     const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
 
     // Compute smart next statement date and days remaining info
     const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
 
-    // Compute total spent on this specific card for the selected month
+    // Compute total spent on this card for selected month from statements AND live expenses
+    let statementSpentInMonth = 0;
+    let statementTxCount = 0;
+    cardRecords.forEach((rec) => {
+      if (rec.monthlySpending && rec.monthlySpending[monthPrefix] !== undefined) {
+        statementSpentInMonth += rec.monthlySpending[monthPrefix];
+      }
+      if (rec.monthlyCounts && rec.monthlyCounts[monthPrefix] !== undefined) {
+        statementTxCount += rec.monthlyCounts[monthPrefix];
+      }
+    });
+
     const cardExpensesInMonth = expenses.filter((exp) => {
       const c = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
       return c === cardKey && exp.date && exp.date.startsWith(monthPrefix);
     });
-    const totalSpentInMonth = cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-    const cardTxCount = cardExpensesInMonth.length;
+    const liveExpenseSpentInMonth = cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const liveExpenseTxCount = cardExpensesInMonth.length;
+
+    const totalSpentInMonth = statementSpentInMonth > 0 ? statementSpentInMonth : liveExpenseSpentInMonth;
+    const cardTxCount = statementTxCount > 0 ? statementTxCount : liveExpenseTxCount;
 
     // Smart Status Evaluation:
     // Missing is ONLY declared if statement end date has passed AND no statement for that cycle has been uploaded.
@@ -470,6 +500,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
   // Sort horizontal bar chart rows in INCREASING order of statement date (5th on top -> 10th -> 14th -> 15th -> 25th -> End of Month)
   cardsCoverageData.sort((a, b) => a.billingInfo.day - b.billingInfo.day);
+
+  // Compute grand total spending across all cards for selected month
+  const totalSpentAllCardsInMonth = cardsCoverageData.reduce(
+    (sum, card) => sum + card.totalSpentInMonth,
+    0
+  );
 
   const cardsCoveredCount = cardsCoverageData.filter((c) => c.status === "full").length;
   const cardsAwaitingCount = cardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
@@ -709,12 +745,13 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: 1 }}
                           transition={{ duration: 0.4, delay: idx * 0.1 }}
-                          className="absolute h-full rounded-xl shadow-md border border-white/30 flex items-center px-3 cursor-pointer group/bar overflow-hidden"
+                          className="absolute h-full rounded-xl shadow-md border border-white/30 border-r-2 border-r-background/80 flex items-center px-2.5 cursor-pointer group/bar overflow-hidden"
                           style={{
                             left: `${seg.leftPercent}%`,
                             width: `${seg.widthPercent}%`,
                             backgroundColor: card.color,
                             transformOrigin: "left center",
+                            zIndex: idx + 1,
                           }}
                           onClick={() => setActiveTooltipCard(activeTooltipCard === `${card.cardKey}_${idx}` ? null : `${card.cardKey}_${idx}`)}
                         >
@@ -722,11 +759,13 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity" />
 
                           {/* Bar Label */}
-                          <span className="text-white text-[11px] font-bold truncate drop-shadow-sm z-10">
-                            {seg.widthPercent > 12 ? (
+                          <span className="text-white text-[11px] font-bold truncate whitespace-nowrap drop-shadow-sm z-10 select-none">
+                            {seg.widthPercent > 15 ? (
                               `Day ${seg.startDay} – ${seg.endDay} (${seg.daysCoveredInMonth}d)`
+                            ) : seg.widthPercent > 8 ? (
+                              `Day ${seg.startDay}–${seg.endDay}`
                             ) : (
-                              `Day ${seg.endDay}`
+                              `${seg.endDay}`
                             )}
                           </span>
                         </motion.div>

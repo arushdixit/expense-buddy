@@ -21,6 +21,10 @@ export interface StatementRecord {
     endDate: string;
     filename: string;
     importedAt: number;
+    totalAmount?: number;
+    transactionCount?: number;
+    monthlySpending?: Record<string, number>;
+    monthlyCounts?: Record<string, number>;
 }
 
 // Get statement coverage records from localStorage

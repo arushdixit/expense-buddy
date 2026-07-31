@@ -1,128 +1,136 @@
 [
   {
-    "card": "HSBC",
-    "startDate": "2025-11-11",
-    "endDate": "2025-12-10",
-    "filename": "2025-12-10_Statement.pdf",
-    "importedAt": 1781349055859
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2025-12-11",
-    "endDate": "2026-01-11",
-    "filename": "Dec to Jan 2026.pdf",
-    "importedAt": 1780575758000
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2026-01-12",
-    "endDate": "2026-02-10",
-    "filename": "Jan to Feb 2026.pdf",
-    "importedAt": 1780575758000
-  },
-  {
-    "card": "Noon",
-    "startDate": "2026-02-12",
-    "endDate": "2026-02-25",
-    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25022026_1582_NOONCC_20260226-070854153_E3305625_26022026.pdf.pdf",
-    "importedAt": 1781186551214
-  },
-  {
-    "card": "Noon",
-    "startDate": "2026-02-26",
-    "endDate": "2026-03-25",
-    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25032026_1582_NOONCC_20260326-065631487_E3305625_26032026.pdf.pdf",
-    "importedAt": 1781186541278
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2026-02-11",
-    "endDate": "2026-03-10",
-    "filename": "Feb to Mar 2026.pdf",
-    "importedAt": 1780575756000
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2026-03-11",
-    "endDate": "2026-04-10",
-    "filename": "Mar to Apr 2026.pdf",
-    "importedAt": 1780575758000
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2026-04-11",
-    "endDate": "2026-05-10",
-    "filename": "Apr to May 2026.pdf",
-    "importedAt": 1780575758000
-  },
-  {
-    "card": "Noon",
-    "startDate": "2026-04-26",
-    "endDate": "2026-05-25",
-    "filename": "E-STATEMENT_E-STATEMENT_4652750009571582_25052026_1582_NOONCC_20260526-072727980_E3305625_26052026.pdf.pdf",
-    "importedAt": 1781186553406
-  },
-  {
-    "card": "HSBC",
-    "startDate": "2026-05-11",
-    "endDate": "2026-06-02",
-    "filename": "May to June 2026.pdf",
-    "importedAt": 1780575758000
-  },
-  {
     "card": "Noon",
     "startDate": "2026-05-26",
-    "endDate": "2026-06-25",
+    "endDate": "2026-06-23",
     "filename": "2026-06-25_Noon_Statement.pdf",
-    "importedAt": 1784364164828
+    "importedAt": 1785500000000,
+    "totalAmount": 800.27,
+    "transactionCount": 18,
+    "monthlySpending": {
+      "2026-05": 12.4,
+      "2026-06": 787.87
+    },
+    "monthlyCounts": {
+      "2026-05": 2,
+      "2026-06": 16
+    }
   },
   {
     "card": "ADCB",
     "startDate": "2026-06-23",
     "endDate": "2026-07-05",
     "filename": "2026-07-05_ADCB_Statement.pdf",
-    "importedAt": 1784364082748
+    "importedAt": 1785500000000,
+    "totalAmount": 1750.55,
+    "transactionCount": 9,
+    "monthlySpending": {
+      "2026-06": 25.3,
+      "2026-07": 1725.25
+    },
+    "monthlyCounts": {
+      "2026-06": 2,
+      "2026-07": 7
+    }
   },
   {
     "card": "HSBC",
-    "startDate": "2026-06-11",
-    "endDate": "2026-07-10",
+    "startDate": "2026-06-06",
+    "endDate": "2026-07-01",
     "filename": "2026-07-10_HSBC_Statement.pdf",
-    "importedAt": 1784363979522
+    "importedAt": 1785500000000,
+    "totalAmount": 4154.54,
+    "transactionCount": 26,
+    "monthlySpending": {
+      "2026-06": 3735.59,
+      "2026-07": 418.95
+    },
+    "monthlyCounts": {
+      "2026-06": 25,
+      "2026-07": 1
+    }
   },
   {
     "card": "SIB",
-    "startDate": "2026-06-14",
-    "endDate": "2026-07-14",
+    "startDate": "2026-06-29",
+    "endDate": "2026-07-13",
     "filename": "2026-07-14_SIB_Statement.pdf",
-    "importedAt": 1784364294980
+    "importedAt": 1785500000000,
+    "totalAmount": 2966.99,
+    "transactionCount": 13,
+    "monthlySpending": {
+      "2026-07": 2371.62,
+      "2026-06": 595.37
+    },
+    "monthlyCounts": {
+      "2026-07": 11,
+      "2026-06": 2
+    }
   },
   {
     "card": "Share",
-    "startDate": "2026-06-17",
-    "endDate": "2026-07-15",
+    "startDate": "2026-06-25",
+    "endDate": "2026-07-13",
     "filename": "2026-07-15_Share_Statement.pdf",
-    "importedAt": 1784364252866
+    "importedAt": 1785500000000,
+    "totalAmount": 404.12,
+    "transactionCount": 6,
+    "monthlySpending": {
+      "2026-06": 256.47,
+      "2026-07": 147.65
+    },
+    "monthlyCounts": {
+      "2026-06": 2,
+      "2026-07": 4
+    }
   },
   {
     "card": "Noon",
-    "startDate": "2026-06-26",
-    "endDate": "2026-07-25",
+    "startDate": "2026-06-24",
+    "endDate": "2026-07-22",
     "filename": "2026-07-25_Noon_Statement.pdf",
-    "importedAt": 1785169888751
+    "importedAt": 1785500000000,
+    "totalAmount": 1061.87,
+    "transactionCount": 21,
+    "monthlySpending": {
+      "2026-06": 209.4,
+      "2026-07": 852.47
+    },
+    "monthlyCounts": {
+      "2026-06": 6,
+      "2026-07": 15
+    }
   },
   {
     "card": "Wio",
     "startDate": "2026-06-01",
     "endDate": "2026-07-18",
     "filename": "Wio statement (2026.06.01-2026.07.18).csv",
-    "importedAt": 1784379611156
+    "importedAt": 1785500000000,
+    "totalAmount": 1556.1,
+    "transactionCount": 36,
+    "monthlySpending": {
+      "2026-06": 903.0,
+      "2026-07": 653.1
+    },
+    "monthlyCounts": {
+      "2026-06": 29,
+      "2026-07": 7
+    }
   },
   {
     "card": "Wio",
     "startDate": "2026-07-18",
-    "endDate": "2026-07-31",
+    "endDate": "2026-07-30",
     "filename": "Wio statement (2026.07.18-2026.07.31).csv",
-    "importedAt": 1785500000000
+    "importedAt": 1785500000000,
+    "totalAmount": 1241.66,
+    "transactionCount": 18,
+    "monthlySpending": {
+      "2026-07": 1241.66
+    },
+    "monthlyCounts": {
+      "2026-07": 18
+    }
   }
 ]
