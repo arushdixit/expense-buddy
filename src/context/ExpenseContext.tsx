@@ -139,6 +139,21 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       let localExpenses: LocalExpense[] = [];
       try {
         localExpenses = await syncApi.getAllExpenses();
+        // If IndexedDB has 0 expenses (e.g. user opening app on a new device), seed household expenses!
+        if (localExpenses.length === 0) {
+          try {
+            const res = await fetch("/seeded_expenses.json");
+            if (res.ok) {
+              const seeded: LocalExpense[] = await res.json();
+              if (Array.isArray(seeded) && seeded.length > 0) {
+                await db.expenses.bulkPut(seeded);
+                localExpenses = await syncApi.getAllExpenses();
+              }
+            }
+          } catch (seedErr) {
+            console.error("Failed to seed household expenses:", seedErr);
+          }
+        }
       } catch (err) {
         console.error('Dexie Error in loadData (expenses):', err);
       }
