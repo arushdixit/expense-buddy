@@ -452,19 +452,21 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
     const isPastSelectedMonth = selectedDate < new Date(today.getFullYear(), today.getMonth(), 1);
     const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
-    const isTargetStatementCovered = maxCoveredDateStr ? maxCoveredDateStr >= targetDateStr : false;
 
     let status: "full" | "partial" | "awaiting" | "missing" = "missing";
 
-    if (isTargetStatementCovered || totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
+    // Status is purely based on % of the month covered:
+    // full = all (or virtually all) days in the month are covered (≥ 95%)
+    // partial = at least 1 day covered but not full
+    // awaiting = 0 days covered and billing date hasn't arrived yet
+    // missing = 0 days covered and billing date has already passed
+    if (coveragePercentage >= 95) {
       status = "full";
     } else if (totalDaysCoveredInMonth > 0) {
       status = "partial";
     } else if (!hasBillingDateArrived) {
-      // Billing cycle is still active / in progress -> Awaiting Statement (NOT MISSING!)
       status = "awaiting";
     } else {
-      // Billing date has passed and statement is not uploaded -> Missing
       status = "missing";
     }
 

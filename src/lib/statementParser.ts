@@ -111,7 +111,10 @@ export const addStatementRecord = (
     }
 };
 
-// Seed historical statements and replace stale records cleanly
+// Seed historical statements and replace stale records cleanly.
+// Seeded JSON records are always authoritative for keys they own.
+// User-uploaded records (strictly newer importedAt) can override seeded records,
+// and user records for non-seeded keys are always preserved.
 export const seedStatementRecords = async (): Promise<void> => {
     try {
         const res = await fetch("/seeded_coverage.json");
@@ -121,17 +124,21 @@ export const seedStatementRecords = async (): Promise<void> => {
         const existing = getStatementRecords();
         const recordMap = new Map<string, StatementRecord>();
 
-        // First populate from seeded JSON
+        // Track which keys came from the seeded JSON so we can protect them
+        const seededKeys = new Set<string>();
+
+        // Step 1: Populate from seeded JSON (always authoritative for seeded keys)
         if (Array.isArray(seeded)) {
             seeded.forEach(r => {
                 if (r && r.card && r.startDate && r.endDate) {
                     const key = `${r.card}_${r.filename || r.endDate}`;
                     recordMap.set(key, r);
+                    seededKeys.add(key);
                 }
             });
         }
 
-        // Also populate from IndexedDB if available
+        // Step 2: Also populate from IndexedDB (for user-uploaded records)
         try {
             if (typeof db !== "undefined" && db.statementCoverage) {
                 const dbRecords = await db.statementCoverage.toArray();
@@ -140,7 +147,13 @@ export const seedStatementRecords = async (): Promise<void> => {
                         if (r && r.card && r.startDate && r.endDate) {
                             const key = `${r.card}_${r.filename || r.endDate}`;
                             const current = recordMap.get(key);
-                            if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
+                            const isSeededKey = seededKeys.has(key);
+                            // Only override seeded records if user actually uploaded a strictly newer version
+                            if (!isSeededKey) {
+                                if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
+                                    recordMap.set(key, r);
+                                }
+                            } else if (current && (r.importedAt || 0) > (current.importedAt || 0)) {
                                 recordMap.set(key, r);
                             }
                         }
@@ -151,22 +164,30 @@ export const seedStatementRecords = async (): Promise<void> => {
             console.error("Failed to load statement records from Dexie IndexedDB:", dbErr);
         }
 
-        // Merge existing user-uploaded records so they are preserved
-        // Skip any phantom "Synced Data" records that may have been stored previously
+        // Step 3: Merge existing localStorage records (same rules as IndexedDB above)
         if (Array.isArray(existing)) {
             existing.forEach(r => {
-                if (r && r.card && r.startDate && r.endDate) {
-                    // Skip stale phantom synced data records (they have a specific filename pattern)
-                    if (r.filename && r.filename.includes("Transactions (Synced Data)")) return;
-                    const key = `${r.card}_${r.filename || r.endDate}`;
-                    const current = recordMap.get(key);
+                if (!r || !r.card || !r.startDate || !r.endDate) return;
+                // Remove stale phantom synthetic records
+                if (r.filename && r.filename.includes("Transactions (Synced Data)")) return;
+                const key = `${r.card}_${r.filename || r.endDate}`;
+                const current = recordMap.get(key);
+                const isSeededKey = seededKeys.has(key);
+
+                if (!isSeededKey) {
+                    // Non-seeded user record — add or update if newer
                     if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
+                        recordMap.set(key, r);
+                    }
+                } else {
+                    // Seeded key — only allow localStorage to override if user re-uploaded with newer data
+                    // A localStorage copy of a seeded record has the SAME importedAt → it does NOT override.
+                    if (current && (r.importedAt || 0) > (current.importedAt || 0)) {
                         recordMap.set(key, r);
                     }
                 }
             });
         }
-
 
         const merged = Array.from(recordMap.values());
         localStorage.setItem("statement_coverage", JSON.stringify(merged));
@@ -174,3 +195,4 @@ export const seedStatementRecords = async (): Promise<void> => {
         console.error("Failed to seed statement coverage records:", e);
     }
 };
+
