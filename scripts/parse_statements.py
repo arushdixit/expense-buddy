@@ -38,6 +38,8 @@ _PROC_FEE_RE = re.compile(r'FOREIGN CURRENCY PROCESSING FEE.*', re.IGNORECASE)
 _STND_PROC_RE = re.compile(r'STND PROC\..*', re.IGNORECASE)
 _TRAILING_AMT_COMMA_RE = re.compile(r'\s+\d+,\d+\.\d+(?:\s*CR)?\s*-?$')
 _TRAILING_AMT_RE = re.compile(r'\s+\d+\.\d+(?:\s*CR)?\s*-?$')
+_MART_RE = re.compile(r'\b(?:\w*?)(?<!s)marts?\b', re.IGNORECASE)
+
 _ORPHAN_NUM_RE = re.compile(r'(\s+\d[\d,]*\.\d{2})+\s*$')
 _MULTI_SPACE_RE = re.compile(r'\s{2,}')
 
@@ -317,7 +319,7 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         subcategory = "Clothes"
 
     # --- ENTERTAINMENT ---
-    elif any(x in desc_lower for x in ["restaurant", "dine-out", "dine out", "cafe", "bistro", "starbucks", "eatery", "coffee", "pub", "bar", "pizza", "burger", "genatsvale", "bait maryam", "dineout", "afghan palace", "al khayma", "maison russe", "abdelwahab", "abdel wahab", "emir bey", "madinat jumeirah", "mons hospitality", "atlantis", "daikan", "farsi", "olives and salt", "san wan", "talay"]):
+    elif any(x in desc_lower for x in ["restaurant", "dine-out", "dine out", "cafe", "bistro", "starbucks", "eatery", "coffee", "pub", "bar", "pizza", "burger", "genatsvale", "bait maryam", "dineout", "afghan palace", "al khayma", "maison russe", "abdelwahab", "abdel wahab", "emir bey", "madinat jumeirah", "mons hospitality", "atlantis", "daikan", "farsi", "olives and salt", "san wan", "talay", "millennium place", "millennium"]):
         category = "Entertainment"
         subcategory = "Dine-out"
         
@@ -352,7 +354,10 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         
     elif any(x in desc_lower for x in ["internet", "du ", "etisalat", "telecom", "e&"]):
         category = "Utilities"
-        subcategory = "Internet"
+        if "e&" in desc_lower and abs(amt - 50.0) < 0.01:
+            subcategory = "Mobile Recharge"
+        else:
+            subcategory = "Internet"
         
     elif any(x in desc_lower for x in ["recharge"]):
         category = "Utilities"
@@ -363,7 +368,7 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         subcategory = "Cook Salary"
         
     # --- GROOMING ---
-    elif any(x in desc_lower for x in ["haircut", "barber", "salon", "grooming", "beauty bar", "lish beauty"]):
+    elif any(x in desc_lower for x in ["haircut", "barber", "salon", "grooming", "beauty bar", "lish beauty", "clippers"]):
         category = "Grooming"
         subcategory = "Haircut"
         
@@ -405,7 +410,7 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         category = "Travel"
         subcategory = "Misc"
 
-    elif any(x in desc_lower for x in ["7-eleven", "7 eleven", "711", "convenience", "minimart", "8 a huit", "8 à huit", "city cart", "fresh mart"]):
+    elif _MART_RE.search(desc_lower) or any(x in desc_lower for x in ["7-eleven", "7 eleven", "711", "convenience", "minimart", "8 a huit", "8 à huit", "city cart", "fresh mart"]):
         category = "Groceries"
         subcategory = "Convenience"
         

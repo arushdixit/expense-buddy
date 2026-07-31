@@ -117,5 +117,12 @@
     "endDate": "2026-07-18",
     "filename": "Wio statement (2026.06.01-2026.07.18).csv",
     "importedAt": 1784379611156
+  },
+  {
+    "card": "Wio",
+    "startDate": "2026-07-18",
+    "endDate": "2026-07-31",
+    "filename": "Wio statement (2026.07.18-2026.07.31).csv",
+    "importedAt": 1785500000000
   }
 ]

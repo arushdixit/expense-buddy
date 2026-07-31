@@ -211,7 +211,36 @@ interface CoverageViewProps {
   onNavigateToImport?: () => void;
 }
 
+const getExpenseCardForCoverage = (noteText: string, subcatText: string): string | null => {
+  const noteUpper = (noteText || "").toUpperCase();
+  const subcatUpper = (subcatText || "").toUpperCase();
+  if (noteUpper.includes("CARD: ADCB") || noteUpper.includes("ADCB")) return "ADCB";
+  if (noteUpper.includes("CARD: SIB") || noteUpper.includes("SIB")) return "SIB";
+  if (noteUpper.includes("CARD: SHARE") || noteUpper.includes("SHARE")) return "Share";
+  if (noteUpper.includes("CARD: NOON") || noteUpper.includes("NOON")) return "Noon";
+  if (noteUpper.includes("CARD: HSBC") || noteUpper.includes("HSBC")) return "HSBC";
+  if (noteUpper.includes("CARD: WIO") || noteUpper.includes("WIO") || subcatUpper.includes("WIO")) return "Wio";
+
+  if (noteUpper.includes("IMPORTED FROM STATEMENT")) {
+    if (
+      noteUpper.includes("TEMU") || 
+      noteUpper.includes("WEST ZONE") || 
+      noteUpper.includes("NATIONAL TAXI") || 
+      noteUpper.includes("BABEL") || 
+      noteUpper.includes("KAMAT") || 
+      noteUpper.includes("HAPPY FRESH") ||
+      noteUpper.includes("CLIPPERS") ||
+      noteUpper.includes("MILLENNIUM")
+    ) {
+      return "Wio";
+    }
+    return "HSBC";
+  }
+  return null;
+};
+
 const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
+  const { expenses } = useExpenses();
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -269,10 +298,52 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   // String formatting for current month start/end
   const monthStartStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
   const monthEndStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInSelectedMonth).padStart(2, "0")}`;
+  const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
 
-  // Unique card list (combining default CARD_COLORS and any extra cards in records)
+  // Filter valid localStorage records
   const validRecords = Array.isArray(records) ? records.filter((r) => r && typeof r.card === "string") : [];
-  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...validRecords.map((r) => r.card)]));
+
+  // Dynamically derive statement coverage records from loaded expenses if missing from stored records
+  const dynamicExpenseRecords: StatementRecord[] = [];
+  if (Array.isArray(expenses) && expenses.length > 0) {
+    const cardDatesMap = new Map<string, { minDate: string; maxDate: string }>();
+    expenses.forEach((exp) => {
+      if (!exp.date) return;
+      const card = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
+      if (!card) return;
+      const current = cardDatesMap.get(card);
+      if (!current) {
+        cardDatesMap.set(card, { minDate: exp.date, maxDate: exp.date });
+      } else {
+        if (exp.date < current.minDate) current.minDate = exp.date;
+        if (exp.date > current.maxDate) current.maxDate = exp.date;
+      }
+    });
+
+    cardDatesMap.forEach(({ minDate, maxDate }, cardKey) => {
+      // Check if stored records already cover this range
+      const hasStoredRecord = validRecords.some(
+        (r) => r.card === cardKey && r.startDate <= minDate && r.endDate >= maxDate
+      );
+      if (!hasStoredRecord) {
+        dynamicExpenseRecords.push({
+          card: cardKey,
+          startDate: minDate,
+          endDate: maxDate,
+          filename: `${cardKey} Transactions (Live Data)`,
+          importedAt: Date.now(),
+        });
+      }
+    });
+  }
+
+  const combinedRecords = [...validRecords, ...dynamicExpenseRecords];
+  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...combinedRecords.map((r) => r.card)]));
+
+  // Compute total spending across all cards for selected month
+  const totalSpentAllCardsInMonth = expenses
+    .filter((exp) => exp.date && exp.date.startsWith(monthPrefix))
+    .reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   // Compute timeline data for each card in the selected month
   const cardsCoverageData = allCardKeys.map((cardKey) => {
@@ -284,7 +355,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
     }
 
-    const rawCardRecords = validRecords.filter((r) => r.card === cardKey);
+    const rawCardRecords = combinedRecords.filter((r) => r.card === cardKey);
     const uniqueMap = new Map<string, StatementRecord>();
     rawCardRecords.forEach((rec) => {
       const key = rec.filename || `${rec.startDate}_${rec.endDate}`;
@@ -348,6 +419,14 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     // Compute smart next statement date and days remaining info
     const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
 
+    // Compute total spent on this specific card for the selected month
+    const cardExpensesInMonth = expenses.filter((exp) => {
+      const c = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
+      return c === cardKey && exp.date && exp.date.startsWith(monthPrefix);
+    });
+    const totalSpentInMonth = cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const cardTxCount = cardExpensesInMonth.length;
+
     // Smart Status Evaluation:
     // Missing is ONLY declared if statement end date has passed AND no statement for that cycle has been uploaded.
     const statementDueDay = billingInfo.day > daysInSelectedMonth ? daysInSelectedMonth : billingInfo.day;
@@ -384,8 +463,13 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       nextStatementInfo,
       status,
       hasBillingDateArrived,
+      totalSpentInMonth,
+      cardTxCount,
     };
   });
+
+  // Sort horizontal bar chart rows in INCREASING order of statement date (5th on top -> 10th -> 14th -> 15th -> 25th -> End of Month)
+  cardsCoverageData.sort((a, b) => a.billingInfo.day - b.billingInfo.day);
 
   const cardsCoveredCount = cardsCoverageData.filter((c) => c.status === "full").length;
   const cardsAwaitingCount = cardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
@@ -450,8 +534,16 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         </button>
       </motion.div>
 
-      {/* Month Summary Stats Chips */}
-      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg">
+      {/* Month Summary Stats Chips & Spending Overview */}
+      <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg space-y-3">
+        <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            {selectedMonthName} {selectedYear} Overview
+          </span>
+          <Badge className="bg-primary/10 text-primary border border-primary/20 font-mono font-extrabold text-xs px-3 py-1 rounded-full shadow-xs">
+            Total Spent: AED {totalSpentAllCardsInMonth.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Badge>
+        </div>
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-2xl">
             <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Covered</p>
@@ -538,9 +630,9 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
               return (
                 <div key={card.cardKey} className="space-y-2 group">
-                  {/* Row Card Header with Smart Next Statement Info */}
-                  <div className="flex items-center justify-between text-xs flex-wrap gap-1">
-                    <div className="flex items-center gap-2">
+                  {/* Row Card Header with Spent Amount & Smart Next Statement Info */}
+                  <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-md shrink-0"
                         style={{ backgroundColor: card.color }}
@@ -549,6 +641,13 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">
                         ({card.billingInfo.label})
                       </span>
+                      <Badge
+                        variant="secondary"
+                        className="bg-primary/10 text-primary border border-primary/20 font-bold text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs"
+                      >
+                        Spent: AED {card.totalSpentInMonth.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {card.cardTxCount > 0 && <span className="text-[10px] opacity-75">({card.cardTxCount} txs)</span>}
+                      </Badge>
                     </div>
 
                     {/* Smart Status & Next Statement Badge */}

@@ -75,12 +75,28 @@ export const seedStatementRecords = async (): Promise<void> => {
         if (!res.ok) throw new Error("Failed to load seeded coverage data");
         const seeded: StatementRecord[] = await res.json();
 
+        const existing = getStatementRecords();
         const recordMap = new Map<string, StatementRecord>();
+
+        // First populate from seeded JSON
         if (Array.isArray(seeded)) {
             seeded.forEach(r => {
                 if (r && r.card && r.startDate && r.endDate) {
                     const key = `${r.card}_${r.filename || r.endDate}`;
                     recordMap.set(key, r);
+                }
+            });
+        }
+
+        // Merge existing user-uploaded records so they are preserved
+        if (Array.isArray(existing)) {
+            existing.forEach(r => {
+                if (r && r.card && r.startDate && r.endDate) {
+                    const key = `${r.card}_${r.filename || r.endDate}`;
+                    const current = recordMap.get(key);
+                    if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
+                        recordMap.set(key, r);
+                    }
                 }
             });
         }
