@@ -482,12 +482,19 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
     const isTargetStatementCovered = maxCoveredDateStr ? maxCoveredDateStr >= targetDateStr : false;
 
-    let status: "full" | "partial" | "awaiting" | "missing" = "missing";
+    const earliestOverallRecord = sortedAll[sortedAll.length - 1] || null;
+    const earliestCardDateStr = earliestOverallRecord ? earliestOverallRecord.startDate : null;
+    const isBeforeCardExisted = earliestCardDateStr ? monthEndStr < `${earliestCardDateStr.substring(0, 7)}-01` : false;
+
+    let status: "full" | "partial" | "awaiting" | "missing" | "inactive" = "missing";
 
     if (isTargetStatementCovered || totalDaysCoveredInMonth >= daysInSelectedMonth || coveragePercentage >= 95) {
       status = "full";
     } else if (totalDaysCoveredInMonth > 0) {
       status = "partial";
+    } else if (isBeforeCardExisted) {
+      // Card was newly acquired and had no statement history prior to earliest statement date
+      status = "inactive";
     } else if (!hasBillingDateArrived) {
       // Billing cycle is still active / in progress -> Awaiting Statement (NOT MISSING!)
       status = "awaiting";
@@ -725,6 +732,13 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                         </Badge>
                       )}
 
+                      {card.status === "inactive" && (
+                        <Badge variant="outline" className="text-muted-foreground/70 border-muted-foreground/30 rounded-full px-2.5 py-0.5 text-[11px] font-medium flex items-center gap-1">
+                          <Info className="h-3 w-3 shrink-0" />
+                          Card Not Active Yet
+                        </Badge>
+                      )}
+
                       {card.status === "missing" && (
                         <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -742,7 +756,9 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                     {/* Render Coverage Bar Segments */}
                     {card.segments.length === 0 ? (
                       <div className="w-full text-center text-[11px] text-muted-foreground/60 font-medium italic z-10 flex items-center justify-center gap-1.5">
-                        {card.status === "awaiting" ? (
+                        {card.status === "inactive" ? (
+                          <span>Card was not active in {selectedMonthName}</span>
+                        ) : card.status === "awaiting" ? (
                           <>
                             <Clock className="h-3.5 w-3.5 text-blue-500" />
                             <span>Billing cycle in progress — {nextStatementInfo.label}</span>
