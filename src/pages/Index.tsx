@@ -16,7 +16,9 @@ import { StorageWarning } from "@/components/StorageWarning";
 
 // Detect which card an expense belongs to (matching logic in CoverageView)
 const getExpenseCard = (noteText: string, subcatText: string): string | null => {
-  const noteUpper = noteText.toUpperCase();
+  const noteUpper = (noteText || "").toUpperCase();
+  const subcatUpper = (subcatText || "").toUpperCase();
+
   if (noteUpper.includes("CARD: ADCB")) return "ADCB";
   if (noteUpper.includes("CARD: SIB")) return "SIB";
   if (noteUpper.includes("CARD: SHARE")) return "Share";
@@ -24,24 +26,30 @@ const getExpenseCard = (noteText: string, subcatText: string): string | null => 
   if (noteUpper.includes("CARD: HSBC")) return "HSBC";
   if (noteUpper.includes("CARD: WIO")) return "Wio";
 
-  if (noteUpper.includes("ADCB") || noteUpper.includes("TAKEDA") || noteUpper.includes("MBTA") || noteUpper.includes("7-ELEVEN") || noteUpper.includes("ROCKIN BURGERS")) return "ADCB";
-  if (noteUpper.includes("SIB") || noteUpper.includes("DOORDASH") || noteUpper.includes("UBER EATS") || noteUpper.includes("THE LIBERTY HOTEL") || noteUpper.includes("ZARA.COM") || noteUpper.includes("TKD FASHION")) return "SIB";
-  if (noteUpper.includes("SHARE") || noteUpper.includes("URBANCLAP")) return "Share";
-  if (noteUpper.includes("NOON")) return "Noon";
-  if (noteUpper.includes("HSBC")) return "HSBC";
-  if (noteUpper.includes("WIO")) return "Wio";
+  if (subcatUpper.includes("ADCB") || noteUpper.includes("ADCB") || noteUpper.includes("TAKEDA") || noteUpper.includes("MBTA") || noteUpper.includes("7-ELEVEN") || noteUpper.includes("ROCKIN BURGERS")) return "ADCB";
+  if (subcatUpper.includes("SIB") || noteUpper.includes("SIB") || noteUpper.includes("DOORDASH") || noteUpper.includes("UBER EATS") || noteUpper.includes("THE LIBERTY HOTEL") || noteUpper.includes("ZARA.COM") || noteUpper.includes("TKD FASHION")) return "SIB";
+  if (subcatUpper.includes("SHARE") || noteUpper.includes("SHARE") || noteUpper.includes("URBANCLAP")) return "Share";
+  if (subcatUpper.includes("NOON") || noteUpper.includes("NOON") || noteUpper.includes("NOON MINUTES") || noteUpper.includes("NOON FOOD") || noteUpper.includes("NOON ONE")) return "Noon";
+  if (subcatUpper.includes("HSBC") || noteUpper.includes("HSBC")) return "HSBC";
+  if (subcatUpper.includes("WIO") || noteUpper.includes("WIO")) return "Wio";
 
   if (noteUpper.includes("IMPORTED FROM STATEMENT")) {
     if (
       noteUpper.includes("TEMU") || 
       noteUpper.includes("WEST ZONE") || 
       noteUpper.includes("NATIONAL TAXI") || 
-      noteUpper.includes("BABEL DU QLUB") || 
-      noteUpper.includes("KAMAT RESTAURANT") || 
-      noteUpper.includes("PAUL") || 
-      noteUpper.includes("DUBAYPAY RTA") || 
+      noteUpper.includes("BABEL") || 
+      noteUpper.includes("KAMAT") || 
+      noteUpper.includes("HAPPY FRESH") ||
+      noteUpper.includes("CLIPPERS") ||
+      noteUpper.includes("MILLENNIUM") ||
+      noteUpper.includes("CARREFOUR") ||
+      noteUpper.includes("PAUL") ||
       noteUpper.includes("RAJU OMLET") ||
-      subcatText.toUpperCase().includes("WIO")
+      noteUpper.includes("DUBAYPAY RTA") ||
+      noteUpper.includes("DUBAIPAY RTA") ||
+      noteUpper.includes("STA") ||
+      noteUpper.includes("MOHESR")
     ) {
       return "Wio";
     }
