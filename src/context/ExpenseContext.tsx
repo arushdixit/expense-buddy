@@ -139,19 +139,27 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       let localExpenses: LocalExpense[] = [];
       try {
         localExpenses = await syncApi.getAllExpenses();
-        // If IndexedDB has 0 expenses (e.g. user opening app on a new device), seed household expenses!
+        // If IndexedDB has 0 expenses (new device or fresh login), fetch live from Supabase!
         if (localExpenses.length === 0) {
           try {
-            const res = await fetch("/seeded_expenses.json");
-            if (res.ok) {
-              const seeded: LocalExpense[] = await res.json();
-              if (Array.isArray(seeded) && seeded.length > 0) {
-                await db.expenses.bulkPut(seeded);
-                localExpenses = await syncApi.getAllExpenses();
-              }
+            const serverExpenses = await expenseApi.getAll();
+            if (Array.isArray(serverExpenses) && serverExpenses.length > 0) {
+              const toStore: LocalExpense[] = serverExpenses.map(exp => ({
+                id: exp.id,
+                amount: exp.amount,
+                category: exp.category,
+                subcategory: exp.subcategory,
+                date: exp.date,
+                note: exp.note,
+                created_at: exp.created_at || new Date().toISOString(),
+                syncStatus: 'synced' as const,
+                updatedAt: exp.updated_at || Date.now()
+              }));
+              await db.expenses.bulkPut(toStore);
+              localExpenses = await syncApi.getAllExpenses();
             }
-          } catch (seedErr) {
-            console.error("Failed to seed household expenses:", seedErr);
+          } catch (serverErr) {
+            console.error("Failed to fetch expenses from Supabase on fresh device:", serverErr);
           }
         }
       } catch (err) {
