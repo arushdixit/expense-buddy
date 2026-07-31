@@ -236,7 +236,7 @@ export const ImportView: React.FC = () => {
         const minDate = selectedList.reduce((min, tx) => tx.date < min ? tx.date : min, selectedList[0].date);
         const maxDate = selectedList.reduce((max, tx) => tx.date > max ? tx.date : max, selectedList[0].date);
         const card = selectedList[0].card || "HSBC";
-        addStatementRecord(card, minDate, maxDate, uploadedFileName);
+        addStatementRecord(card, minDate, maxDate, uploadedFileName, selectedList);
       }
 
       // Map view categories back to db category ids

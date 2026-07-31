@@ -44,6 +44,7 @@ export class ExpenseDatabase extends Dexie {
     declare expenses_backup: Table<LocalExpense, string>;
     declare subcategories: Table<LocalSubcategory, number>;
     declare customCategories: Table<LocalCategory, string>;
+    declare statementCoverage: Table<any, any>;
     declare syncMeta: Table<SyncMeta, string>;
     private _isInitialized: boolean = false;
     private _isBlocked: boolean = false;
@@ -72,6 +73,16 @@ export class ExpenseDatabase extends Dexie {
             expenses_backup: 'id, category, date, syncStatus, updatedAt',
             subcategories: 'id, category, syncStatus',
             customCategories: 'id, name',
+            syncMeta: 'key',
+        });
+
+        // Version 4: Add statementCoverage table for permanent statement records
+        this.version(4).stores({
+            expenses: 'id, category, date, syncStatus, updatedAt',
+            expenses_backup: 'id, category, date, syncStatus, updatedAt',
+            subcategories: 'id, category, syncStatus',
+            customCategories: 'id, name',
+            statementCoverage: '[card+filename], card, startDate, endDate',
             syncMeta: 'key',
         });
 
