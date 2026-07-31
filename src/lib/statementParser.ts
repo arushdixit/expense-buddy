@@ -15,6 +15,7 @@ export interface ParsedTransaction {
     originalAmount?: number;
     originalCurrency?: string;
     card?: string;
+    statement_date?: string; // The actual statement/billing date from the PDF header (not max tx date)
 }
 
 export interface StatementRecord {
@@ -151,9 +152,12 @@ export const seedStatementRecords = async (): Promise<void> => {
         }
 
         // Merge existing user-uploaded records so they are preserved
+        // Skip any phantom "Synced Data" records that may have been stored previously
         if (Array.isArray(existing)) {
             existing.forEach(r => {
                 if (r && r.card && r.startDate && r.endDate) {
+                    // Skip stale phantom synced data records (they have a specific filename pattern)
+                    if (r.filename && r.filename.includes("Transactions (Synced Data)")) return;
                     const key = `${r.card}_${r.filename || r.endDate}`;
                     const current = recordMap.get(key);
                     if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
@@ -162,6 +166,7 @@ export const seedStatementRecords = async (): Promise<void> => {
                 }
             });
         }
+
 
         const merged = Array.from(recordMap.values());
         localStorage.setItem("statement_coverage", JSON.stringify(merged));

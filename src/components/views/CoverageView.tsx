@@ -200,6 +200,7 @@ const getCardNextStatementInfo = (
 
 interface CoverageSegment {
   record: StatementRecord;
+  allRecords: StatementRecord[]; // All statement records contributing to this merged bar
   startDay: number;
   endDay: number;
   leftPercent: number;
@@ -316,44 +317,11 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const monthEndStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInSelectedMonth).padStart(2, "0")}`;
   const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
 
-  // Filter valid localStorage records
+  // Filter valid localStorage records ONLY — no phantom synthetic records
   const validRecords = Array.isArray(records) ? records.filter((r) => r && typeof r.card === "string") : [];
 
-  // Dynamically derive statement coverage records from loaded expenses if missing from stored records
-  const dynamicExpenseRecords: StatementRecord[] = [];
-  if (Array.isArray(allExpenses) && allExpenses.length > 0) {
-    const cardDatesMap = new Map<string, { minDate: string; maxDate: string }>();
-    allExpenses.forEach((exp) => {
-      if (!exp.date) return;
-      const card = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
-      if (!card) return;
-      const current = cardDatesMap.get(card);
-      if (!current) {
-        cardDatesMap.set(card, { minDate: exp.date, maxDate: exp.date });
-      } else {
-        if (exp.date < current.minDate) current.minDate = exp.date;
-        if (exp.date > current.maxDate) current.maxDate = exp.date;
-      }
-    });
-
-    cardDatesMap.forEach(({ minDate, maxDate }, cardKey) => {
-      // Check if stored records already cover this range
-      const hasStoredRecord = validRecords.some(
-        (r) => r.card === cardKey && r.startDate <= minDate && r.endDate >= maxDate
-      );
-      if (!hasStoredRecord) {
-        dynamicExpenseRecords.push({
-          card: cardKey,
-          startDate: minDate,
-          endDate: maxDate,
-          filename: `${cardKey} Transactions (Synced Data)`,
-          importedAt: Date.now(),
-        });
-      }
-    });
-  }
-
-  const combinedRecords = [...validRecords, ...dynamicExpenseRecords];
+  // Only use real uploaded statement records — no dynamically generated "Synced Data" records
+  const combinedRecords = validRecords;
   const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...combinedRecords.map((r) => r.card)]));
 
   // Compute timeline data for each card in the selected month
@@ -366,6 +334,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
     }
 
+    // Deduplicate card records by filename / date range key
     const rawCardRecords = combinedRecords.filter((r) => r.card === cardKey);
     const uniqueMap = new Map<string, StatementRecord>();
     rawCardRecords.forEach((rec) => {
@@ -380,78 +349,81 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
     const latestOverallRecord = sortedAll[0] || null;
 
-    const rawSegments: CoverageSegment[] = [];
-
-    cardRecords.forEach((rec) => {
-      if (!rec || !rec.startDate || !rec.endDate) return;
-
-      // Check overlap with [monthStartStr, monthEndStr]
-      if (rec.startDate <= monthEndStr && rec.endDate >= monthStartStr) {
-        const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
-        const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
-
-        const startParts = overlapStartStr.split("-");
-        const endParts = overlapEndStr.split("-");
-        if (startParts.length !== 3 || endParts.length !== 3) return;
-
-        const startDay = parseInt(startParts[2], 10);
-        const endDay = parseInt(endParts[2], 10);
-
-        if (!isNaN(startDay) && !isNaN(endDay) && startDay <= endDay && startDay >= 1 && endDay <= daysInSelectedMonth) {
-          const daysCoveredInMonth = endDay - startDay + 1;
-          const leftPercent = ((startDay - 1) / daysInSelectedMonth) * 100;
-          const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
-
-          rawSegments.push({
-            record: rec,
-            startDay,
-            endDay,
-            leftPercent: Math.max(0, Math.min(100, leftPercent)),
-            widthPercent: Math.max(0, Math.min(100, widthPercent)),
-            daysCoveredInMonth,
-          });
-        }
-      }
+    // Find all records that overlap with the selected month
+    const overlappingRecords: StatementRecord[] = cardRecords.filter((rec) => {
+      if (!rec || !rec.startDate || !rec.endDate) return false;
+      return rec.startDate <= monthEndStr && rec.endDate >= monthStartStr;
     });
 
-    // Sort segments by startDay ascending
-    rawSegments.sort((a, b) => a.startDay - b.startDay);
-
-    // Adjust segment positions to prevent visual overlapping between consecutive statement ranges
-    const segments: CoverageSegment[] = rawSegments.map((seg, idx) => {
-      if (idx === 0) return { ...seg };
-      const prevSeg = rawSegments[idx - 1];
-      if (prevSeg.endDay >= seg.startDay) {
-        const adjustedStartDay = prevSeg.endDay;
-        const adjustedDays = Math.max(1, seg.endDay - adjustedStartDay);
-        const leftPercent = (adjustedStartDay / daysInSelectedMonth) * 100;
-        const widthPercent = (adjustedDays / daysInSelectedMonth) * 100;
-        return {
-          ...seg,
-          leftPercent: Math.max(0, Math.min(100, leftPercent)),
-          widthPercent: Math.max(0, Math.min(100 - leftPercent, widthPercent)),
-        };
-      }
-      return { ...seg };
-    });
-
+    // Compute the union of all covered days in this month across ALL overlapping records
     const coveredDaysSet = new Set<number>();
-    rawSegments.forEach((seg) => {
-      for (let d = seg.startDay; d <= seg.endDay; d++) {
-        coveredDaysSet.add(d);
+    overlappingRecords.forEach((rec) => {
+      const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
+      const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
+      const startParts = overlapStartStr.split("-");
+      const endParts = overlapEndStr.split("-");
+      if (startParts.length !== 3 || endParts.length !== 3) return;
+      const startDay = parseInt(startParts[2], 10);
+      const endDay = parseInt(endParts[2], 10);
+      if (!isNaN(startDay) && !isNaN(endDay) && startDay >= 1 && endDay <= daysInSelectedMonth) {
+        for (let d = startDay; d <= endDay; d++) {
+          coveredDaysSet.add(d);
+        }
       }
     });
 
     const totalDaysCoveredInMonth = coveredDaysSet.size;
     const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
 
-    const latestMonthRecord = [...rawSegments].sort((a, b) => b.record.endDate.localeCompare(a.record.endDate))[0]?.record || null;
+    // Build ONE merged segment spanning from earliest covered day to latest covered day
+    // This gives a single clean bar per card regardless of how many statements were uploaded
+    const segments: CoverageSegment[] = [];
+    if (overlappingRecords.length > 0) {
+      let mergedStartDay = daysInSelectedMonth + 1;
+      let mergedEndDay = 0;
+
+      overlappingRecords.forEach((rec) => {
+        const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
+        const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
+        const startParts = overlapStartStr.split("-");
+        const endParts = overlapEndStr.split("-");
+        if (startParts.length !== 3 || endParts.length !== 3) return;
+        const startDay = parseInt(startParts[2], 10);
+        const endDay = parseInt(endParts[2], 10);
+        if (!isNaN(startDay) && !isNaN(endDay) && startDay >= 1 && endDay <= daysInSelectedMonth) {
+          if (startDay < mergedStartDay) mergedStartDay = startDay;
+          if (endDay > mergedEndDay) mergedEndDay = endDay;
+        }
+      });
+
+      if (mergedStartDay <= mergedEndDay) {
+        const daysCoveredInMonth = mergedEndDay - mergedStartDay + 1;
+        const leftPercent = ((mergedStartDay - 1) / daysInSelectedMonth) * 100;
+        const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
+
+        // Use the latest record as the primary record (for display), but store all records
+        const sortedOverlapping = [...overlappingRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
+        segments.push({
+          record: sortedOverlapping[0],
+          allRecords: overlappingRecords, // All contributing statement records for click popup
+          startDay: mergedStartDay,
+          endDay: mergedEndDay,
+          leftPercent: Math.max(0, Math.min(100, leftPercent)),
+          widthPercent: Math.max(0, Math.min(100, widthPercent)),
+          daysCoveredInMonth,
+        });
+      }
+    }
+
+    const latestMonthRecord = overlappingRecords.length > 0
+      ? [...overlappingRecords].sort((a, b) => b.endDate.localeCompare(a.endDate))[0]
+      : null;
     const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
 
     // Compute smart next statement date and days remaining info
     const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
 
-    // Compute total spent on this card for selected month from statements AND live expenses
+    // Compute total spent on this card for selected month — sum ALL real statement records
     let statementSpentInMonth = 0;
     let statementTxCount = 0;
     cardRecords.forEach((rec) => {
@@ -513,6 +485,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       cardTxCount,
     };
   });
+
 
   // Sort horizontal bar chart rows in INCREASING order of statement date (5th on top -> 10th -> 14th -> 15th -> 25th -> End of Month)
   cardsCoverageData.sort((a, b) => a.billingInfo.day - b.billingInfo.day);
@@ -795,6 +768,11 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                       const isTooltipActive = activeTooltipCard === `${card.cardKey}_${idx}`;
                       if (!isTooltipActive) return null;
 
+                      // Sort all contributing records by endDate descending
+                      const sortedRecs = [...(seg.allRecords || [seg.record])].sort((a, b) =>
+                        b.endDate.localeCompare(a.endDate)
+                      );
+
                       return (
                         <motion.div
                           key={`tooltip_${idx}`}
@@ -806,7 +784,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-foreground flex items-center gap-1.5">
                               <FileText className="h-3.5 w-3.5 text-primary" />
-                              {seg.record.filename}
+                              {card.cardKey} — {sortedRecs.length} Statement{sortedRecs.length > 1 ? "s" : ""}
                             </span>
                             <Button
                               variant="ghost"
@@ -818,19 +796,27 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-muted/40 p-2 rounded-xl">
-                            <div>
-                              <p className="text-muted-foreground font-medium">Statement Range</p>
-                              <p className="font-bold text-foreground">
-                                {formatDateShort(seg.record.startDate)} – {formatDateShort(seg.record.endDate)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground font-medium">Covered in {selectedMonthName}</p>
-                              <p className="font-bold text-foreground">
-                                Day {seg.startDay} to Day {seg.endDay} ({seg.daysCoveredInMonth} days)
-                              </p>
-                            </div>
+                          <div className="text-[11px] bg-muted/40 p-2 rounded-xl space-y-1.5">
+                            <p className="text-muted-foreground font-medium">Coverage in {selectedMonthName}: Day {seg.startDay} – Day {seg.endDay} ({seg.daysCoveredInMonth} days)</p>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {sortedRecs.map((rec, recIdx) => (
+                              <div key={recIdx} className="bg-muted/30 border border-border/40 p-2 rounded-xl text-[11px] space-y-0.5">
+                                <p className="font-bold text-foreground truncate flex items-center gap-1">
+                                  <FileText className="h-3 w-3 text-primary shrink-0" />
+                                  {rec.filename || "Uploaded Statement"}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  {formatDateShort(rec.startDate)} → {formatDateShort(rec.endDate)}
+                                </p>
+                                {rec.importedAt && (
+                                  <p className="text-[10px] text-muted-foreground/70">
+                                    Imported: {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </motion.div>
                       );

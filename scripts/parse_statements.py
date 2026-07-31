@@ -994,6 +994,129 @@ def parse_sib_pdf(doc) -> list[dict]:
     return transactions
 
 
+
+# ---------------------------------------------------------------------------
+# Statement date extraction — reads the billing/statement date printed on the
+# PDF header (NOT the last transaction date).
+# ---------------------------------------------------------------------------
+
+# Patterns for statement date extraction
+_STMT_DATE_LABEL_RE = re.compile(
+    r'(?:statement\s*date|billing\s*date|closing\s*date)\s*[|:]?\s*([\d]{1,2}[\s\-/][A-Za-z]{3}[\s\-/][\d]{2,4}|[\d]{2}/[\d]{2}/[\d]{4}|[\d]{2}/[\d]{2}/[\d]{2})',
+    re.IGNORECASE
+)
+_STMT_PERIOD_RE = re.compile(
+    r'Statement\s+Period[:\s]+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})\s+to\s+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})',
+    re.IGNORECASE
+)
+
+
+def _parse_any_date(date_str: str) -> str | None:
+    """Try all known date formats and return YYYY-MM-DD or None."""
+    date_str = date_str.strip()
+    # dd/mm/yyyy or dd/mm/yy
+    if '/' in date_str:
+        parts = date_str.split('/')
+        if len(parts) == 3:
+            return parse_date_b(date_str) if len(parts[2]) == 4 else parse_date_b(
+                f"{parts[0]}/{parts[1]}/20{parts[2]}" if len(parts[2]) == 2 else date_str
+            )
+    # dd Mon yyyy or dd-Mon-yy
+    if any(c.isalpha() for c in date_str):
+        normalized = date_str.replace(' ', '-').replace('/', '-')
+        return parse_date_a(normalized)
+    return None
+
+
+def extract_statement_date(doc, card_type: str) -> str | None:
+    """
+    Extract the statement/billing date printed on the PDF — not the last
+    transaction date. Returns 'YYYY-MM-DD' or None if not found.
+
+    Each bank has a different format:
+      - ADCB:       Header area page 1 has two dates: first = statement date, second = due date
+      - SIB:        "Statement date | DD Mon YYYY" label
+      - Share/Noon: "Statement Date" column in the summary table, value like "15/07/2026"
+      - HSBC:       No explicit label — we look for a table header on page 1 with a date
+    """
+    try:
+        # Get full text of first page only (statement date is always on page 1)
+        first_page = doc[0]
+        page_text = first_page.get_text()
+
+        if card_type == "SIB":
+            # SIB has explicit "Statement date | 14 Jul 2026" label
+            m = re.search(
+                r'Statement\s+date\s*[|]\s*([\d]{1,2}\s+[A-Za-z]{3}\s+[\d]{4})',
+                page_text, re.IGNORECASE
+            )
+            if m:
+                raw = m.group(1).strip()  # e.g. "14 Jul 2026"
+                # Convert "14 Jul 2026" → "14-Jul-2026" → parse_date_a
+                normalized = raw.replace(' ', '-')
+                return parse_date_a(normalized)
+
+        elif card_type in ("Share", "Noon"):
+            # Share/Noon have "Statement Date" as a column header, value in next line
+            # The actual date appears as dd/mm/yyyy in the summary block
+            # e.g. "Statement Date | ... | 15/07/2026 | 09/08/2026 | 0.12"
+            # Find the line containing the date values under the Statement Date column
+            m = _STMT_DATE_LABEL_RE.search(page_text)
+            if m:
+                return _parse_any_date(m.group(1))
+            # Fallback: look for "Statement Period: dd-Mon-yy to dd-Mon-yy" and use end date
+            period_m = _STMT_PERIOD_RE.search(page_text)
+            if period_m:
+                return _parse_any_date(period_m.group(2))
+            # Second fallback: look for dd/mm/yyyy pattern after "Statement Date" label
+            label_idx = page_text.lower().find('statement date')
+            if label_idx != -1:
+                snippet = page_text[label_idx:label_idx + 200]
+                date_m = re.search(r'(\d{2}/\d{2}/\d{4})', snippet)
+                if date_m:
+                    return parse_date_b(date_m.group(1))
+
+        elif card_type == "ADCB":
+            # ADCB page 1: the header block has the card number followed by two dates:
+            # first date = statement date (e.g. 05/07/26), second = due date (e.g. 30/07/26)
+            # We want the FIRST dd/mm/yy or dd/mm/yyyy date that appears after the card number
+            # and before any transaction rows (which start after "PREVIOUS BALANCE OUTSTANDING")
+            header_text = page_text
+            pb_idx = header_text.upper().find('PREVIOUS BALANCE OUTSTANDING')
+            if pb_idx != -1:
+                header_text = header_text[:pb_idx]
+            # Find the first dd/mm/yy or dd/mm/yyyy date in the header
+            date_m = re.search(r'(\d{2}/\d{2}/(?:\d{2}|\d{4}))', header_text)
+            if date_m:
+                raw = date_m.group(1)
+                parts = raw.split('/')
+                if len(parts[2]) == 2:
+                    raw = f"{parts[0]}/{parts[1]}/20{parts[2]}"
+                return parse_date_b(raw)
+
+        elif card_type == "HSBC":
+            # HSBC PDFs don't have a clearly labeled statement date in all versions.
+            # We look for a date in a known position: the header often has lines like
+            # "Statement Date: 10 Jul 2026" or just "10/07/2026" near the top.
+            # Try labeled patterns first:
+            m = _STMT_DATE_LABEL_RE.search(page_text)
+            if m:
+                return _parse_any_date(m.group(1))
+            # Fallback: look for "Statement Date" anywhere in the full doc first page
+            label_idx = page_text.lower().find('statement date')
+            if label_idx != -1:
+                snippet = page_text[label_idx:label_idx + 100]
+                date_m = re.search(r'([\d]{1,2}[\s/\-][A-Za-z]{3}[\s/\-][\d]{2,4}|[\d]{2}/[\d]{2}/[\d]{4})', snippet)
+                if date_m:
+                    return _parse_any_date(date_m.group(1))
+
+    except Exception as e:
+        import sys
+        sys.stderr.write(f"  [STMT DATE] extract_statement_date failed for {card_type}: {e}\n")
+
+    return None
+
+
 def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
     import time
     import sys
@@ -1028,14 +1151,22 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
     if "previous balance outstanding" in doc_text or "xxxxxxxxxxxx4381" in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to ADCB parser...\n")
         txs = parse_adcb_pdf(doc)
+        stmt_date = extract_statement_date(doc, "ADCB")
+        sys.stderr.write(f"  [PDF PARSER] ADCB statement_date extracted: {stmt_date}\n")
         for tx in txs:
             tx["card"] = "ADCB"
+            if stmt_date:
+                tx["statement_date"] = stmt_date
         return txs
     elif "5290" in doc_text and "details" in doc_text and "amount" in doc_text and "emirates nbd" not in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to SIB parser...\n")
         txs = parse_sib_pdf(doc)
+        stmt_date = extract_statement_date(doc, "SIB")
+        sys.stderr.write(f"  [PDF PARSER] SIB statement_date extracted: {stmt_date}\n")
         for tx in txs:
             tx["card"] = "SIB"
+            if stmt_date:
+                tx["statement_date"] = stmt_date
         return txs
     elif "emirates nbd" in doc_text:
         is_noon = "noon" in doc_text
@@ -1046,15 +1177,24 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
             sys.stderr.write("  [PDF PARSER] Routing to ENBD Share parser (using Noon layout)...\n")
             card_name = "Share"
         txs = parse_noon_pdf(doc)
+        stmt_date = extract_statement_date(doc, card_name)
+        sys.stderr.write(f"  [PDF PARSER] {card_name} statement_date extracted: {stmt_date}\n")
         for tx in txs:
             tx["card"] = card_name
+            if stmt_date:
+                tx["statement_date"] = stmt_date
         return txs
     else:
         sys.stderr.write("  [PDF PARSER] Routing to standard HSBC parser...\n")
         txs = parse_hsbc_pdf(doc)
+        stmt_date = extract_statement_date(doc, "HSBC")
+        sys.stderr.write(f"  [PDF PARSER] HSBC statement_date extracted: {stmt_date}\n")
         for tx in txs:
             tx["card"] = "HSBC"
+            if stmt_date:
+                tx["statement_date"] = stmt_date
         return txs
+
 
 
 
