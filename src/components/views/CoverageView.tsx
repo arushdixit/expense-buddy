@@ -214,12 +214,20 @@ interface CoverageViewProps {
 const getExpenseCardForCoverage = (noteText: string, subcatText: string): string | null => {
   const noteUpper = (noteText || "").toUpperCase();
   const subcatUpper = (subcatText || "").toUpperCase();
-  if (noteUpper.includes("CARD: ADCB") || noteUpper.includes("ADCB")) return "ADCB";
-  if (noteUpper.includes("CARD: SIB") || noteUpper.includes("SIB")) return "SIB";
-  if (noteUpper.includes("CARD: SHARE") || noteUpper.includes("SHARE")) return "Share";
-  if (noteUpper.includes("CARD: NOON") || noteUpper.includes("NOON")) return "Noon";
-  if (noteUpper.includes("CARD: HSBC") || noteUpper.includes("HSBC")) return "HSBC";
-  if (noteUpper.includes("CARD: WIO") || noteUpper.includes("WIO") || subcatUpper.includes("WIO")) return "Wio";
+
+  if (noteUpper.includes("CARD: ADCB")) return "ADCB";
+  if (noteUpper.includes("CARD: SIB")) return "SIB";
+  if (noteUpper.includes("CARD: SHARE")) return "Share";
+  if (noteUpper.includes("CARD: NOON")) return "Noon";
+  if (noteUpper.includes("CARD: HSBC")) return "HSBC";
+  if (noteUpper.includes("CARD: WIO")) return "Wio";
+
+  if (noteUpper.includes("ADCB") || noteUpper.includes("TAKEDA") || noteUpper.includes("MBTA") || noteUpper.includes("7-ELEVEN") || noteUpper.includes("ROCKIN BURGERS")) return "ADCB";
+  if (noteUpper.includes("SIB") || noteUpper.includes("DOORDASH") || noteUpper.includes("UBER EATS") || noteUpper.includes("THE LIBERTY HOTEL") || noteUpper.includes("ZARA.COM") || noteUpper.includes("TKD FASHION")) return "SIB";
+  if (noteUpper.includes("SHARE") || noteUpper.includes("URBANCLAP")) return "Share";
+  if (noteUpper.includes("NOON")) return "Noon";
+  if (noteUpper.includes("HSBC")) return "HSBC";
+  if (noteUpper.includes("WIO") || subcatUpper.includes("WIO")) return "Wio";
 
   if (noteUpper.includes("IMPORTED FROM STATEMENT")) {
     if (
@@ -230,7 +238,14 @@ const getExpenseCardForCoverage = (noteText: string, subcatText: string): string
       noteUpper.includes("KAMAT") || 
       noteUpper.includes("HAPPY FRESH") ||
       noteUpper.includes("CLIPPERS") ||
-      noteUpper.includes("MILLENNIUM")
+      noteUpper.includes("MILLENNIUM") ||
+      noteUpper.includes("CARREFOUR") ||
+      noteUpper.includes("PAUL") ||
+      noteUpper.includes("RAJU OMLET") ||
+      noteUpper.includes("DUBAYPAY RTA") ||
+      noteUpper.includes("DUBAIPAY RTA") ||
+      noteUpper.includes("STA") ||
+      noteUpper.includes("MOHESR")
     ) {
       return "Wio";
     }
@@ -240,7 +255,8 @@ const getExpenseCardForCoverage = (noteText: string, subcatText: string): string
 };
 
 const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
-  const { expenses } = useExpenses();
+  const { expenses, backupExpenses } = useExpenses();
+  const allExpenses = [...expenses, ...backupExpenses];
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -305,9 +321,9 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
   // Dynamically derive statement coverage records from loaded expenses if missing from stored records
   const dynamicExpenseRecords: StatementRecord[] = [];
-  if (Array.isArray(expenses) && expenses.length > 0) {
+  if (Array.isArray(allExpenses) && allExpenses.length > 0) {
     const cardDatesMap = new Map<string, { minDate: string; maxDate: string }>();
-    expenses.forEach((exp) => {
+    allExpenses.forEach((exp) => {
       if (!exp.date) return;
       const card = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
       if (!card) return;
@@ -330,7 +346,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
           card: cardKey,
           startDate: minDate,
           endDate: maxDate,
-          filename: `${cardKey} Transactions (Live Data)`,
+          filename: `${cardKey} Transactions (Synced Data)`,
           importedAt: Date.now(),
         });
       }
@@ -447,7 +463,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       }
     });
 
-    const cardExpensesInMonth = expenses.filter((exp) => {
+    const cardExpensesInMonth = allExpenses.filter((exp) => {
       const c = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
       return c === cardKey && exp.date && exp.date.startsWith(monthPrefix);
     });
