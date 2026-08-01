@@ -251,6 +251,7 @@ export const ImportView: React.FC = () => {
           subcategory: tx.subcategory,
           amount: tx.amount,
           date: tx.date,
+          card: tx.card || "HSBC",
           note: `Imported from Statement (${tx.description})${tx.isForeign ? ` | Original: ${tx.originalAmount} ${tx.originalCurrency}` : ''}${tx.card ? ` | Card: ${tx.card}` : ''}`
         };
       });

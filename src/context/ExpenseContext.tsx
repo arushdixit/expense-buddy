@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById, getCategoryIconAndColor } from "@/lib/data";
 import { syncApi } from "@/lib/sync";
-import { subcategoryApi, categoryApi } from "@/lib/api";
+import { subcategoryApi, categoryApi, expenseApi, expenseBackupApi } from "@/lib/api";
 import { db, LocalExpense, LocalSubcategory, generateId } from "@/lib/db";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useSync } from "@/context/SyncContext";
+import { runCardMigration } from "@/lib/migrateCardData";
 
 interface ExpenseContextType {
   expenses: Expense[];
@@ -39,6 +40,7 @@ const localExpenseToExpense = (localExpense: LocalExpense, customCategories: Cat
     amount: localExpense.amount,
     date: localExpense.date,
     note: localExpense.note,
+    card: localExpense.card,
     createdAt: localExpense.created_at,
   };
 };
@@ -54,6 +56,7 @@ const expenseToLocalData = (expense: Omit<Expense, "id">, customCategories: Cate
     subcategory: expense.subcategory,
     date: expense.date,
     note: expense.note,
+    card: expense.card,
   };
 };
 
@@ -116,6 +119,9 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!dbReady) {
         throw new Error('Database failed to initialize');
       }
+
+      // Run card migration backfill safely
+      await runCardMigration();
 
       // 1. Load custom categories from IndexedDB FIRST
       let loadedCategories: Category[] = [];
@@ -326,6 +332,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (updates.amount !== undefined) localUpdates.amount = updates.amount;
       if (updates.date !== undefined) localUpdates.date = updates.date;
       if (updates.note !== undefined) localUpdates.note = updates.note;
+      if (updates.card !== undefined) localUpdates.card = updates.card;
       if (updates.subcategory !== undefined) localUpdates.subcategory = updates.subcategory;
       if (updates.categoryId !== undefined) {
         const category = getCategoryById(updates.categoryId, customCategories);

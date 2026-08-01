@@ -11,6 +11,7 @@ export interface LocalExpense {
     subcategory?: string;
     date: string;
     note?: string;
+    card?: string;
     created_at?: string;
     // Sync metadata
     syncStatus: SyncStatus;
@@ -85,6 +86,17 @@ export class ExpenseDatabase extends Dexie {
             statementCoverage: '[card+filename], card, startDate, endDate',
             syncMeta: 'key',
         });
+
+        // Version 5: Add card property index to expenses & expenses_backup
+        this.version(5).stores({
+            expenses: 'id, category, date, card, syncStatus, updatedAt',
+            expenses_backup: 'id, category, date, card, syncStatus, updatedAt',
+            subcategories: 'id, category, syncStatus',
+            customCategories: 'id, name',
+            statementCoverage: '[card+filename], card, startDate, endDate',
+            syncMeta: 'key',
+        });
+
 
         // Handle database opening errors
         this.on('blocked', () => {

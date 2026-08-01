@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, Edit2, Globe } from "lucide-react";
 import { Expense, getCategoryById, formatCurrency } from "@/lib/data";
+import { classifyExpenseCard } from "@/lib/migrateCardData";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useExpenses } from "@/context/ExpenseContext";
@@ -113,7 +114,14 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
           <Icon className="h-5 w-5" style={{ color: category.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{category.name}</div>
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="font-medium truncate">{category.name}</span>
+            {expense.card && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 shrink-0">
+                {expense.card}
+              </span>
+            )}
+          </div>
           <div className="text-sm text-muted-foreground flex flex-col gap-0.5">
             {expense.subcategory && (
               <span>{expense.subcategory}</span>

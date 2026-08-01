@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Check, ChevronLeft, Calendar, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { categories, Category, formatCurrency, AVAILABLE_ICONS } from "@/lib/data";
+import { categories, Category, formatCurrency, AVAILABLE_ICONS, PAYMENT_CARDS } from "@/lib/data";
+import { CreditCard } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ interface AddExpenseModalProps {
     subcategory?: string;
     amount: number;
     date: string;
+    card?: string;
   };
 }
 
@@ -69,6 +71,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedCard, setSelectedCard] = useState<string>("HSBC");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedColor, setSelectedColor] = useState("hsl(160 75% 40%)");
   const [selectedIcon, setSelectedIcon] = useState("Sparkles");
@@ -82,6 +85,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setSelectedSubcategory(expenseToEdit.subcategory || null);
       setAmount(Math.abs(expenseToEdit.amount).toString());
       setSelectedDate(parseDateFromStorage(expenseToEdit.date));
+      setSelectedCard(expenseToEdit.card || "HSBC");
       setStep(3); // Go straight to amount step for editing
     } else if (isOpen) {
       resetForm();
@@ -111,6 +115,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setNewCategoryName("");
     setAmount("");
     setSelectedDate(new Date());
+    setSelectedCard("HSBC");
     setSelectedColor("hsl(160 75% 40%)");
     setSelectedIcon("Sparkles");
   };
@@ -199,6 +204,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
           date: formatDateForStorage(selectedDate),
+          card: selectedCard,
         });
       } else {
         await addExpense({
@@ -206,6 +212,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           subcategory: selectedSubcategory || undefined,
           amount: finalAmount,
           date: formatDateForStorage(selectedDate),
+          card: selectedCard,
         });
       }
 
@@ -551,13 +558,13 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   </div>
                 </div>
 
-                {/* Date Picker */}
-                <div className="mb-4">
+                {/* Date & Card Picker Row */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start h-10">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {format(selectedDate, "PPP")}
+                      <Button variant="outline" className="w-full justify-start h-10 text-xs px-2.5">
+                        <Calendar className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{format(selectedDate, "MMM dd, yyyy")}</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -570,6 +577,20 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       />
                     </PopoverContent>
                   </Popover>
+
+                  {/* Card Selector */}
+                  <div className="relative">
+                    <select
+                      value={selectedCard}
+                      onChange={(e) => setSelectedCard(e.target.value)}
+                      className="w-full h-10 px-2.5 pl-8 rounded-xl border border-input bg-background text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring appearance-none cursor-pointer"
+                    >
+                      {PAYMENT_CARDS.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <CreditCard className="absolute left-2.5 top-3 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Amount Display */}

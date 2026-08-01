@@ -22,7 +22,8 @@ const areExpensesEqual = (local: LocalExpense, server: ApiExpense): boolean => {
         local.category === server.category &&
         local.subcategory === server.subcategory &&
         local.date === server.date &&
-        local.note === server.note
+        local.note === server.note &&
+        local.card === server.card
     );
 };
 

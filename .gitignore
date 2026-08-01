@@ -51,6 +51,7 @@ statements_combined.json
 
 #backups
 backup/
+backup_*/
 .vercel
 
 # test outputs

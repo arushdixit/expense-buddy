@@ -14,6 +14,7 @@ export interface BaseExpense {
     subcategory?: string | null;
     date: string;
     note?: string | null;
+    card?: string | null;
     created_at?: string;
     updated_at?: number;
 }

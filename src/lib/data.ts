@@ -18,8 +18,13 @@ export interface Expense {
   amount: number;
   date: string;
   note?: string;
+  card?: string;
   createdAt?: string;
 }
+
+export const PAYMENT_CARDS = ["HSBC", "ADCB", "SIB", "Share", "Noon", "Wio", "Bank Transfer", "Other"] as const;
+export type PaymentCard = typeof PAYMENT_CARDS[number];
+
 
 export interface MonthlyData {
   month: string;

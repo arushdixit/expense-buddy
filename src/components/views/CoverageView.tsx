@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from "react";
 import { useExpenses } from "@/context/ExpenseContext";
-import { getStatementRecords, seedStatementRecords, StatementRecord } from "@/lib/statementParser";
+import { StatementRecord, getStatementRecords } from "@/lib/statementParser";
+import { classifyExpenseCard } from "@/lib/migrateCardData";
 import { getMonthName } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -436,14 +437,15 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
     });
 
     const cardExpensesInMonth = allExpenses.filter((exp) => {
-      const c = getExpenseCardForCoverage(exp.note || "", exp.subcategory || "");
+      const c = exp.card || classifyExpenseCard(exp);
       return c === cardKey && exp.date && exp.date.startsWith(monthPrefix);
     });
-    const liveExpenseSpentInMonth = cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const liveExpenseSpentInMonth = Math.round(cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0) * 100) / 100;
     const liveExpenseTxCount = cardExpensesInMonth.length;
 
-    const totalSpentInMonth = statementSpentInMonth > 0 ? statementSpentInMonth : liveExpenseSpentInMonth;
-    const cardTxCount = statementTxCount > 0 ? statementTxCount : liveExpenseTxCount;
+    // Compute personal DB spending for this card (falls back to statement summary if DB has no txs for that month)
+    const totalSpentInMonth = liveExpenseSpentInMonth > 0 ? liveExpenseSpentInMonth : statementSpentInMonth;
+    const cardTxCount = liveExpenseTxCount > 0 ? liveExpenseTxCount : statementTxCount;
 
     // Smart Status Evaluation:
     // Missing is ONLY declared if statement end date has passed AND no statement for that cycle has been uploaded.

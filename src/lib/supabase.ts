@@ -10,9 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Database types (maps to Supabase table schema)
-export interface DbExpense extends Omit<BaseExpense, 'subcategory' | 'note'> {
+export interface DbExpense extends Omit<BaseExpense, 'subcategory' | 'note' | 'card'> {
     subcategory: string | null;
     note: string | null;
+    card: string | null;
     created_at: string;
     updated_at: number;
 }

@@ -31,6 +31,7 @@ export interface ApiExpense {
     subcategory?: string;
     date: string;
     note?: string;
+    card?: string;
     created_at?: string;
     updated_at?: number;
 }
@@ -56,6 +57,7 @@ const toApiExpense = (row: DbExpense): ApiExpense => ({
     subcategory: row.subcategory || undefined,
     date: row.date,
     note: row.note || undefined,
+    card: row.card || undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
 });
@@ -129,6 +131,7 @@ export const expenseApi = {
             subcategory: expense.subcategory || null,
             date: expense.date,
             note: expense.note || null,
+            card: expense.card || null,
             updated_at: Date.now(),
             user_id: user.id,
             household_id: hId
@@ -155,6 +158,7 @@ export const expenseApi = {
         if (updates.subcategory !== undefined) updateData.subcategory = updates.subcategory || null;
         if (updates.date !== undefined) updateData.date = updates.date;
         if (updates.note !== undefined) updateData.note = updates.note || null;
+        if (updates.card !== undefined) updateData.card = updates.card || null;
 
         const { data, error } = await supabase
             .from('expenses')
@@ -200,6 +204,7 @@ export const expenseApi = {
             subcategory: expense.subcategory || null,
             date: expense.date,
             note: expense.note || null,
+            card: expense.card || null,
             updated_at: Date.now(),
             user_id: user.id,
             household_id: expense.household_id || hId
@@ -392,6 +397,7 @@ export const expenseBackupApi = {
             subcategory: expense.subcategory || null,
             date: expense.date,
             note: expense.note || null,
+            card: expense.card || null,
             updated_at: Date.now(),
             user_id: user.id,
             household_id: hId
@@ -417,6 +423,7 @@ export const expenseBackupApi = {
         if (updates.subcategory !== undefined) updateData.subcategory = updates.subcategory;
         if (updates.date !== undefined) updateData.date = updates.date;
         if (updates.note !== undefined) updateData.note = updates.note;
+        if (updates.card !== undefined) updateData.card = updates.card;
 
         const { data, error } = await supabase
             .from('expenses_backup')
@@ -462,6 +469,7 @@ export const expenseBackupApi = {
             subcategory: expense.subcategory || null,
             date: expense.date,
             note: expense.note || null,
+            card: expense.card || null,
             updated_at: Date.now(),
             user_id: user.id,
             household_id: expense.household_id || hId
