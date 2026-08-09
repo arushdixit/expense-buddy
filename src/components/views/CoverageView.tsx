@@ -1,15 +1,14 @@
-import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from "react";
+import React, { useEffect, useState, useMemo, Component, ErrorInfo, ReactNode } from "react";
 import { useExpenses } from "@/context/ExpenseContext";
-import { StatementRecord, getStatementRecords } from "@/lib/statementParser";
-import { classifyExpenseCard } from "@/lib/migrateCardData";
+import { StatementRecord, getStatementRecords, seedStatementRecords } from "@/lib/statementParser";
 import { getMonthName } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ShieldCheck, AlertTriangle, FileText, CheckCircle2,
-  History, Calendar as CalendarIcon, Info, ChevronLeft, ChevronRight,
-  Upload, Layers, RefreshCw, Clock, CalendarDays
+  AlertTriangle, FileText, CheckCircle2,
+  History, Info, ChevronLeft, ChevronRight,
+  RefreshCw, Clock
 } from "lucide-react";
 import { format, getDaysInMonth } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -200,80 +199,43 @@ const getCardNextStatementInfo = (
 };
 
 interface CoverageSegment {
-  record: StatementRecord;
-  allRecords: StatementRecord[]; // All statement records contributing to this merged bar
   startDay: number;
   endDay: number;
   leftPercent: number;
   widthPercent: number;
   daysCoveredInMonth: number;
+  sourceLabel: string;
+  statementRecords: StatementRecord[];
 }
 
 interface CoverageViewProps {
   onNavigateToImport?: () => void;
 }
 
-const getExpenseCardForCoverage = (noteText: string, subcatText: string): string | null => {
-  const noteUpper = (noteText || "").toUpperCase();
-  const subcatUpper = (subcatText || "").toUpperCase();
-
-  if (noteUpper.includes("CARD: ADCB")) return "ADCB";
-  if (noteUpper.includes("CARD: SIB")) return "SIB";
-  if (noteUpper.includes("CARD: SHARE")) return "Share";
-  if (noteUpper.includes("CARD: NOON")) return "Noon";
-  if (noteUpper.includes("CARD: HSBC")) return "HSBC";
-  if (noteUpper.includes("CARD: WIO")) return "Wio";
-
-  if (noteUpper.includes("ADCB") || noteUpper.includes("TAKEDA") || noteUpper.includes("MBTA") || noteUpper.includes("7-ELEVEN") || noteUpper.includes("ROCKIN BURGERS")) return "ADCB";
-  if (noteUpper.includes("SIB") || noteUpper.includes("DOORDASH") || noteUpper.includes("UBER EATS") || noteUpper.includes("THE LIBERTY HOTEL") || noteUpper.includes("ZARA.COM") || noteUpper.includes("TKD FASHION")) return "SIB";
-  if (noteUpper.includes("SHARE") || noteUpper.includes("URBANCLAP")) return "Share";
-  if (noteUpper.includes("NOON")) return "Noon";
-  if (noteUpper.includes("HSBC")) return "HSBC";
-  if (noteUpper.includes("WIO") || subcatUpper.includes("WIO")) return "Wio";
-
-  if (noteUpper.includes("IMPORTED FROM STATEMENT")) {
-    if (
-      noteUpper.includes("TEMU") || 
-      noteUpper.includes("WEST ZONE") || 
-      noteUpper.includes("NATIONAL TAXI") || 
-      noteUpper.includes("BABEL") || 
-      noteUpper.includes("KAMAT") || 
-      noteUpper.includes("HAPPY FRESH") ||
-      noteUpper.includes("CLIPPERS") ||
-      noteUpper.includes("MILLENNIUM") ||
-      noteUpper.includes("CARREFOUR") ||
-      noteUpper.includes("PAUL") ||
-      noteUpper.includes("RAJU OMLET") ||
-      noteUpper.includes("DUBAYPAY RTA") ||
-      noteUpper.includes("DUBAIPAY RTA") ||
-      noteUpper.includes("STA") ||
-      noteUpper.includes("MOHESR")
-    ) {
-      return "Wio";
-    }
-    return "HSBC";
-  }
-  return null;
-};
-
 const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }) => {
   const { expenses, backupExpenses } = useExpenses();
-  const allExpenses = [...expenses, ...backupExpenses];
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
-  const [records, setRecords] = useState<StatementRecord[]>([]);
+  // Statement file records — only used for the "All Ingested Statement Files" log and popup detail
+  const [statementRecords, setStatementRecords] = useState<StatementRecord[]>([]);
   const [activeTooltipCard, setActiveTooltipCard] = useState<string | null>(null);
 
-  // Seed history on mount safely
+  // Load statement file log (seeded + IndexedDB) — for the file log section only
   useEffect(() => {
     const seed = async () => {
       try {
         await seedStatementRecords();
         const recs = getStatementRecords() || [];
-        setRecords(recs);
+        setStatementRecords(recs);
       } catch (e) {
         console.error("Error initializing coverage records:", e);
+        try {
+          const recs = getStatementRecords() || [];
+          setStatementRecords(recs);
+        } catch (_) {
+          setStatementRecords([]);
+        }
       }
     };
     seed();
@@ -313,198 +275,177 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const today = now;
   const todayDay = isCurrentMonth ? today.getDate() : null;
 
-  // String formatting for current month start/end
   const monthStartStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
   const monthEndStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInSelectedMonth).padStart(2, "0")}`;
   const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
 
-  // Filter valid localStorage records ONLY — no phantom synthetic records
-  const validRecords = Array.isArray(records) ? records.filter((r) => r && typeof r.card === "string") : [];
+  // All expenses combined (primary + backup)
+  const allExpenses = useMemo(() => [...expenses, ...backupExpenses], [expenses, backupExpenses]);
 
-  // Only use real uploaded statement records — no dynamically generated "Synced Data" records
-  const combinedRecords = validRecords;
-  const allCardKeys = Array.from(new Set([...Object.keys(CARD_COLORS), ...combinedRecords.map((r) => r.card)]));
+  // ─── PRIMARY DATA SOURCE: Derive coverage from expenses (Supabase-backed) ───
+  // For each card, find all expenses in the selected month and compute min/max date + totals.
+  // This is always accurate because expenses are loaded from IndexedDB (synced from Supabase).
+  const expenseCoverageByCard = useMemo(() => {
+    const map: Record<string, { minDate: string; maxDate: string; totalSpent: number; txCount: number }> = {};
 
-  // Compute timeline data for each card in the selected month
-  const cardsCoverageData = allCardKeys.map((cardKey) => {
-    const color = CARD_COLORS[cardKey] || "#888888";
-    
-    // Dynamic billing info (Wio automatically gets current month's end day, e.g. 31 for July)
-    let billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on 15th` };
-    if (cardKey === "Wio") {
-      billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
+    for (const exp of allExpenses) {
+      const card = exp.card;
+      if (!card || !exp.date || !exp.date.startsWith(monthPrefix)) continue;
+      // Skip Bank Transfer and unknown cards — not tracked in coverage
+      if (card === "Bank Transfer" || !CARD_COLORS[card]) continue;
+
+      const existing = map[card];
+      if (!existing) {
+        map[card] = { minDate: exp.date, maxDate: exp.date, totalSpent: Math.abs(exp.amount || 0), txCount: 1 };
+      } else {
+        if (exp.date < existing.minDate) existing.minDate = exp.date;
+        if (exp.date > existing.maxDate) existing.maxDate = exp.date;
+        existing.totalSpent += Math.abs(exp.amount || 0);
+        existing.txCount += 1;
+      }
     }
 
-    // Deduplicate card records by filename / date range key
-    const rawCardRecords = combinedRecords.filter((r) => r.card === cardKey);
-    const uniqueMap = new Map<string, StatementRecord>();
-    rawCardRecords.forEach((rec) => {
-      const key = rec.filename || `${rec.startDate}_${rec.endDate}`;
-      const existing = uniqueMap.get(key);
-      if (!existing || (rec.importedAt || 0) >= (existing.importedAt || 0)) {
-        uniqueMap.set(key, rec);
+    return map;
+  }, [allExpenses, monthPrefix]);
+
+  // ─── SECONDARY SOURCE: Statement file records (log + popup detail) ───
+  const validStatementRecords = useMemo(() => {
+    if (!Array.isArray(statementRecords)) return [];
+    return statementRecords.filter((r) => r && typeof r.card === "string");
+  }, [statementRecords]);
+
+  const statementRecordsByCard = useMemo(() => {
+    const map: Record<string, StatementRecord[]> = {};
+    for (const rec of validStatementRecords) {
+      if (!map[rec.card]) map[rec.card] = [];
+      map[rec.card].push(rec);
+    }
+    return map;
+  }, [validStatementRecords]);
+
+  // ─── COMPUTE CARDS COVERAGE DATA ───
+  const allCardKeys = Object.keys(CARD_COLORS);
+
+  const cardsCoverageData = useMemo(() => {
+    return allCardKeys.map((cardKey) => {
+      const color = CARD_COLORS[cardKey] || "#888888";
+
+      let billingInfo = CARD_BILLING_DAYS[cardKey] || { day: 15, label: `Statement on 15th` };
+      if (cardKey === "Wio") {
+        billingInfo = { day: daysInSelectedMonth, label: `Monthly (Ends on Day ${daysInSelectedMonth})` };
       }
-    });
-    const cardRecords = Array.from(uniqueMap.values());
 
-    const sortedAll = [...cardRecords].sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
-    const latestOverallRecord = sortedAll[0] || null;
+      // ── Coverage from expenses (PRIMARY) ──
+      const expData = expenseCoverageByCard[cardKey];
 
-    // Find all records that overlap with the selected month
-    const overlappingRecords: StatementRecord[] = cardRecords.filter((rec) => {
-      if (!rec || !rec.startDate || !rec.endDate) return false;
-      return rec.startDate <= monthEndStr && rec.endDate >= monthStartStr;
-    });
-
-    // Compute the union of all covered days in this month across ALL overlapping records
-    const coveredDaysSet = new Set<number>();
-    overlappingRecords.forEach((rec) => {
-      const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
-      const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
-      const startParts = overlapStartStr.split("-");
-      const endParts = overlapEndStr.split("-");
-      if (startParts.length !== 3 || endParts.length !== 3) return;
-      const startDay = parseInt(startParts[2], 10);
-      const endDay = parseInt(endParts[2], 10);
-      if (!isNaN(startDay) && !isNaN(endDay) && startDay >= 1 && endDay <= daysInSelectedMonth) {
-        for (let d = startDay; d <= endDay; d++) {
-          coveredDaysSet.add(d);
-        }
-      }
-    });
-
-    const totalDaysCoveredInMonth = coveredDaysSet.size;
-    const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
-
-    // Build ONE merged segment spanning from earliest covered day to latest covered day
-    // This gives a single clean bar per card regardless of how many statements were uploaded
-    const segments: CoverageSegment[] = [];
-    if (overlappingRecords.length > 0) {
-      let mergedStartDay = daysInSelectedMonth + 1;
-      let mergedEndDay = 0;
-
-      overlappingRecords.forEach((rec) => {
-        const overlapStartStr = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
-        const overlapEndStr = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
-        const startParts = overlapStartStr.split("-");
-        const endParts = overlapEndStr.split("-");
-        if (startParts.length !== 3 || endParts.length !== 3) return;
-        const startDay = parseInt(startParts[2], 10);
-        const endDay = parseInt(endParts[2], 10);
-        if (!isNaN(startDay) && !isNaN(endDay) && startDay >= 1 && endDay <= daysInSelectedMonth) {
-          if (startDay < mergedStartDay) mergedStartDay = startDay;
-          if (endDay > mergedEndDay) mergedEndDay = endDay;
-        }
+      // ── Statement records overlapping this month (SECONDARY — for popup detail) ──
+      const cardStatementRecs = (statementRecordsByCard[cardKey] || []).filter((rec) => {
+        if (!rec || !rec.startDate || !rec.endDate) return false;
+        return rec.startDate <= monthEndStr && rec.endDate >= monthStartStr;
       });
 
-      if (mergedStartDay <= mergedEndDay) {
-        const daysCoveredInMonth = mergedEndDay - mergedStartDay + 1;
-        const leftPercent = ((mergedStartDay - 1) / daysInSelectedMonth) * 100;
-        const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
+      // Determine coverage range: clamp to selected month, merge expense + statement ranges
+      let coverageStartDate: string | null = null;
+      let coverageEndDate: string | null = null;
 
-        // Use the latest record as the primary record (for display), but store all records
-        const sortedOverlapping = [...overlappingRecords].sort((a, b) => b.endDate.localeCompare(a.endDate));
-        segments.push({
-          record: sortedOverlapping[0],
-          allRecords: overlappingRecords, // All contributing statement records for click popup
-          startDay: mergedStartDay,
-          endDay: mergedEndDay,
-          leftPercent: Math.max(0, Math.min(100, leftPercent)),
-          widthPercent: Math.max(0, Math.min(100, widthPercent)),
-          daysCoveredInMonth,
-        });
+      if (expData) {
+        coverageStartDate = expData.minDate < monthStartStr ? monthStartStr : expData.minDate;
+        coverageEndDate = expData.maxDate > monthEndStr ? monthEndStr : expData.maxDate;
       }
-    }
 
-    const latestMonthRecord = overlappingRecords.length > 0
-      ? [...overlappingRecords].sort((a, b) => b.endDate.localeCompare(a.endDate))[0]
-      : null;
-    const maxCoveredDateStr = latestMonthRecord ? latestMonthRecord.endDate : (latestOverallRecord ? latestOverallRecord.endDate : null);
-
-    // Compute smart next statement date and days remaining info
-    const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
-
-    // Compute total spent on this card for selected month — sum ALL real statement records
-    let statementSpentInMonth = 0;
-    let statementTxCount = 0;
-    cardRecords.forEach((rec) => {
-      if (rec.monthlySpending && rec.monthlySpending[monthPrefix] !== undefined) {
-        statementSpentInMonth += rec.monthlySpending[monthPrefix];
+      // Also expand range using statement records (take widest range)
+      for (const rec of cardStatementRecs) {
+        const recStart = rec.startDate < monthStartStr ? monthStartStr : rec.startDate;
+        const recEnd = rec.endDate > monthEndStr ? monthEndStr : rec.endDate;
+        if (!coverageStartDate || recStart < coverageStartDate) coverageStartDate = recStart;
+        if (!coverageEndDate || recEnd > coverageEndDate) coverageEndDate = recEnd;
       }
-      if (rec.monthlyCounts && rec.monthlyCounts[monthPrefix] !== undefined) {
-        statementTxCount += rec.monthlyCounts[monthPrefix];
+
+      const parseDay = (dateStr: string) => parseInt(dateStr.split("-")[2] || "0", 10);
+
+      const segments: CoverageSegment[] = [];
+      let totalDaysCoveredInMonth = 0;
+
+      if (coverageStartDate && coverageEndDate) {
+        const startDay = parseDay(coverageStartDate);
+        const endDay = parseDay(coverageEndDate);
+
+        if (startDay >= 1 && endDay <= daysInSelectedMonth && startDay <= endDay) {
+          const daysCoveredInMonth = endDay - startDay + 1;
+          const leftPercent = ((startDay - 1) / daysInSelectedMonth) * 100;
+          const widthPercent = (daysCoveredInMonth / daysInSelectedMonth) * 100;
+
+          totalDaysCoveredInMonth = daysCoveredInMonth;
+
+          segments.push({
+            startDay,
+            endDay,
+            leftPercent: Math.max(0, Math.min(100, leftPercent)),
+            widthPercent: Math.max(0, Math.min(100, widthPercent)),
+            daysCoveredInMonth,
+            sourceLabel: expData ? `${expData.txCount} transaction${expData.txCount !== 1 ? "s" : ""}` : "Statement records",
+            statementRecords: cardStatementRecs,
+          });
+        }
       }
+
+      const coveragePercentage = Math.round((totalDaysCoveredInMonth / daysInSelectedMonth) * 100);
+
+      // Spending always from expenses (most accurate)
+      const totalSpentInMonth = expData ? Math.round(expData.totalSpent * 100) / 100 : 0;
+      const cardTxCount = expData ? expData.txCount : 0;
+      const maxCoveredDateStr = coverageEndDate;
+
+      // Smart Status
+      const statementDueDay = billingInfo.day > daysInSelectedMonth ? daysInSelectedMonth : billingInfo.day;
+      const isPastSelectedMonth = selectedDate < new Date(today.getFullYear(), today.getMonth(), 1);
+      const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
+
+      let status: "full" | "partial" | "awaiting" | "missing" = "missing";
+
+      if (coveragePercentage >= 95) {
+        status = "full";
+      } else if (totalDaysCoveredInMonth > 0) {
+        status = "partial";
+      } else if (!hasBillingDateArrived) {
+        status = "awaiting";
+      } else {
+        status = "missing";
+      }
+
+      const nextStatementInfo = getCardNextStatementInfo(cardKey, maxCoveredDateStr, today);
+
+      return {
+        cardKey,
+        color,
+        billingInfo,
+        segments,
+        totalDaysCoveredInMonth,
+        coveragePercentage,
+        maxCoveredDateStr,
+        nextStatementInfo,
+        status,
+        hasBillingDateArrived,
+        totalSpentInMonth,
+        cardTxCount,
+      };
     });
+  }, [allCardKeys, expenseCoverageByCard, statementRecordsByCard, daysInSelectedMonth, monthStartStr, monthEndStr, selectedDate, today, isCurrentMonth]);
 
-    const cardExpensesInMonth = allExpenses.filter((exp) => {
-      const c = exp.card || classifyExpenseCard(exp);
-      return c === cardKey && exp.date && exp.date.startsWith(monthPrefix);
-    });
-    const liveExpenseSpentInMonth = Math.round(cardExpensesInMonth.reduce((sum, exp) => sum + (exp.amount || 0), 0) * 100) / 100;
-    const liveExpenseTxCount = cardExpensesInMonth.length;
+  // Sort by billing day ascending
+  const sortedCardsCoverageData = useMemo(() => {
+    return [...cardsCoverageData].sort((a, b) => a.billingInfo.day - b.billingInfo.day);
+  }, [cardsCoverageData]);
 
-    // Compute personal DB spending for this card (falls back to statement summary if DB has no txs for that month)
-    const totalSpentInMonth = liveExpenseSpentInMonth > 0 ? liveExpenseSpentInMonth : statementSpentInMonth;
-    const cardTxCount = liveExpenseTxCount > 0 ? liveExpenseTxCount : statementTxCount;
-
-    // Smart Status Evaluation:
-    // Missing is ONLY declared if statement end date has passed AND no statement for that cycle has been uploaded.
-    const statementDueDay = billingInfo.day > daysInSelectedMonth ? daysInSelectedMonth : billingInfo.day;
-    const targetDateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`;
-
-    const isPastSelectedMonth = selectedDate < new Date(today.getFullYear(), today.getMonth(), 1);
-    const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
-
-    let status: "full" | "partial" | "awaiting" | "missing" = "missing";
-
-    // Status is purely based on % of the month covered:
-    // full = all (or virtually all) days in the month are covered (≥ 95%)
-    // partial = at least 1 day covered but not full
-    // awaiting = 0 days covered and billing date hasn't arrived yet
-    // missing = 0 days covered and billing date has already passed
-    if (coveragePercentage >= 95) {
-      status = "full";
-    } else if (totalDaysCoveredInMonth > 0) {
-      status = "partial";
-    } else if (!hasBillingDateArrived) {
-      status = "awaiting";
-    } else {
-      status = "missing";
-    }
-
-    return {
-      cardKey,
-      color,
-      billingInfo,
-      segments,
-      totalDaysCoveredInMonth,
-      coveragePercentage,
-      latestOverallRecord,
-      latestMonthRecord,
-      maxCoveredDateStr,
-      nextStatementInfo,
-      status,
-      hasBillingDateArrived,
-      totalSpentInMonth,
-      cardTxCount,
-    };
-  });
-
-
-  // Sort horizontal bar chart rows in INCREASING order of statement date (5th on top -> 10th -> 14th -> 15th -> 25th -> End of Month)
-  cardsCoverageData.sort((a, b) => a.billingInfo.day - b.billingInfo.day);
-
-  // Compute grand total spending across all cards for selected month
-  const totalSpentAllCardsInMonth = cardsCoverageData.reduce(
+  const totalSpentAllCardsInMonth = sortedCardsCoverageData.reduce(
     (sum, card) => sum + card.totalSpentInMonth,
     0
   );
 
-  const cardsCoveredCount = cardsCoverageData.filter((c) => c.status === "full").length;
-  const cardsAwaitingCount = cardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
-  const cardsMissingCount = cardsCoverageData.filter((c) => c.status === "missing").length;
+  const cardsCoveredCount = sortedCardsCoverageData.filter((c) => c.status === "full").length;
+  const cardsAwaitingCount = sortedCardsCoverageData.filter((c) => c.status === "awaiting" || c.status === "partial").length;
+  const cardsMissingCount = sortedCardsCoverageData.filter((c) => c.status === "missing").length;
 
-  // Statement billing days: Day 5 (ADCB), Day 10 (HSBC), Day 14 (SIB), Day 15 (Share), Day 25 (Noon), End of Month (Wio)
   const generateTicks = () => {
     const expectedDays = [1, 5, 10, 14, 15, 25, daysInSelectedMonth];
     return Array.from(new Set(expectedDays))
@@ -513,7 +454,6 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   };
   const axisTicks = generateTicks();
 
-  // Tick positioning: Day 1 at 0%, Day N at 100%, intermediate day d at (d / N) * 100%
   const getTickPosition = (day: number) => {
     if (day === 1) return 0;
     if (day === daysInSelectedMonth) return 100;
@@ -533,6 +473,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Statement Coverage View
           </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Powered by your synced expense data</p>
         </div>
       </div>
 
@@ -563,7 +504,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         </button>
       </motion.div>
 
-      {/* Month Summary Stats Chips & Spending Overview */}
+      {/* Month Summary Stats */}
       <Card className="p-4 rounded-3xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-md shadow-lg space-y-3">
         <div className="flex items-center justify-between px-1 flex-wrap gap-2">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -591,7 +532,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
       {/* Main Horizontal Coverage Timeline Chart */}
       <Card className="p-4 sm:p-6 rounded-3xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md shadow-xl space-y-6 overflow-hidden">
-        
+
         {/* Day Axis Line */}
         <div className="relative h-8 w-full bg-muted/30 rounded-xl border border-border/30 px-2 flex items-center">
           {axisTicks.map((day) => {
@@ -630,7 +571,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
         {/* Card Coverage Rows */}
         <div className="space-y-4 relative">
-          {/* Light Dashed Vertical Grid Lines down from expected statement days */}
+          {/* Dashed Vertical Grid Lines */}
           <div className="absolute inset-0 pointer-events-none z-0">
             {axisTicks.map((day) => {
               const posPercent = getTickPosition(day);
@@ -643,7 +584,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               );
             })}
 
-            {/* Vertical Today Line across all rows */}
+            {/* Vertical Today Line */}
             {isCurrentMonth && todayPosition !== null && (
               <div
                 className="absolute top-0 bottom-0 border-l-2 border-primary/70 shadow-[0_0_6px_rgba(87,0,255,0.3)] z-10"
@@ -654,12 +595,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
 
           {/* Card Rows List */}
           <div className="space-y-5 relative z-10">
-            {cardsCoverageData.map((card) => {
+            {sortedCardsCoverageData.map((card) => {
               const { nextStatementInfo } = card;
 
               return (
                 <div key={card.cardKey} className="space-y-2 group">
-                  {/* Row Card Header with Spent Amount & Smart Next Statement Info */}
+                  {/* Row Header */}
                   <div className="flex items-center justify-between text-xs flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
@@ -679,7 +620,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                       </Badge>
                     </div>
 
-                    {/* Smart Status & Next Statement Badge */}
+                    {/* Status Badge */}
                     <div className="flex items-center gap-2">
                       {card.status === "full" && (
                         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
@@ -687,36 +628,31 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           Fully Covered
                         </Badge>
                       )}
-
                       {card.status === "awaiting" && (
                         <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
                           <Clock className="h-3 w-3 shrink-0" />
                           {nextStatementInfo.label}
                         </Badge>
                       )}
-
                       {card.status === "partial" && (
                         <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
                           <Info className="h-3 w-3 shrink-0" />
                           Partial (Up to Day {Math.max(...card.segments.map((s) => s.endDay))})
                         </Badge>
                       )}
-
                       {card.status === "missing" && (
                         <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 rounded-full px-2.5 py-0.5 text-[11px] font-bold flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
-                          {nextStatementInfo.isOverdue ? nextStatementInfo.label : "Statement Missing"}
+                          {nextStatementInfo.isOverdue ? nextStatementInfo.label : "No Data"}
                         </Badge>
                       )}
                     </div>
                   </div>
 
-                  {/* Horizontal Timeline Bar Container */}
+                  {/* Horizontal Timeline Bar */}
                   <div className="relative h-10 w-full bg-muted/30 rounded-2xl border border-border/40 overflow-hidden flex items-center shadow-inner">
-                    {/* Uncovered background pattern */}
                     <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#374151_1px,transparent_1px)] [background-size:8px_8px] opacity-40" />
 
-                    {/* Render Coverage Bar Segments */}
                     {card.segments.length === 0 ? (
                       <div className="w-full text-center text-[11px] text-muted-foreground/60 font-medium italic z-10 flex items-center justify-center gap-1.5">
                         {card.status === "awaiting" ? (
@@ -727,14 +663,14 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                         ) : (
                           <>
                             <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-                            <span>No statement uploaded covering {selectedMonthName}</span>
+                            <span>No transactions found for {selectedMonthName}</span>
                           </>
                         )}
                       </div>
                     ) : (
                       card.segments.map((seg, idx) => (
                         <motion.div
-                          key={`${seg.record.filename}_${idx}`}
+                          key={`${card.cardKey}_seg_${idx}`}
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: 1 }}
                           transition={{ duration: 0.4, delay: idx * 0.1 }}
@@ -748,10 +684,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           }}
                           onClick={() => setActiveTooltipCard(activeTooltipCard === `${card.cardKey}_${idx}` ? null : `${card.cardKey}_${idx}`)}
                         >
-                          {/* Shimmer overlay */}
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity" />
-
-                          {/* Bar Label */}
                           <span className="text-white text-[11px] font-bold truncate whitespace-nowrap drop-shadow-sm z-10 select-none">
                             {seg.widthPercent > 15 ? (
                               `Day ${seg.startDay} – ${seg.endDay} (${seg.daysCoveredInMonth}d)`
@@ -766,20 +699,19 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                     )}
                   </div>
 
-                  {/* Detailed Popup / Card Info when active or hovered */}
+                  {/* Detail Popup */}
                   <AnimatePresence>
                     {card.segments.map((seg, idx) => {
                       const isTooltipActive = activeTooltipCard === `${card.cardKey}_${idx}`;
                       if (!isTooltipActive) return null;
 
-                      // Sort all contributing records by endDate descending
-                      const sortedRecs = [...(seg.allRecords || [seg.record])].sort((a, b) =>
+                      const sortedRecs = [...seg.statementRecords].sort((a, b) =>
                         b.endDate.localeCompare(a.endDate)
                       );
 
                       return (
                         <motion.div
-                          key={`tooltip_${idx}`}
+                          key={`tooltip_${card.cardKey}_${idx}`}
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
@@ -788,7 +720,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-foreground flex items-center gap-1.5">
                               <FileText className="h-3.5 w-3.5 text-primary" />
-                              {card.cardKey} — {sortedRecs.length} Statement{sortedRecs.length > 1 ? "s" : ""}
+                              {card.cardKey} — Day {seg.startDay} to Day {seg.endDay}
                             </span>
                             <Button
                               variant="ghost"
@@ -800,28 +732,34 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
                             </Button>
                           </div>
 
-                          <div className="text-[11px] bg-muted/40 p-2 rounded-xl space-y-1.5">
-                            <p className="text-muted-foreground font-medium">Coverage in {selectedMonthName}: Day {seg.startDay} – Day {seg.endDay} ({seg.daysCoveredInMonth} days)</p>
+                          <div className="text-[11px] bg-muted/40 p-2 rounded-xl space-y-1">
+                            <p className="text-muted-foreground font-medium">
+                              Coverage: Day {seg.startDay} – Day {seg.endDay} ({seg.daysCoveredInMonth} days)
+                            </p>
+                            <p className="text-muted-foreground">Source: {seg.sourceLabel}</p>
                           </div>
 
-                          <div className="space-y-1.5">
-                            {sortedRecs.map((rec, recIdx) => (
-                              <div key={recIdx} className="bg-muted/30 border border-border/40 p-2 rounded-xl text-[11px] space-y-0.5">
-                                <p className="font-bold text-foreground truncate flex items-center gap-1">
-                                  <FileText className="h-3 w-3 text-primary shrink-0" />
-                                  {rec.filename || "Uploaded Statement"}
-                                </p>
-                                <p className="text-muted-foreground">
-                                  {formatDateShort(rec.startDate)} → {formatDateShort(rec.endDate)}
-                                </p>
-                                {rec.importedAt && (
-                                  <p className="text-[10px] text-muted-foreground/70">
-                                    Imported: {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
+                          {sortedRecs.length > 0 && (
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Uploaded Statement Files</p>
+                              {sortedRecs.map((rec, recIdx) => (
+                                <div key={recIdx} className="bg-muted/30 border border-border/40 p-2 rounded-xl text-[11px] space-y-0.5">
+                                  <p className="font-bold text-foreground truncate flex items-center gap-1">
+                                    <FileText className="h-3 w-3 text-primary shrink-0" />
+                                    {rec.filename || "Uploaded Statement"}
                                   </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                                  <p className="text-muted-foreground">
+                                    {formatDateShort(rec.startDate)} → {formatDateShort(rec.endDate)}
+                                  </p>
+                                  {rec.importedAt && (
+                                    <p className="text-[10px] text-muted-foreground/70">
+                                      Imported: {format(new Date(rec.importedAt), "MMM dd, HH:mm")}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}
@@ -852,9 +790,8 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
               <span>Overdue / Missing</span>
             </div>
           </div>
-
           <div className="text-[11px] text-muted-foreground/80 italic">
-            * Tap any colored segment to view source statement details
+            * Tap any colored segment to view details
           </div>
         </div>
       </Card>
@@ -863,16 +800,16 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       <div className="space-y-3">
         <h2 className="text-sm font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 px-1">
           <History className="h-4 w-4" />
-          All Ingested Statement Files ({validRecords.length})
+          All Ingested Statement Files ({validStatementRecords.length})
         </h2>
 
-        {validRecords.length === 0 ? (
+        {validStatementRecords.length === 0 ? (
           <Card className="p-6 text-center text-xs text-muted-foreground border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/20">
             No statement files recorded in the import log yet.
           </Card>
         ) : (
           <div className="space-y-2.5">
-            {[...validRecords]
+            {[...validStatementRecords]
               .sort((a, b) => (b.importedAt || 0) - (a.importedAt || 0))
               .map((rec, idx) => (
                 <div
@@ -916,3 +853,4 @@ export const CoverageView: React.FC<CoverageViewProps> = (props) => {
     </CoverageViewErrorBoundary>
   );
 };
+
