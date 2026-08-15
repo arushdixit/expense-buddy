@@ -1009,6 +1009,16 @@ _STMT_PERIOD_RE = re.compile(
     r'Statement\s+Period[:\s]+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})\s+to\s+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})',
     re.IGNORECASE
 )
+# ADCB: "Statement Period  05/06/26  05/07/26" or "05/06/2026 to 05/07/2026"
+_ADCB_PERIOD_RE = re.compile(
+    r'(\d{2}/\d{2}/(?:\d{2}|\d{4}))\s+(?:to\s+)?(\d{2}/\d{2}/(?:\d{2}|\d{4}))',
+    re.IGNORECASE
+)
+# SIB: "Statement Period | 29 Jun 2026 - 14 Jul 2026" or "from DD Mon YYYY to DD Mon YYYY"
+_SIB_PERIOD_RE = re.compile(
+    r'(?:Statement\s+Period\s*[|:]?\s*|from\s+)([\d]{1,2}\s+[A-Za-z]{3}\s+[\d]{4})\s*[-–to]+\s*([\d]{1,2}\s+[A-Za-z]{3}\s+[\d]{4})',
+    re.IGNORECASE
+)
 
 
 def _parse_any_date(date_str: str) -> str | None:
@@ -1117,6 +1127,76 @@ def extract_statement_date(doc, card_type: str) -> str | None:
     return None
 
 
+def extract_statement_period(doc, card_type: str) -> tuple[str | None, str | None]:
+    """
+    Extract the statement period (start_date, end_date) printed on the PDF.
+    Returns a tuple of ('YYYY-MM-DD', 'YYYY-MM-DD') or (None, None).
+    Prefers explicit 'Statement Period: X to Y' text over inferring from dates.
+    """
+    try:
+        first_page = doc[0]
+        page_text = first_page.get_text()
+
+        # --- Generic: "Statement Period: DD-Mon-YY to DD-Mon-YY" (Share, Noon, sometimes SIB) ---
+        period_m = _STMT_PERIOD_RE.search(page_text)
+        if period_m:
+            start = _parse_any_date(period_m.group(1))
+            end = _parse_any_date(period_m.group(2))
+            if start and end:
+                return (start, end)
+
+        if card_type == "SIB":
+            # SIB: "Statement Period | 29 Jun 2026 - 14 Jul 2026"
+            sib_m = _SIB_PERIOD_RE.search(page_text)
+            if sib_m:
+                start = _parse_any_date(sib_m.group(1).strip().replace(' ', '-'))
+                end = _parse_any_date(sib_m.group(2).strip().replace(' ', '-'))
+                if start and end:
+                    return (start, end)
+            # Fallback: end-only from extract_statement_date
+            end = extract_statement_date(doc, "SIB")
+            return (None, end)
+
+        elif card_type == "ADCB":
+            # ADCB header: find two dd/mm/yy(yy) dates before "PREVIOUS BALANCE OUTSTANDING"
+            # First = statement date, second = due date — NOT a period start.
+            # Try to find a period pattern like "05/06/26  05/07/26" (back-to-back dates)
+            header_text = page_text
+            pb_idx = header_text.upper().find('PREVIOUS BALANCE OUTSTANDING')
+            if pb_idx != -1:
+                header_text = header_text[:pb_idx]
+            adcb_m = _ADCB_PERIOD_RE.search(header_text)
+            if adcb_m:
+                d1_raw, d2_raw = adcb_m.group(1), adcb_m.group(2)
+                def _fix_yy(raw: str) -> str:
+                    parts = raw.split('/')
+                    if len(parts) == 3 and len(parts[2]) == 2:
+                        return f"{parts[0]}/{parts[1]}/20{parts[2]}"
+                    return raw
+                d1 = parse_date_b(_fix_yy(d1_raw))
+                d2 = parse_date_b(_fix_yy(d2_raw))
+                if d1 and d2 and d1 < d2:
+                    return (d1, d2)  # earlier = period start, later = statement date
+            # Fallback: end-only
+            end = extract_statement_date(doc, "ADCB")
+            return (None, end)
+
+        elif card_type in ("Share", "Noon"):
+            # Already handled by _STMT_PERIOD_RE above; fallback to end-only
+            end = extract_statement_date(doc, card_type)
+            return (None, end)
+
+        elif card_type == "HSBC":
+            end = extract_statement_date(doc, "HSBC")
+            return (None, end)
+
+    except Exception as e:
+        import sys
+        sys.stderr.write(f"  [STMT PERIOD] extract_statement_period failed for {card_type}: {e}\n")
+
+    return (None, None)
+
+
 def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
     import time
     import sys
@@ -1129,8 +1209,9 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
         passwords = []
         if password:
             passwords.append(password)
-        if "14561900" not in passwords:
-            passwords.append("14561900")
+        for default_pw in ["14561900", "010194924180"]:
+            if default_pw not in passwords:
+                passwords.append(default_pw)
         
         authenticated = False
         for pw in passwords:
@@ -1151,22 +1232,26 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
     if "previous balance outstanding" in doc_text or "xxxxxxxxxxxx4381" in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to ADCB parser...\n")
         txs = parse_adcb_pdf(doc)
-        stmt_date = extract_statement_date(doc, "ADCB")
-        sys.stderr.write(f"  [PDF PARSER] ADCB statement_date extracted: {stmt_date}\n")
+        stmt_start, stmt_end = extract_statement_period(doc, "ADCB")
+        sys.stderr.write(f"  [PDF PARSER] ADCB statement_period: {stmt_start} → {stmt_end}\n")
         for tx in txs:
             tx["card"] = "ADCB"
-            if stmt_date:
-                tx["statement_date"] = stmt_date
+            if stmt_end:
+                tx["statement_date"] = stmt_end
+            if stmt_start:
+                tx["statement_start_date"] = stmt_start
         return txs
     elif "5290" in doc_text and "details" in doc_text and "amount" in doc_text and "emirates nbd" not in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to SIB parser...\n")
         txs = parse_sib_pdf(doc)
-        stmt_date = extract_statement_date(doc, "SIB")
-        sys.stderr.write(f"  [PDF PARSER] SIB statement_date extracted: {stmt_date}\n")
+        stmt_start, stmt_end = extract_statement_period(doc, "SIB")
+        sys.stderr.write(f"  [PDF PARSER] SIB statement_period: {stmt_start} → {stmt_end}\n")
         for tx in txs:
             tx["card"] = "SIB"
-            if stmt_date:
-                tx["statement_date"] = stmt_date
+            if stmt_end:
+                tx["statement_date"] = stmt_end
+            if stmt_start:
+                tx["statement_start_date"] = stmt_start
         return txs
     elif "emirates nbd" in doc_text:
         is_noon = "noon" in doc_text
@@ -1177,22 +1262,26 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
             sys.stderr.write("  [PDF PARSER] Routing to ENBD Share parser (using Noon layout)...\n")
             card_name = "Share"
         txs = parse_noon_pdf(doc)
-        stmt_date = extract_statement_date(doc, card_name)
-        sys.stderr.write(f"  [PDF PARSER] {card_name} statement_date extracted: {stmt_date}\n")
+        stmt_start, stmt_end = extract_statement_period(doc, card_name)
+        sys.stderr.write(f"  [PDF PARSER] {card_name} statement_period: {stmt_start} → {stmt_end}\n")
         for tx in txs:
             tx["card"] = card_name
-            if stmt_date:
-                tx["statement_date"] = stmt_date
+            if stmt_end:
+                tx["statement_date"] = stmt_end
+            if stmt_start:
+                tx["statement_start_date"] = stmt_start
         return txs
     else:
         sys.stderr.write("  [PDF PARSER] Routing to standard HSBC parser...\n")
         txs = parse_hsbc_pdf(doc)
-        stmt_date = extract_statement_date(doc, "HSBC")
-        sys.stderr.write(f"  [PDF PARSER] HSBC statement_date extracted: {stmt_date}\n")
+        stmt_start, stmt_end = extract_statement_period(doc, "HSBC")
+        sys.stderr.write(f"  [PDF PARSER] HSBC statement_period: {stmt_start} → {stmt_end}\n")
         for tx in txs:
             tx["card"] = "HSBC"
-            if stmt_date:
-                tx["statement_date"] = stmt_date
+            if stmt_end:
+                tx["statement_date"] = stmt_end
+            if stmt_start:
+                tx["statement_start_date"] = stmt_start
         return txs
 
 

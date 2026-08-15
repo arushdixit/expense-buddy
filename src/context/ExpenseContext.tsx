@@ -178,6 +178,30 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       let localBackupExpenses: LocalExpense[] = [];
       try {
         localBackupExpenses = await syncApi.getAllBackupExpenses();
+        // If IndexedDB has 0 backup expenses (new device or fresh login), fetch live from Supabase!
+        if (localBackupExpenses.length === 0) {
+          try {
+            const serverBackupExpenses = await expenseBackupApi.getAll();
+            if (Array.isArray(serverBackupExpenses) && serverBackupExpenses.length > 0) {
+              const toStore: LocalExpense[] = serverBackupExpenses.map(exp => ({
+                id: exp.id,
+                amount: exp.amount,
+                category: exp.category,
+                subcategory: exp.subcategory,
+                date: exp.date,
+                note: exp.note,
+                card: exp.card,
+                created_at: exp.created_at || new Date().toISOString(),
+                syncStatus: 'synced' as const,
+                updatedAt: exp.updated_at || Date.now()
+              }));
+              await db.expenses_backup.bulkPut(toStore);
+              localBackupExpenses = await syncApi.getAllBackupExpenses();
+            }
+          } catch (serverErr) {
+            console.error("Failed to fetch backup expenses from Supabase on fresh device:", serverErr);
+          }
+        }
       } catch (err) {
         console.error('Dexie Error in loadData (backup expenses):', err);
       }
@@ -407,6 +431,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
           subcategory: backup.subcategory,
           date: backup.date,
           note: backup.note,
+          card: backup.card,
         };
         const createdExpense = await syncApi.createExpense(localData);
         const mappedExpense = localExpenseToExpense(createdExpense, customCategories);

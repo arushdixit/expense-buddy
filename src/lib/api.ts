@@ -495,6 +495,54 @@ export const expenseBackupApi = {
     },
 };
 
+// ----- Statement Coverage API -----
+
+export interface ApiStatementRecord {
+    card: string;
+    statement_start: string; // YYYY-MM-DD — from PDF, actual period start
+    statement_end: string;   // YYYY-MM-DD — from PDF, actual period end / statement date
+    filename: string;
+    imported_at: number;     // Unix ms timestamp
+}
+
+export const statementCoverageApi = {
+    async getAll(): Promise<ApiStatementRecord[]> {
+        const { data, error } = await supabase
+            .from('statement_coverage')
+            .select('card, statement_start, statement_end, filename, imported_at')
+            .order('imported_at', { ascending: false });
+
+        if (error) throw new Error(`Failed to fetch statement coverage: ${error.message}`);
+        return data || [];
+    },
+
+    async upsert(record: ApiStatementRecord): Promise<void> {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('Authentication required');
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('household_id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        const { error } = await supabase
+            .from('statement_coverage')
+            .upsert({
+                card: record.card,
+                statement_start: record.statement_start,
+                statement_end: record.statement_end,
+                filename: record.filename,
+                imported_at: record.imported_at,
+                user_id: user.id,
+                household_id: profile?.household_id || null,
+            }, { onConflict: 'household_id,card,filename' });
+
+        if (error) throw new Error(`Failed to upsert statement coverage: ${error.message}`);
+    },
+};
+
 // ----- Health Check -----
 
 export const healthCheck = async (): Promise<boolean> => true;
+

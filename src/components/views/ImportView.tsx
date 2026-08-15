@@ -233,13 +233,15 @@ export const ImportView: React.FC = () => {
 
     try {
       if (selectedList.length > 0) {
-        const minDate = selectedList.reduce((min, tx) => tx.date < min ? tx.date : min, selectedList[0].date);
-        const maxTxDate = selectedList.reduce((max, tx) => tx.date > max ? tx.date : max, selectedList[0].date);
-        // Use the actual statement date from the PDF header if available, otherwise fall back to max transaction date
+        const minTxDate = selectedList.reduce((min, tx) => tx.date < min ? tx.date : min, selectedList[0].date);
+        // Use actual statement period dates from the PDF if the parser extracted them.
+        // Fall back to min/max transaction dates only if not available.
+        const statementStart = selectedList[0].statement_start_date || minTxDate;
         const statementDate = selectedList[0].statement_date || null;
+        const maxTxDate = selectedList.reduce((max, tx) => tx.date > max ? tx.date : max, selectedList[0].date);
         const endDate = statementDate || maxTxDate;
         const card = selectedList[0].card || "HSBC";
-        addStatementRecord(card, minDate, endDate, uploadedFileName, selectedList);
+        addStatementRecord(card, statementStart, endDate, uploadedFileName, selectedList);
       }
 
 

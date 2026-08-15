@@ -1,5 +1,6 @@
 import { db, LocalExpense, LocalSubcategory, LocalCategory, now, setLastSyncTime, getLastSyncTime, getPendingCount, generateId } from './db';
 import { ApiExpense, ApiSubcategory, ApiCategory, expenseApi, expenseBackupApi, subcategoryApi, categoryApi, healthCheck } from './api';
+import { syncStatementRecordsFromServer } from './statementParser';
 
 // Connection status - centralized in SyncContext, this is just a fallback
 export const getIsOnline = () => navigator.onLine;
@@ -197,6 +198,14 @@ export async function syncWithServer(householdId?: string | null): Promise<SyncR
                 color: cat.color
             }))
         );
+
+        // 6. Sync statement coverage records (push happened at upload; pull here to cross-sync)
+        try {
+            await syncStatementRecordsFromServer();
+        } catch (err) {
+            // Non-fatal: coverage display degrades gracefully if this fails
+            console.error('Failed to sync statement coverage records:', err);
+        }
 
         await setLastSyncTime(now());
         result.success = true;

@@ -132,5 +132,54 @@
     "monthlyCounts": {
       "2026-07": 18
     }
+  },
+  {
+    "card": "ADCB",
+    "startDate": "2026-07-06",
+    "endDate": "2026-08-05",
+    "filename": "2026-08-05_ADCB_Statement.pdf",
+    "importedAt": 1785500000000,
+    "totalAmount": 24105.19,
+    "transactionCount": 8,
+    "monthlySpending": {
+      "2026-07": 24105.19
+    },
+    "monthlyCounts": {
+      "2026-07": 8
+    }
+  },
+  {
+    "card": "SIB",
+    "startDate": "2026-07-14",
+    "endDate": "2026-08-14",
+    "filename": "2026-08-14_SIB_Statement.pdf",
+    "importedAt": 1785500000000,
+    "totalAmount": 8783.58,
+    "transactionCount": 49,
+    "monthlySpending": {
+      "2026-07": 4120.35,
+      "2026-08": 4663.23
+    },
+    "monthlyCounts": {
+      "2026-07": 24,
+      "2026-08": 25
+    }
+  },
+  {
+    "card": "HSBC",
+    "startDate": "2026-07-11",
+    "endDate": "2026-08-10",
+    "filename": "2026-08-10_HSBC_Statement.pdf",
+    "importedAt": 1785500000000,
+    "totalAmount": 1056.40,
+    "transactionCount": 23,
+    "monthlySpending": {
+      "2026-07": 981.40,
+      "2026-08": 75.00
+    },
+    "monthlyCounts": {
+      "2026-07": 21,
+      "2026-08": 2
+    }
   }
 ]
