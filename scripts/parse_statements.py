@@ -935,6 +935,21 @@ def parse_adcb_pdf(doc) -> list[dict]:
 
 def parse_sib_pdf(doc) -> list[dict]:
     transactions = []
+    
+    # Try to find statement date & year from page 1 for DD/MM dates
+    stmt_year = 2026
+    stmt_month = 7
+    try:
+        p1_text = doc[0].get_text()
+        date_m = re.search(r'(\d{1,2}/[A-Za-z]{3}/(\d{4}))', p1_text)
+        if date_m:
+            stmt_year = int(date_m.group(2))
+            parsed_m = parse_date_a(date_m.group(1).replace('/', '-'))
+            if parsed_m:
+                stmt_month = int(parsed_m.split('-')[1])
+    except Exception:
+        pass
+
     for page_idx in range(len(doc)):
         page = doc[page_idx]
         blocks = page.get_text("blocks")
@@ -942,6 +957,55 @@ def parse_sib_pdf(doc) -> list[dict]:
         for b in blocks:
             x0, y0, x1, y1, text, block_no, block_type = b
             lines = [l.strip() for l in text.split('\n') if l.strip()]
+            
+            # --- Format 1: New SIB layout (dd/mm, dd/mm, description, curr, [orig_amt], billed_amt) ---
+            if len(lines) >= 5 and re.match(r'^\d{2}/\d{2}$', lines[0]) and re.match(r'^\d{2}/\d{2}$', lines[1]):
+                tx_d_str = lines[0] # e.g. '29/06'
+                desc = lines[2]
+                curr = lines[3].upper()
+                
+                amt_str = lines[-1]
+                orig_amt_str = lines[-2] if len(lines) >= 6 else amt_str
+                
+                try:
+                    billed_val = float(amt_str.replace(',', ''))
+                    orig_val = float(orig_amt_str.replace(',', ''))
+                    
+                    is_refund = billed_val > 0
+                    amt_val = abs(billed_val)
+                    orig_amt_val = abs(orig_val)
+                    
+                    d_day, d_month = tx_d_str.split('/')
+                    tx_year = stmt_year
+                    if int(d_month) == 12 and stmt_month == 1:
+                        tx_year = stmt_year - 1
+                    std_date = f'{tx_year}-{d_month}-{d_day}'
+                    
+                    cleaned_desc = _clean_description(desc)
+                    if not cleaned_desc or cleaned_desc.upper().startswith("TO ") or any(kw in cleaned_desc.upper() for kw in _SKIP_KEYWORDS):
+                        continue
+                    
+                    is_foreign = (curr != "AED")
+                    cat, sub = categorize(cleaned_desc, amt_val, is_refund, is_foreign)
+                    tx = {
+                        "date": std_date,
+                        "description": cleaned_desc,
+                        "amount": amt_val,
+                        "category": cat,
+                        "subcategory": sub,
+                        "isRefund": is_refund,
+                        "page": page_idx + 1,
+                    }
+                    if is_foreign:
+                        tx["isForeign"] = True
+                        tx["originalAmount"] = orig_amt_val
+                        tx["originalCurrency"] = curr
+                    transactions.append(tx)
+                except Exception:
+                    continue
+                continue
+
+            # --- Format 2: Old SIB layout ("14 Aug 2026", description, "AED -27.85") ---
             if len(lines) >= 3:
                 date_match = _STYLE_C_DATE_RE.match(lines[0])
                 if date_match:
@@ -1055,14 +1119,17 @@ def extract_statement_date(doc, card_type: str) -> str | None:
         page_text = first_page.get_text()
 
         if card_type == "SIB":
-            # SIB has explicit "Statement date | 14 Jul 2026" label
+            # Format 1: New layout date like "14/JUL/2026"
+            m_new = re.search(r'(\d{1,2}/[A-Za-z]{3}/\d{4})', page_text)
+            if m_new:
+                return parse_date_a(m_new.group(1).replace('/', '-'))
+            # Format 2: Old layout explicit "Statement date | 14 Jul 2026" label
             m = re.search(
                 r'Statement\s+date\s*[|]\s*([\d]{1,2}\s+[A-Za-z]{3}\s+[\d]{4})',
                 page_text, re.IGNORECASE
             )
             if m:
-                raw = m.group(1).strip()  # e.g. "14 Jul 2026"
-                # Convert "14 Jul 2026" → "14-Jul-2026" → parse_date_a
+                raw = m.group(1).strip()
                 normalized = raw.replace(' ', '-')
                 return parse_date_a(normalized)
 
@@ -1209,7 +1276,7 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
         passwords = []
         if password:
             passwords.append(password)
-        for default_pw in ["14561900", "010194924180"]:
+        for default_pw in ["14561900", "010194924180", "010194"]:
             if default_pw not in passwords:
                 passwords.append(default_pw)
         
@@ -1241,7 +1308,7 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
             if stmt_start:
                 tx["statement_start_date"] = stmt_start
         return txs
-    elif "5290" in doc_text and "details" in doc_text and "amount" in doc_text and "emirates nbd" not in doc_text:
+    elif ("5290" in doc_text or "matajer" in doc_text) and "emirates nbd" not in doc_text and "previous balance outstanding" not in doc_text:
         sys.stderr.write("  [PDF PARSER] Routing to SIB parser...\n")
         txs = parse_sib_pdf(doc)
         stmt_start, stmt_end = extract_statement_period(doc, "SIB")
