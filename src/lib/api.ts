@@ -517,14 +517,22 @@ export const statementCoverageApi = {
     },
 
     async upsert(record: ApiStatementRecord): Promise<void> {
-        const user = await getCurrentUser();
-        if (!user) throw new Error('Authentication required');
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('household_id')
-            .eq('id', user.id)
-            .maybeSingle();
+        let userId: string | null = null;
+        let householdId: string | null = null;
+        try {
+            const user = await getCurrentUser();
+            if (user) {
+                userId = user.id;
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('household_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                householdId = profile?.household_id || null;
+            }
+        } catch {
+            // Non-fatal
+        }
 
         const { error } = await supabase
             .from('statement_coverage')
@@ -534,8 +542,8 @@ export const statementCoverageApi = {
                 statement_end: record.statement_end,
                 filename: record.filename,
                 imported_at: record.imported_at,
-                user_id: user.id,
-                household_id: profile?.household_id || null,
+                user_id: userId,
+                household_id: householdId,
             }, { onConflict: 'household_id,card,filename' });
 
         if (error) throw new Error(`Failed to upsert statement coverage: ${error.message}`);

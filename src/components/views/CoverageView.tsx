@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, Component, ErrorInfo, ReactNode } from "react";
 import { useExpenses } from "@/context/ExpenseContext";
-import { StatementRecord, getStatementRecords, seedStatementRecords } from "@/lib/statementParser";
+import { StatementRecord, getStatementRecords, seedStatementRecords, syncStatementRecordsFromServer } from "@/lib/statementParser";
 import { getMonthName } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -221,13 +221,19 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
   const [statementRecords, setStatementRecords] = useState<StatementRecord[]>([]);
   const [activeTooltipCard, setActiveTooltipCard] = useState<string | null>(null);
 
-  // Load statement file log (seeded + IndexedDB) — for the file log section only
+  // Load statement file log from IndexedDB / LocalStorage & sync with Supabase
   useEffect(() => {
-    const seed = async () => {
+    const loadCoverage = async () => {
       try {
-        await seedStatementRecords();
-        const recs = getStatementRecords() || [];
-        setStatementRecords(recs);
+        const cached = getStatementRecords() || [];
+        if (cached.length > 0) {
+          setStatementRecords(cached);
+        }
+
+        // Fetch latest statement coverage records from Supabase
+        await syncStatementRecordsFromServer();
+        const freshRecs = getStatementRecords() || [];
+        setStatementRecords(freshRecs);
       } catch (e) {
         console.error("Error initializing coverage records:", e);
         try {
@@ -238,7 +244,7 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
         }
       }
     };
-    seed();
+    loadCoverage();
   }, []);
 
   const goToPreviousMonth = () => {
@@ -400,10 +406,12 @@ const CoverageViewContent: React.FC<CoverageViewProps> = ({ onNavigateToImport }
       const statementDueDay = billingInfo.day > daysInSelectedMonth ? daysInSelectedMonth : billingInfo.day;
       const isPastSelectedMonth = selectedDate < new Date(today.getFullYear(), today.getMonth(), 1);
       const hasBillingDateArrived = isPastSelectedMonth || (isCurrentMonth && today.getDate() >= statementDueDay);
+      const currentCycleDateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(statementDueDay).padStart(2, "0")}`;
+      const isCoveredUpToStatementDate = isCurrentMonth && maxCoveredDateStr ? maxCoveredDateStr >= currentCycleDateStr : false;
 
       let status: "full" | "partial" | "awaiting" | "missing" = "missing";
 
-      if (coveragePercentage >= 95) {
+      if (coveragePercentage >= 95 || isCoveredUpToStatementDate) {
         status = "full";
       } else if (totalDaysCoveredInMonth > 0) {
         status = "partial";

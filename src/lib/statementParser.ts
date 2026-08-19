@@ -124,94 +124,15 @@ export const addStatementRecord = (
     }
 };
 
-// Bidirectional sync of statement coverage records with Supabase.
-// 1. Pushes all existing local records UP (handles records created before this feature existed).
-// 2. Pulls all server records DOWN and merges them into localStorage + IndexedDB.
-// Upsert is idempotent so safe to call on every sync.
+// Bidirectional sync of statement coverage records with Supabase (Single Source of Truth).
+// 1. Pulls all server records from Supabase and merges them into IndexedDB + localStorage.
+// 2. Pushes any local-only records UP to Supabase (if created offline or locally).
 export const syncStatementRecordsFromServer = async (): Promise<void> => {
     try {
-        // --- Step 1: Push all local records up to Supabase ---
         const localRecords = getStatementRecords();
-        const seededFilenames = new Set<string>();
-        try {
-            const res = await fetch("/seeded_coverage.json");
-            if (res.ok) {
-                const seeded: StatementRecord[] = await res.json();
-                seeded.forEach(r => { if (r?.filename) seededFilenames.add(r.filename); });
-            }
-        } catch { /* non-fatal */ }
-
-        for (const r of localRecords) {
-            if (!r?.card || !r?.startDate || !r?.endDate) continue;
-            // Skip seeded records — they are not user-uploaded data
-            if (r.filename && seededFilenames.has(r.filename)) continue;
-            statementCoverageApi.upsert({
-                card: r.card,
-                statement_start: r.startDate,
-                statement_end: r.endDate,
-                filename: r.filename || "Uploaded Statement",
-                imported_at: r.importedAt || Date.now(),
-            }).catch(() => {}); // fire-and-forget, non-fatal
-        }
-
-        // --- Step 2: Pull all server records and merge locally ---
-        const serverRecords = await statementCoverageApi.getAll();
-        if (!Array.isArray(serverRecords) || serverRecords.length === 0) return;
-
         const recordMap = new Map<string, StatementRecord>();
-        localRecords.forEach(r => {
-            if (r?.card && r?.startDate && r?.endDate) {
-                recordMap.set(`${r.card}_${r.filename || r.endDate}`, r);
-            }
-        });
 
-        for (const sr of serverRecords) {
-            const key = `${sr.card}_${sr.filename}`;
-            const current = recordMap.get(key);
-            const asLocal: StatementRecord = {
-                card: sr.card,
-                startDate: sr.statement_start,
-                endDate: sr.statement_end,
-                filename: sr.filename,
-                importedAt: sr.imported_at,
-            };
-            if (!current || sr.imported_at >= (current.importedAt || 0)) {
-                recordMap.set(key, asLocal);
-            }
-            if (typeof db !== "undefined" && db.statementCoverage) {
-                db.statementCoverage.put(asLocal).catch(() => {});
-            }
-        }
-
-        localStorage.setItem("statement_coverage", JSON.stringify(Array.from(recordMap.values())));
-    } catch (e) {
-        console.error("Failed to sync statement coverage:", e);
-    }
-};
-
-// Seed historical statements and replace stale records cleanly.
-export const seedStatementRecords = async (): Promise<void> => {
-    try {
-        const res = await fetch("/seeded_coverage.json");
-        if (!res.ok) throw new Error("Failed to load seeded coverage data");
-        const seeded: StatementRecord[] = await res.json();
-
-        const existing = getStatementRecords();
-        const recordMap = new Map<string, StatementRecord>();
-        const seededKeys = new Set<string>();
-
-        // Step 1: Populate from seeded JSON
-        if (Array.isArray(seeded)) {
-            seeded.forEach(r => {
-                if (r && r.card && r.startDate && r.endDate) {
-                    const key = `${r.card}_${r.filename || r.endDate}`;
-                    recordMap.set(key, r);
-                    seededKeys.add(key);
-                }
-            });
-        }
-
-        // Step 2: Populate from IndexedDB
+        // Populate from IndexedDB first (if available)
         try {
             if (typeof db !== "undefined" && db.statementCoverage) {
                 const dbRecords = await db.statementCoverage.toArray();
@@ -219,15 +140,7 @@ export const seedStatementRecords = async (): Promise<void> => {
                     dbRecords.forEach(r => {
                         if (r && r.card && r.startDate && r.endDate) {
                             const key = `${r.card}_${r.filename || r.endDate}`;
-                            const current = recordMap.get(key);
-                            const isSeededKey = seededKeys.has(key);
-                            if (!isSeededKey) {
-                                if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
-                                    recordMap.set(key, r);
-                                }
-                            } else if (current && (r.importedAt || 0) > (current.importedAt || 0)) {
-                                recordMap.set(key, r);
-                            }
+                            recordMap.set(key, r);
                         }
                     });
                 }
@@ -236,28 +149,65 @@ export const seedStatementRecords = async (): Promise<void> => {
             console.error("Failed to load statement records from Dexie IndexedDB:", dbErr);
         }
 
-        // Step 3: Merge existing localStorage records
-        if (Array.isArray(existing)) {
-            existing.forEach(r => {
+        // Merge local storage records
+        if (Array.isArray(localRecords)) {
+            localRecords.forEach(r => {
                 if (!r || !r.card || !r.startDate || !r.endDate) return;
-                if (r.filename && r.filename.includes("Transactions (Synced Data)")) return;
                 const key = `${r.card}_${r.filename || r.endDate}`;
                 const current = recordMap.get(key);
-                const isSeededKey = seededKeys.has(key);
-
-                if (!isSeededKey) {
-                    if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
-                        recordMap.set(key, r);
-                    }
-                } else if (current && (r.importedAt || 0) > (current.importedAt || 0)) {
+                if (!current || (r.importedAt || 0) >= (current.importedAt || 0)) {
                     recordMap.set(key, r);
                 }
             });
         }
 
+        // --- Step 1: Pull all server records from Supabase and merge ---
+        const serverRecords = await statementCoverageApi.getAll();
+        const serverKeys = new Set<string>();
+
+        if (Array.isArray(serverRecords) && serverRecords.length > 0) {
+            for (const sr of serverRecords) {
+                const key = `${sr.card}_${sr.filename}`;
+                serverKeys.add(key);
+                const current = recordMap.get(key);
+                const asLocal: StatementRecord = {
+                    card: sr.card,
+                    startDate: sr.statement_start,
+                    endDate: sr.statement_end,
+                    filename: sr.filename,
+                    importedAt: sr.imported_at,
+                };
+                if (!current || sr.imported_at >= (current.importedAt || 0)) {
+                    recordMap.set(key, asLocal);
+                }
+                if (typeof db !== "undefined" && db.statementCoverage) {
+                    db.statementCoverage.put(asLocal).catch(() => {});
+                }
+            }
+        }
+
+        // Save merged records to localStorage
         const merged = Array.from(recordMap.values());
         localStorage.setItem("statement_coverage", JSON.stringify(merged));
+
+        // --- Step 2: Push any local-only records up to Supabase ---
+        for (const r of merged) {
+            if (!r?.card || !r?.startDate || !r?.endDate) continue;
+            const key = `${r.card}_${r.filename || r.endDate}`;
+            if (!serverKeys.has(key)) {
+                statementCoverageApi.upsert({
+                    card: r.card,
+                    statement_start: r.startDate,
+                    statement_end: r.endDate,
+                    filename: r.filename || "Uploaded Statement",
+                    imported_at: r.importedAt || Date.now(),
+                }).catch(() => {});
+            }
+        }
     } catch (e) {
-        console.error("Failed to seed statement coverage records:", e);
+        console.error("Failed to sync statement coverage:", e);
     }
 };
+
+// Backwards-compatible alias
+export const seedStatementRecords = syncStatementRecordsFromServer;

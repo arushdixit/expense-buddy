@@ -181,5 +181,22 @@
       "2026-07": 21,
       "2026-08": 2
     }
+  },
+  {
+    "card": "Share",
+    "startDate": "2026-07-16",
+    "endDate": "2026-08-15",
+    "filename": "2026-08-15_Share_Statement.pdf",
+    "importedAt": 1787100000000,
+    "totalAmount": 518.18,
+    "transactionCount": 7,
+    "monthlySpending": {
+      "2026-07": 146.19,
+      "2026-08": 371.99
+    },
+    "monthlyCounts": {
+      "2026-07": 3,
+      "2026-08": 4
+    }
   }
 ]
