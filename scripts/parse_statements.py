@@ -1142,7 +1142,10 @@ def extract_statement_date(doc, card_type: str) -> str | None:
             if m:
                 return _parse_any_date(m.group(1))
             # Fallback: look for "Statement Period: dd-Mon-yy to dd-Mon-yy" and use end date
-            period_m = _STMT_PERIOD_RE.search(page_text)
+            period_m = _STMT_PERIOD_RE.search(page_text) or re.search(
+                r'([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})\s+to\s+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})',
+                page_text, re.IGNORECASE
+            )
             if period_m:
                 return _parse_any_date(period_m.group(2))
             # Second fallback: look for dd/mm/yyyy pattern after "Statement Date" label
@@ -1205,7 +1208,10 @@ def extract_statement_period(doc, card_type: str) -> tuple[str | None, str | Non
         page_text = first_page.get_text()
 
         # --- Generic: "Statement Period: DD-Mon-YY to DD-Mon-YY" (Share, Noon, sometimes SIB) ---
-        period_m = _STMT_PERIOD_RE.search(page_text)
+        period_m = _STMT_PERIOD_RE.search(page_text) or re.search(
+            r'([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})\s+to\s+([\d]{1,2}-[A-Za-z]{3}-[\d]{2,4})',
+            page_text, re.IGNORECASE
+        )
         if period_m:
             start = _parse_any_date(period_m.group(1))
             end = _parse_any_date(period_m.group(2))
@@ -1249,7 +1255,7 @@ def extract_statement_period(doc, card_type: str) -> tuple[str | None, str | Non
             return (None, end)
 
         elif card_type in ("Share", "Noon"):
-            # Already handled by _STMT_PERIOD_RE above; fallback to end-only
+            # Already handled by _STMT_PERIOD_RE / range regex above; fallback to end-only
             end = extract_statement_date(doc, card_type)
             return (None, end)
 
@@ -1276,7 +1282,7 @@ def parse_pdf(pdf_path: str, password: str = None) -> list[dict]:
         passwords = []
         if password:
             passwords.append(password)
-        for default_pw in ["14561900", "010194924180", "010194"]:
+        for default_pw in ["14561900", "010194924180", "010194", "PAMO0101", "pamo0101"]:
             if default_pw not in passwords:
                 passwords.append(default_pw)
         
