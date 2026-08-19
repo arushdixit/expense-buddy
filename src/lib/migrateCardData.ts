@@ -1,6 +1,3 @@
-import { db, LocalExpense } from './db';
-import { getStatementRecords } from './statementParser';
-
 /**
  * Determine the correct payment card for an expense based on historical rules.
  */
@@ -153,58 +150,3 @@ export const classifyExpenseCard = (exp: {
   return 'HSBC';
 };
 
-/**
- * Execute automated historical migration to populate `card` column for all local Dexie expenses.
- */
-export const runCardMigration = async (): Promise<{ updatedCount: number }> => {
-  let updatedCount = 0;
-
-  try {
-    const expenses = await db.expenses.toArray();
-    const updates: LocalExpense[] = [];
-
-    for (const exp of expenses) {
-      const targetCard = classifyExpenseCard(exp);
-      if (!exp.card || exp.card !== targetCard) {
-        updates.push({
-          ...exp,
-          card: targetCard,
-          syncStatus: exp.syncStatus === 'synced' ? 'pending' : exp.syncStatus,
-          updatedAt: Date.now(),
-        });
-        updatedCount++;
-      }
-    }
-
-    if (updates.length > 0) {
-      await db.expenses.bulkPut(updates);
-      console.log(`[Card Migration] Updated ${updates.length} expense records with card classification.`);
-    }
-
-    // Also update backup expenses if present
-    const backupExpenses = await db.expenses_backup.toArray();
-    const backupUpdates: LocalExpense[] = [];
-
-    for (const exp of backupExpenses) {
-      const targetCard = classifyExpenseCard(exp);
-      if (!exp.card || exp.card !== targetCard) {
-        backupUpdates.push({
-          ...exp,
-          card: targetCard,
-          syncStatus: exp.syncStatus === 'synced' ? 'pending' : exp.syncStatus,
-          updatedAt: Date.now(),
-        });
-      }
-    }
-
-    if (backupUpdates.length > 0) {
-      await db.expenses_backup.bulkPut(backupUpdates);
-      console.log(`[Card Migration] Updated ${backupUpdates.length} backup expense records with card classification.`);
-    }
-
-  } catch (err) {
-    console.error('[Card Migration Error]:', err);
-  }
-
-  return { updatedCount };
-};

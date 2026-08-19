@@ -1,13 +1,13 @@
 import React, { useState, useRef } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
-import { useSync } from "@/context/SyncContext";
+import { useExpenses } from "@/context/ExpenseContext";
 
 interface PullToRefreshProps {
   children: React.ReactNode;
 }
 
 export const PullToRefresh: React.FC<PullToRefreshProps> = ({ children }) => {
-  const { triggerSync } = useSync();
+  const { refreshExpenses } = useExpenses();
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const startY = useRef(0);
@@ -49,9 +49,9 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({ children }) => {
       setIsRefreshing(true);
       setPullDistance(pullThreshold);
       try {
-        await triggerSync();
+        await refreshExpenses();
       } catch (error) {
-        console.error("Sync failed:", error);
+        console.error("Refresh failed:", error);
       } finally {
         setTimeout(() => {
           setIsRefreshing(false);

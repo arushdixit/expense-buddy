@@ -5,7 +5,7 @@
  */
 
 import { supabase, DbExpense } from './supabase';
-import { generateId } from './db';
+import { generateId } from './utils';
 import { getCfUser } from './cfAuth';
 
 const getCurrentUser = async (): Promise<{ id: string; email?: string } | null> => {
@@ -492,6 +492,55 @@ export const expenseBackupApi = {
             .in('id', ids);
 
         if (error) throw new Error(`Failed to delete backup expenses in bulk: ${error.message}`);
+    },
+
+    async mergeToProduction(backupIds?: string[]): Promise<ApiExpense[]> {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('Authentication required');
+
+        let query = supabase.from('expenses_backup').select('*');
+        if (backupIds && backupIds.length > 0) {
+            query = query.in('id', backupIds);
+        }
+        const { data: backupRows, error: fetchErr } = await query;
+        if (fetchErr) throw new Error(`Failed to fetch backup expenses: ${fetchErr.message}`);
+        if (!backupRows || backupRows.length === 0) return [];
+
+        const toInsert = backupRows.map(r => ({
+            id: generateId(),
+            amount: r.amount,
+            category: r.category,
+            subcategory: r.subcategory || null,
+            date: r.date,
+            note: r.note || null,
+            card: r.card || null,
+            updated_at: Date.now(),
+            user_id: r.user_id || user.id,
+            household_id: r.household_id
+        }));
+
+        const { data: inserted, error: insertErr } = await supabase
+            .from('expenses')
+            .upsert(toInsert)
+            .select();
+        if (insertErr) throw new Error(`Failed to move expenses to production: ${insertErr.message}`);
+
+        const idsToDelete = backupRows.map(r => r.id);
+        await supabase
+            .from('expenses_backup')
+            .delete()
+            .in('id', idsToDelete);
+
+        return (inserted || []).map(toApiExpense);
+    },
+
+    async clearQueue(): Promise<void> {
+        const { error } = await supabase
+            .from('expenses_backup')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (error) throw new Error(`Failed to clear backup queue: ${error.message}`);
     },
 };
 

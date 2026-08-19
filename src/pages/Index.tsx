@@ -12,7 +12,6 @@ import { CoverageView } from "@/components/views/CoverageView";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expense } from "@/lib/data";
-import { StorageWarning } from "@/components/StorageWarning";
 
 // Detect which card an expense belongs to (matching logic in CoverageView)
 const getExpenseCard = (noteText: string, subcatText: string): string | null => {
@@ -181,7 +180,6 @@ const Index: React.FC = () => {
     <ExpenseProvider>
       <NotificationHandler />
       <div className="min-h-screen bg-background pb-20">
-        <StorageWarning />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

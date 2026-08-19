@@ -1,58 +1,52 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Expense, categories, Category, getCategoryById, getCategoryIconAndColor } from "@/lib/data";
-import { syncApi } from "@/lib/sync";
-import { subcategoryApi, categoryApi, expenseApi, expenseBackupApi } from "@/lib/api";
-import { db, LocalExpense, LocalSubcategory, generateId } from "@/lib/db";
-import { Layers } from "lucide-react";
+import { subcategoryApi, categoryApi, expenseApi, expenseBackupApi, ApiExpense } from "@/lib/api";
 import { toast } from "sonner";
-import { useSync } from "@/context/SyncContext";
-import { runCardMigration } from "@/lib/migrateCardData";
 
 interface ExpenseContextType {
   expenses: Expense[];
   backupExpenses: Expense[];
   isLoading: boolean;
-  addExpense: (expense: Omit<Expense, "id">) => void;
-  deleteExpense: (id: string) => void;
-  updateExpense: (id: string, expense: Partial<Expense>) => void;
+  addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteBackupExpense: (id: string) => Promise<void>;
   bulkAddBackupExpenses: (expenses: Omit<Expense, "id">[]) => Promise<void>;
   mergeBackupToProduction: () => Promise<void>;
   clearBackupQueue: () => Promise<void>;
   customSubcategories: Record<string, string[]>;
-  addCustomSubcategory: (categoryId: string, subcategory: string) => void;
+  addCustomSubcategory: (categoryId: string, subcategory: string) => Promise<void>;
   customCategories: Category[];
-  addCustomCategory: (name: string, color: string) => void;
+  addCustomCategory: (name: string, color: string) => Promise<void>;
   refreshExpenses: () => Promise<void>;
 }
 
-// Helper function to convert local expense to frontend format
-const localExpenseToExpense = (localExpense: LocalExpense, customCategories: Category[] = []): Expense => {
+// Convert Supabase backend type to frontend format
+const apiExpenseToExpense = (apiExpense: ApiExpense, customCategories: Category[] = []): Expense => {
   const allCategories = [...categories, ...customCategories];
   const category = allCategories.find(cat =>
-    cat.name.toLowerCase() === localExpense.category.toLowerCase()
+    cat.name.toLowerCase() === apiExpense.category.toLowerCase()
   );
 
   return {
-    id: localExpense.id,
-    categoryId: category?.id || localExpense.category.toLowerCase(),
-    subcategory: localExpense.subcategory,
-    amount: localExpense.amount,
-    date: localExpense.date,
-    note: localExpense.note,
-    card: localExpense.card,
-    createdAt: localExpense.created_at,
+    id: apiExpense.id,
+    categoryId: category?.id || apiExpense.category.toLowerCase(),
+    subcategory: apiExpense.subcategory,
+    amount: apiExpense.amount,
+    date: apiExpense.date,
+    note: apiExpense.note,
+    card: apiExpense.card,
+    createdAt: apiExpense.created_at,
   };
 };
 
-// Helper function to convert frontend expense to sync API format
-const expenseToLocalData = (expense: Omit<Expense, "id">, customCategories: Category[] = []) => {
-  // Look in both predefined and custom categories
+// Convert frontend expense to Supabase API format
+const expenseToApiData = (expense: Omit<Expense, "id">, customCategories: Category[] = []) => {
   const category = getCategoryById(expense.categoryId, customCategories);
 
   return {
     amount: expense.amount,
-    category: category?.name || expense.categoryId, // Should always find it now
+    category: category?.name || expense.categoryId,
     subcategory: expense.subcategory,
     date: expense.date,
     note: expense.note,
@@ -69,157 +63,47 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Access sync context for refreshing after sync and triggering auto-sync
-  const { refreshStatus, registerSyncCallback, unregisterSyncCallback, triggerSync, isOnline } = useSync();
-
-  // Auto-sync debounce timer
-  const autoSyncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Trigger auto-sync after a delay (debounced)
-  const scheduleAutoSync = useCallback(() => {
-    // Clear any existing timer
-    if (autoSyncTimerRef.current) {
-      clearTimeout(autoSyncTimerRef.current);
-    }
-
-    // Only schedule if online
-    if (isOnline) {
-      // Schedule sync after 2 seconds of inactivity
-      autoSyncTimerRef.current = setTimeout(async () => {
-        try {
-          await triggerSync();
-        } catch (error) {
-          console.error('Auto-sync failed:', error);
-        }
-      }, 2000);
-    }
-  }, [isOnline, triggerSync]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (autoSyncTimerRef.current) {
-        clearTimeout(autoSyncTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Load data from IndexedDB
+  // Load live data directly from Supabase
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // Check if DB is already known to be blocked
-      if (db.isBlocked) {
-        throw new Error('Database is blocked');
-      }
+      const [serverCategories, serverSubcategories, serverExpenses, serverBackup] = await Promise.all([
+        categoryApi.getAll().catch(err => {
+          console.error("Failed to fetch categories:", err);
+          return [];
+        }),
+        subcategoryApi.getAll().catch(err => {
+          console.error("Failed to fetch subcategories:", err);
+          return [];
+        }),
+        expenseApi.getAll().catch(err => {
+          console.error("Failed to fetch expenses:", err);
+          return [];
+        }),
+        expenseBackupApi.getAll().catch(err => {
+          console.error("Failed to fetch backup expenses:", err);
+          return [];
+        }),
+      ]);
 
-      // Initialize DB explicitly
-      const dbReady = await db.ensureInitialized();
-      if (!dbReady) {
-        throw new Error('Database failed to initialize');
-      }
-
-      // Run card migration backfill safely
-      await runCardMigration();
-
-      // 1. Load custom categories from IndexedDB FIRST
-      let loadedCategories: Category[] = [];
-      try {
-        const localCategories = await db.customCategories.toArray();
-        loadedCategories = localCategories.map(cat => {
-          const { icon, color } = getCategoryIconAndColor(cat.name, cat.color);
-          return {
-            id: cat.id,
-            name: cat.name,
-            icon,
-            color,
-          };
-        });
-      } catch (err) {
-        console.error('Dexie Error in loadData (categories):', err);
-      }
+      // 1. Process custom categories
+      const loadedCategories: Category[] = serverCategories.map(cat => {
+        const { icon, color } = getCategoryIconAndColor(cat.name, cat.color);
+        return {
+          id: cat.id,
+          name: cat.name,
+          icon,
+          color,
+        };
+      });
       setCustomCategories(loadedCategories);
 
-      // 2. Load expenses and map them using the categories we just loaded
-      let localExpenses: LocalExpense[] = [];
-      try {
-        localExpenses = await syncApi.getAllExpenses();
-        // If IndexedDB has 0 expenses (new device or fresh login), fetch live from Supabase!
-        if (localExpenses.length === 0) {
-          try {
-            const serverExpenses = await expenseApi.getAll();
-            if (Array.isArray(serverExpenses) && serverExpenses.length > 0) {
-              const toStore: LocalExpense[] = serverExpenses.map(exp => ({
-                id: exp.id,
-                amount: exp.amount,
-                category: exp.category,
-                subcategory: exp.subcategory,
-                date: exp.date,
-                note: exp.note,
-                created_at: exp.created_at || new Date().toISOString(),
-                syncStatus: 'synced' as const,
-                updatedAt: exp.updated_at || Date.now()
-              }));
-              await db.expenses.bulkPut(toStore);
-              localExpenses = await syncApi.getAllExpenses();
-            }
-          } catch (serverErr) {
-            console.error("Failed to fetch expenses from Supabase on fresh device:", serverErr);
-          }
-        }
-      } catch (err) {
-        console.error('Dexie Error in loadData (expenses):', err);
-      }
-      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
-      setExpenses(mappedExpenses);
-
-      // 2b. Load backup expenses
-      let localBackupExpenses: LocalExpense[] = [];
-      try {
-        localBackupExpenses = await syncApi.getAllBackupExpenses();
-        // If IndexedDB has 0 backup expenses (new device or fresh login), fetch live from Supabase!
-        if (localBackupExpenses.length === 0) {
-          try {
-            const serverBackupExpenses = await expenseBackupApi.getAll();
-            if (Array.isArray(serverBackupExpenses) && serverBackupExpenses.length > 0) {
-              const toStore: LocalExpense[] = serverBackupExpenses.map(exp => ({
-                id: exp.id,
-                amount: exp.amount,
-                category: exp.category,
-                subcategory: exp.subcategory,
-                date: exp.date,
-                note: exp.note,
-                card: exp.card,
-                created_at: exp.created_at || new Date().toISOString(),
-                syncStatus: 'synced' as const,
-                updatedAt: exp.updated_at || Date.now()
-              }));
-              await db.expenses_backup.bulkPut(toStore);
-              localBackupExpenses = await syncApi.getAllBackupExpenses();
-            }
-          } catch (serverErr) {
-            console.error("Failed to fetch backup expenses from Supabase on fresh device:", serverErr);
-          }
-        }
-      } catch (err) {
-        console.error('Dexie Error in loadData (backup expenses):', err);
-      }
-      const mappedBackupExpenses = localBackupExpenses.map(e => localExpenseToExpense(e, loadedCategories));
-      setBackupExpenses(mappedBackupExpenses);
-
-      // 3. Load subcategories and group by category
-      let localSubcategories: LocalSubcategory[] = [];
-      try {
-        localSubcategories = await syncApi.getAllSubcategories();
-      } catch (err) {
-        console.error('Dexie Error in loadData (subcategories):', err);
-      }
+      // 2. Process subcategories
       const subcategoriesMap: Record<string, string[]> = {};
       const allCategories = [...categories, ...loadedCategories];
 
-      localSubcategories.forEach((sub: LocalSubcategory) => {
-        // Find the category for this subcategory
+      serverSubcategories.forEach(sub => {
         const category = allCategories.find(cat =>
           cat.name.toLowerCase() === sub.category.toLowerCase()
         );
@@ -229,291 +113,159 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
           subcategoriesMap[categoryId] = [];
         }
 
-        // Only add if not already in predefined subcategories
         const predefinedSubs = category?.subcategories || [];
         if (!predefinedSubs.includes(sub.name)) {
           subcategoriesMap[categoryId].push(sub.name);
         }
       });
-
       setCustomSubcategories(subcategoriesMap);
+
+      // 3. Process expenses
+      setExpenses(serverExpenses.map(e => apiExpenseToExpense(e, loadedCategories)));
+      setBackupExpenses(serverBackup.map(e => apiExpenseToExpense(e, loadedCategories)));
     } catch (error) {
-      console.error('Failed to load data:', error);
-      // Only show error toast if it's not a storage block (which has its own UI)
-      if (!db.isBlocked) {
-        toast.error('Failed to load data from storage');
-      }
+      console.error('Failed to load data from Supabase:', error);
+      toast.error('Failed to load expenses from server');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-
-  // Refresh all data (called after sync or data changes)
+  // Refresh all data on demand
   const refreshExpenses = useCallback(async () => {
-    try {
-      // 1. Reload categories
-      let loadedCategories: Category[] = [];
-      try {
-        const localCategories = await db.customCategories.toArray();
-        loadedCategories = localCategories.map(cat => {
-          const { icon, color } = getCategoryIconAndColor(cat.name, cat.color);
-          return {
-            id: cat.id,
-            name: cat.name,
-            icon,
-            color,
-          };
-        });
-      } catch (err) {
-        console.error('Dexie Error in refreshExpenses (categories):', err);
-      }
-      setCustomCategories(loadedCategories);
+    await loadData();
+  }, [loadData]);
 
-      // 2. Reload subcategories
-      const localSubcategories = await syncApi.getAllSubcategories();
-      const subcategoriesMap: Record<string, string[]> = {};
-      const allCategories = [...categories, ...loadedCategories];
-
-      localSubcategories.forEach((sub: LocalSubcategory) => {
-        const category = allCategories.find(cat =>
-          cat.name.toLowerCase() === sub.category.toLowerCase()
-        );
-        const categoryId = category?.id || sub.category.toLowerCase();
-
-        if (!subcategoriesMap[categoryId]) {
-          subcategoriesMap[categoryId] = [];
-        }
-
-        const predefinedSubs = category?.subcategories || [];
-        if (!predefinedSubs.includes(sub.name)) {
-          subcategoriesMap[categoryId].push(sub.name);
-        }
-      });
-      setCustomSubcategories(subcategoriesMap);
-
-      // 3. Reload and map expenses using the fresh categories
-      const localExpenses = await syncApi.getAllExpenses();
-      const mappedExpenses = localExpenses.map(e => localExpenseToExpense(e, loadedCategories));
-      setExpenses(mappedExpenses);
-
-      // 3b. Reload backup expenses
-      const localBackupExpenses = await syncApi.getAllBackupExpenses();
-      const mappedBackupExpenses = localBackupExpenses.map(e => localExpenseToExpense(e, loadedCategories));
-      setBackupExpenses(mappedBackupExpenses);
-    } catch (error) {
-      console.error('Failed to refresh data:', error);
-    }
-  }, []);
-
-  // Load initial data
+  // Initial fetch on mount
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Register for sync completion notifications to refresh expenses
-  useEffect(() => {
-    registerSyncCallback(refreshExpenses);
-    return () => {
-      unregisterSyncCallback(refreshExpenses);
-    };
-  }, [refreshExpenses, registerSyncCallback, unregisterSyncCallback]);
-
   const addExpense = async (expense: Omit<Expense, "id">) => {
     try {
-      const localData = expenseToLocalData(expense, customCategories);
-      const createdExpense = await syncApi.createExpense(localData);
-      const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
-      setExpenses(prev => [mappedExpense, ...prev]);
-      refreshStatus(); // Update pending count in bg
-      scheduleAutoSync(); // Trigger auto-sync
+      const apiData = expenseToApiData(expense, customCategories);
+      const created = await expenseApi.create(apiData);
+      const mapped = apiExpenseToExpense(created, customCategories);
+      setExpenses(prev => [mapped, ...prev]);
       toast.success('Expense added');
     } catch (error) {
       console.error('Failed to add expense:', error);
-      toast.error('Failed to add expense');
+      toast.error(error instanceof Error ? error.message : 'Failed to add expense');
       throw error;
     }
   };
 
   const deleteExpense = async (id: string) => {
     try {
-      await syncApi.deleteExpense(id);
+      await expenseApi.delete(id);
       setExpenses(prev => prev.filter(exp => exp.id !== id));
-      refreshStatus(); // Update pending count in bg
-      scheduleAutoSync(); // Trigger auto-sync
       toast.success('Expense deleted');
     } catch (error) {
       console.error('Failed to delete expense:', error);
-      toast.error('Failed to delete expense');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete expense');
       throw error;
     }
   };
 
   const updateExpense = async (id: string, updates: Partial<Expense>) => {
     try {
-      // Convert updates to local format
-      const localUpdates: Record<string, unknown> = {};
-      if (updates.amount !== undefined) localUpdates.amount = updates.amount;
-      if (updates.date !== undefined) localUpdates.date = updates.date;
-      if (updates.note !== undefined) localUpdates.note = updates.note;
-      if (updates.card !== undefined) localUpdates.card = updates.card;
-      if (updates.subcategory !== undefined) localUpdates.subcategory = updates.subcategory;
+      const apiUpdates: Partial<ApiExpense> = {};
+      if (updates.amount !== undefined) apiUpdates.amount = updates.amount;
+      if (updates.date !== undefined) apiUpdates.date = updates.date;
+      if (updates.note !== undefined) apiUpdates.note = updates.note;
+      if (updates.card !== undefined) apiUpdates.card = updates.card;
+      if (updates.subcategory !== undefined) apiUpdates.subcategory = updates.subcategory;
       if (updates.categoryId !== undefined) {
         const category = getCategoryById(updates.categoryId, customCategories);
-        localUpdates.category = category?.name || updates.categoryId;
+        apiUpdates.category = category?.name || updates.categoryId;
       }
 
-      const updatedExpense = await syncApi.updateExpense(id, localUpdates);
-      if (updatedExpense) {
-        const mappedExpense = localExpenseToExpense(updatedExpense, customCategories);
-        setExpenses(prev =>
-          prev.map(exp => (exp.id === id ? mappedExpense : exp))
-        );
-        refreshStatus(); // Update pending count in bg
-        scheduleAutoSync(); // Trigger auto-sync
-        toast.success('Expense updated');
-      }
+      const updated = await expenseApi.update(id, apiUpdates);
+      const mapped = apiExpenseToExpense(updated, customCategories);
+      setExpenses(prev => prev.map(exp => (exp.id === id ? mapped : exp)));
+      toast.success('Expense updated');
     } catch (error) {
       console.error('Failed to update expense:', error);
-      toast.error('Failed to update expense');
+      toast.error(error instanceof Error ? error.message : 'Failed to update expense');
       throw error;
     }
   };
 
   const deleteBackupExpense = async (id: string) => {
     try {
-      await syncApi.deleteBackupExpense(id);
+      await expenseBackupApi.delete(id);
       setBackupExpenses(prev => prev.filter(exp => exp.id !== id));
-      refreshStatus();
-      scheduleAutoSync();
       toast.success('Backup transaction removed');
     } catch (error) {
       console.error('Failed to delete backup expense:', error);
-      toast.error('Failed to delete backup transaction');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete backup transaction');
       throw error;
     }
   };
 
   const bulkAddBackupExpenses = async (newExpenses: Omit<Expense, "id">[]) => {
     try {
-      const addedMapped: Expense[] = [];
-      for (const expense of newExpenses) {
-        const localData = expenseToLocalData(expense, customCategories);
-        const createdExpense = await syncApi.createBackupExpense(localData);
-        const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
-        addedMapped.push(mappedExpense);
-      }
-      setBackupExpenses(prev => [...addedMapped, ...prev]);
-      refreshStatus();
-      scheduleAutoSync();
+      const toUpsert = newExpenses.map(e => expenseToApiData(e, customCategories));
+      const created = await expenseBackupApi.upsertBulk(toUpsert);
+      const mapped = created.map(e => apiExpenseToExpense(e, customCategories));
+      setBackupExpenses(prev => [...mapped, ...prev]);
       toast.success(`Uploaded ${newExpenses.length} transactions to backup queue`);
     } catch (error) {
       console.error('Failed bulk backup upload:', error);
-      toast.error('Failed to upload transactions to backup queue');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload transactions to backup queue');
       throw error;
     }
   };
 
   const mergeBackupToProduction = async () => {
     try {
-      const backupToMerge = [...backupExpenses];
-      if (backupToMerge.length === 0) {
+      if (backupExpenses.length === 0) {
         toast.info('No transactions in backup queue');
         return;
       }
 
-      // Copy all to production
-      const addedMapped: Expense[] = [];
-      for (const backup of backupToMerge) {
-        const localData = {
-          amount: backup.amount,
-          category: getCategoryById(backup.categoryId, customCategories)?.name || backup.categoryId,
-          subcategory: backup.subcategory,
-          date: backup.date,
-          note: backup.note,
-          card: backup.card,
-        };
-        const createdExpense = await syncApi.createExpense(localData);
-        const mappedExpense = localExpenseToExpense(createdExpense, customCategories);
-        addedMapped.push(mappedExpense);
-
-        // Delete from backup
-        await syncApi.deleteBackupExpense(backup.id);
-      }
-
-      // Update state
-      setExpenses(prev => [...addedMapped, ...prev]);
+      const merged = await expenseBackupApi.mergeToProduction();
+      const mapped = merged.map(e => apiExpenseToExpense(e, customCategories));
+      setExpenses(prev => [...mapped, ...prev]);
       setBackupExpenses([]);
-      refreshStatus();
-      scheduleAutoSync();
-      toast.success(`Successfully merged ${backupToMerge.length} transactions to production!`);
+      toast.success(`Successfully merged ${merged.length} transactions to production!`);
     } catch (error) {
       console.error('Failed to merge backup to production:', error);
-      toast.error('Failed to merge transactions');
+      toast.error(error instanceof Error ? error.message : 'Failed to merge transactions');
     }
   };
 
   const clearBackupQueue = async () => {
     try {
-      for (const backup of backupExpenses) {
-        await syncApi.deleteBackupExpense(backup.id);
-      }
+      await expenseBackupApi.clearQueue();
       setBackupExpenses([]);
-      refreshStatus();
-      scheduleAutoSync();
       toast.success('Backup queue cleared');
     } catch (error) {
       console.error('Failed to clear backup queue:', error);
-      toast.error('Failed to clear backup queue');
+      toast.error(error instanceof Error ? error.message : 'Failed to clear backup queue');
     }
   };
 
   const addCustomSubcategory = async (categoryId: string, subcategory: string) => {
-    // Get the category name for saving to Supabase
     const category = getCategoryById(categoryId, customCategories);
     const categoryName = category?.name || categoryId;
 
     try {
-      // Try to save to Supabase first
-      if (isOnline) {
-        await subcategoryApi.create(categoryName, subcategory);
-      }
-
-      // Add to local state
+      await subcategoryApi.create(categoryName, subcategory);
       setCustomSubcategories(prev => ({
         ...prev,
         [categoryId]: [...(prev[categoryId] || []), subcategory],
       }));
-
       toast.success('Subcategory added');
     } catch (error) {
-      // If offline or error, still add locally
-      setCustomSubcategories(prev => ({
-        ...prev,
-        [categoryId]: [...(prev[categoryId] || []), subcategory],
-      }));
-
-      if (!isOnline) {
-        toast.success('Subcategory saved locally (will sync when online)');
-      } else {
-        console.error('Failed to add subcategory:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to add subcategory');
-      }
+      console.error('Failed to add subcategory:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add subcategory');
     }
   };
 
   const addCustomCategory = async (name: string, color: string) => {
     try {
-      // Try to save to Supabase first (this also validates uniqueness)
       const serverCategory = await categoryApi.create(name, color);
-
-      // Save to local IndexedDB for offline access
-      try {
-        await db.customCategories.put({ id: serverCategory.id, name: serverCategory.name, color: serverCategory.color });
-      } catch (err) {
-        console.error('Dexie Error in addCustomCategory:', err);
-      }
-
       const { icon, color: finalColor } = getCategoryIconAndColor(serverCategory.name, serverCategory.color);
       const newCategory: Category = {
         id: serverCategory.id,
@@ -525,29 +277,8 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       setCustomCategories(prev => [...prev, newCategory]);
       toast.success('Category added');
     } catch (error) {
-      // If offline or error, save locally only
-      if (!isOnline) {
-        const id = generateId();
-        try {
-          await db.customCategories.add({ id, name, color });
-        } catch (err) {
-          console.error('Dexie Error in addCustomCategory (offline):', err);
-        }
-
-        const { icon: offlineIcon, color: offlineColor } = getCategoryIconAndColor(name, color);
-        const newCategory: Category = {
-          id,
-          name,
-          icon: offlineIcon,
-          color: offlineColor,
-        };
-
-        setCustomCategories(prev => [...prev, newCategory]);
-        toast.success('Category saved locally (will sync when online)');
-      } else {
-        console.error('Failed to add category:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to add category');
-      }
+      console.error('Failed to add category:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add category');
     }
   };
 

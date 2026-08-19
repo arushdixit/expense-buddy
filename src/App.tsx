@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SyncProvider } from "@/context/SyncContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
@@ -30,15 +29,13 @@ const AppRoutes = () => {
 
 const App = () => (
   <AuthProvider>
-    <SyncProvider>
-      <TooltipProvider>
-        <Toaster />
-        <SpeedInsights />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </SyncProvider>
+    <TooltipProvider>
+      <Toaster />
+      <SpeedInsights />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </TooltipProvider>
   </AuthProvider>
 );
 

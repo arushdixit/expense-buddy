@@ -26,6 +26,7 @@ interface ExpenseItemProps {
 export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   const { deleteExpense, customCategories } = useExpenses();
 
   const category = getCategoryById(expense.categoryId, customCategories);
@@ -33,8 +34,6 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onEdit }) => 
 
   const Icon = category.icon;
   const expenseDate = parseDateFromStorage(expense.date);
-
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 
   const parseNoteDetails = (note?: string | null) => {
     if (!note) return { cleanedNote: "", isForeign: false, originalAmount: 0, originalCurrency: "" };

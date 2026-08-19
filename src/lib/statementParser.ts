@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { statementCoverageApi } from "@/lib/api";
 
 // ParsedTransaction is the shape returned by the /api/parse_statement serverless function
@@ -43,7 +42,7 @@ export const getStatementRecords = (): StatementRecord[] => {
     }
 };
 
-// Add a statement record to localStorage & IndexedDB + push to Supabase
+// Add a statement record to localStorage + push to Supabase
 export const addStatementRecord = (
     card: string,
     startDate: string,     // actual period start from PDF (statement_start_date), or min tx date as fallback
@@ -102,13 +101,6 @@ export const addStatementRecord = (
 
         localStorage.setItem("statement_coverage", JSON.stringify(records));
 
-        // Asynchronously persist to Dexie IndexedDB
-        if (typeof db !== "undefined" && db.statementCoverage) {
-            db.statementCoverage.put(newRecord).catch((err) => {
-                console.error("Dexie Error putting statementCoverage:", err);
-            });
-        }
-
         // Asynchronously push to Supabase so all devices can sync it
         statementCoverageApi.upsert({
             card,
@@ -124,32 +116,13 @@ export const addStatementRecord = (
     }
 };
 
-// Bidirectional sync of statement coverage records with Supabase (Single Source of Truth).
-// 1. Pulls all server records from Supabase and merges them into IndexedDB + localStorage.
-// 2. Pushes any local-only records UP to Supabase (if created offline or locally).
+// Sync statement coverage records from Supabase (Single Source of Truth)
 export const syncStatementRecordsFromServer = async (): Promise<void> => {
     try {
         const localRecords = getStatementRecords();
         const recordMap = new Map<string, StatementRecord>();
 
-        // Populate from IndexedDB first (if available)
-        try {
-            if (typeof db !== "undefined" && db.statementCoverage) {
-                const dbRecords = await db.statementCoverage.toArray();
-                if (Array.isArray(dbRecords)) {
-                    dbRecords.forEach(r => {
-                        if (r && r.card && r.startDate && r.endDate) {
-                            const key = `${r.card}_${r.filename || r.endDate}`;
-                            recordMap.set(key, r);
-                        }
-                    });
-                }
-            }
-        } catch (dbErr) {
-            console.error("Failed to load statement records from Dexie IndexedDB:", dbErr);
-        }
-
-        // Merge local storage records
+        // Populate from local storage cache first
         if (Array.isArray(localRecords)) {
             localRecords.forEach(r => {
                 if (!r || !r.card || !r.startDate || !r.endDate) return;
@@ -180,13 +153,10 @@ export const syncStatementRecordsFromServer = async (): Promise<void> => {
                 if (!current || sr.imported_at >= (current.importedAt || 0)) {
                     recordMap.set(key, asLocal);
                 }
-                if (typeof db !== "undefined" && db.statementCoverage) {
-                    db.statementCoverage.put(asLocal).catch(() => {});
-                }
             }
         }
 
-        // Save merged records to localStorage
+        // Save merged records to localStorage cache
         const merged = Array.from(recordMap.values());
         localStorage.setItem("statement_coverage", JSON.stringify(merged));
 
@@ -211,3 +181,4 @@ export const syncStatementRecordsFromServer = async (): Promise<void> => {
 
 // Backwards-compatible alias
 export const seedStatementRecords = syncStatementRecordsFromServer;
+
