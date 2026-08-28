@@ -84,11 +84,18 @@ def _parse_multipart(rfile, content_type: str, content_length: int) -> dict[str,
 
 class handler(BaseHTTPRequestHandler):
 
+    def _send_cors_headers(self):
+        origin = self.headers.get("Origin") or "*"
+        self.send_header("Access-Control-Allow-Origin", origin)
+        self.send_header("Access-Control-Allow-Credentials", "true")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cf-Access-Jwt-Assertion, Cf-Access-Authenticated-User-Email")
+
     def do_OPTIONS(self):
         """CORS preflight."""
         self.send_response(200)
-        for k, v in _CORS_HEADERS.items():
-            self.send_header(k, v)
+        self._send_cors_headers()
+        self.send_header("Content-Length", "0")
         self.end_headers()
 
     def do_POST(self):
@@ -154,8 +161,8 @@ class handler(BaseHTTPRequestHandler):
             t_json_start = time.perf_counter()
             body = json.dumps(transactions, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
-            for k, v in _CORS_HEADERS.items():
-                self.send_header(k, v)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -168,11 +175,12 @@ class handler(BaseHTTPRequestHandler):
     def _send_error(self, code: int, message: str) -> None:
         body = json.dumps({"error": message}).encode("utf-8")
         self.send_response(code)
-        for k, v in _CORS_HEADERS.items():
-            self.send_header(k, v)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def log_message(self, format, *args):  # noqa: A002
         pass  # suppress default request logging
+

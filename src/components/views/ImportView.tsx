@@ -89,11 +89,12 @@ export const ImportView: React.FC = () => {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
+      const fileNameLower = (file.name || "").toLowerCase();
       if (
         file.type === "application/pdf" ||
-        file.name.endsWith(".pdf") ||
+        fileNameLower.endsWith(".pdf") ||
         file.type === "text/csv" ||
-        file.name.endsWith(".csv")
+        fileNameLower.endsWith(".csv")
       ) {
         await processFile(file);
       } else {
@@ -122,6 +123,7 @@ export const ImportView: React.FC = () => {
       const res = await fetch("/api/parse_statement", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -342,7 +344,7 @@ export const ImportView: React.FC = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept="application/pdf, text/csv, .csv"
+                  accept=".pdf,.csv,application/pdf,text/csv"
                   className="hidden"
                 />
 
