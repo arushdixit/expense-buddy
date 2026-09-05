@@ -85,7 +85,14 @@ def _parse_multipart(rfile, content_type: str, content_length: int) -> dict[str,
 class handler(BaseHTTPRequestHandler):
 
     def _send_cors_headers(self):
-        origin = self.headers.get("Origin") or "*"
+        origin = self.headers.get("Origin")
+        if not origin or origin == "*":
+            host = self.headers.get("Host")
+            if host:
+                proto = "http" if ("localhost" in host or "127.0.0.1" in host) else "https"
+                origin = f"{proto}://{host}"
+            else:
+                origin = "https://expenses.arushpamoli.com"
         self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Credentials", "true")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS, GET")

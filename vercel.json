@@ -32,6 +32,10 @@
             "destination": "/api/auth/me.py"
         },
         {
+            "source": "/api/parse_statement",
+            "destination": "/api/parse_statement.py"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/$1"
         },
@@ -68,23 +72,6 @@
                 {
                     "key": "Access-Control-Allow-Origin",
                     "value": "*"
-                }
-            ]
-        },
-        {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Access-Control-Allow-Credentials",
-                    "value": "true"
-                },
-                {
-                    "key": "Access-Control-Allow-Headers",
-                    "value": "Authorization, Content-Type, Cf-Access-Jwt-Assertion, Cf-Access-Authenticated-User-Email"
-                },
-                {
-                    "key": "Access-Control-Allow-Methods",
-                    "value": "GET, POST, OPTIONS, PUT, DELETE"
                 }
             ]
         }

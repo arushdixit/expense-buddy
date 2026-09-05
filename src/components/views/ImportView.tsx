@@ -2,7 +2,9 @@ import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
 import { ParsedTransaction, addStatementRecord } from "@/lib/statementParser";
+import { parseWioCsvText } from "@/lib/wioParser";
 import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data";
+
 import {
   FileUp, Loader2, CheckCircle2, Trash2, Filter,
   Database, RefreshCw, X, Check, Calendar, ArrowRightLeft,
@@ -114,24 +116,41 @@ export const ImportView: React.FC = () => {
     setIsParsing(true);
     const id = toast.loading(`Reading statement: ${file.name}...`);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (password) {
-        formData.append("password", password);
+      const fileNameLower = (file.name || "").toLowerCase();
+      const isCsv = file.type === "text/csv" || fileNameLower.endsWith(".csv");
+
+      let txs: ParsedTransaction[];
+
+      if (isCsv) {
+        // Parse CSV directly on the client (fast, reliable, 100% offline & immune to network/CORS issues)
+        const csvText = await file.text();
+        txs = parseWioCsvText(csvText);
+        if (txs.length === 0) {
+          toast.info("No valid transactions found in Wio statement CSV.", { id });
+          return;
+        }
+      } else {
+        // PDF statement: send to serverless parsing function
+        const formData = new FormData();
+        formData.append("file", file);
+        if (password) {
+          formData.append("password", password);
+        }
+
+        const res = await fetch("/api/parse_statement", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+
+        txs = await res.json();
       }
 
-      const res = await fetch("/api/parse_statement", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `Server error ${res.status}`);
-      }
-
-      const txs: ParsedTransaction[] = await res.json();
       setUploadedFileName(file.name);
 
       // Auto-assign local database category ids if found
@@ -152,11 +171,29 @@ export const ImportView: React.FC = () => {
 
       toast.success(`Parsed ${finalizedTxs.length} transactions successfully!`, { id });
     } catch (error) {
-      console.error(error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to parse statement PDF.",
-        { id }
-      );
+      console.error("Statement parsing error:", error);
+      const isFailedToFetch = error instanceof TypeError && error.message.toLowerCase().includes("failed to fetch");
+
+      if (isFailedToFetch) {
+        toast.error(
+          "Network or Cloudflare authentication error. Your session may have expired.",
+          {
+            id,
+            duration: 12000,
+            action: {
+              label: "Re-authenticate",
+              onClick: () => {
+                window.location.href = `/cdn-cgi/access/login?redirect_url=${encodeURIComponent(window.location.href)}`;
+              },
+            },
+          }
+        );
+      } else {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to parse statement file.",
+          { id }
+        );
+      }
     } finally {
       setIsParsing(false);
       if (fileInputRef.current) {
