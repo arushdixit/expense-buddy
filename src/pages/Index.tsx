@@ -150,10 +150,16 @@ const Index: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const [targetMonthYear, setTargetMonthYear] = useState<{ year: number; month: number } | null>(null);
 
   const handleEdit = (expense: Expense) => {
     setExpenseToEdit(expense);
     setIsAddModalOpen(true);
+  };
+
+  const handleNavigateToMonth = (year: number, month: number) => {
+    setTargetMonthYear({ year, month });
+    setActiveTab("monthly");
   };
 
   const renderView = () => {
@@ -161,11 +167,17 @@ const Index: React.FC = () => {
       case "dashboard":
         return <DashboardView onEdit={handleEdit} />;
       case "monthly":
-        return <MonthlyView onEdit={handleEdit} />;
+        return (
+          <MonthlyView
+            onEdit={handleEdit}
+            initialMonth={targetMonthYear?.month}
+            initialYear={targetMonthYear?.year}
+          />
+        );
       case "compare":
         return <CompareView />;
       case "trends":
-        return <TrendsView />;
+        return <TrendsView onNavigateToMonth={handleNavigateToMonth} />;
       case "import":
         return <ImportView />;
       default:

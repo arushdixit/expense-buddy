@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Download, FileUp, Layers } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Download, ChevronDown, ChevronRight, Calendar } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import {
   formatCurrency,
+  getMonthName,
   getShortMonthName,
   getExpensesByMonth,
   categories,
@@ -11,8 +12,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -21,9 +20,14 @@ import {
   AreaChart,
 } from "recharts";
 
-export const TrendsView: React.FC = () => {
+interface TrendsViewProps {
+  onNavigateToMonth?: (year: number, month: number) => void;
+}
+
+export const TrendsView: React.FC<TrendsViewProps> = ({ onNavigateToMonth }) => {
   const { expenses, customCategories } = useExpenses();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [expandedYears, setExpandedYears] = useState<Record<number, boolean>>({});
   const now = new Date();
 
   const allCategories = [...categories, ...customCategories];
@@ -33,7 +37,7 @@ export const TrendsView: React.FC = () => {
     ? expenses.filter((exp) => exp.categoryId === selectedCategoryId)
     : expenses;
 
-  // Get last 12 months data
+  // ─── 1. Last 12 months data for the charts (kept unchanged) ───
   let monthlyData = [];
   for (let i = 11; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -51,8 +55,8 @@ export const TrendsView: React.FC = () => {
     });
   }
 
-  // Filter out months with no data
-  monthlyData = monthlyData.filter(m => m.count > 0);
+  // Filter out months with no data for the chart calculations
+  monthlyData = monthlyData.filter((m) => m.count > 0);
 
   const avgSpending =
     monthlyData.length > 0
@@ -61,7 +65,90 @@ export const TrendsView: React.FC = () => {
   const maxSpending = monthlyData.length > 0 ? Math.max(...monthlyData.map((m) => m.total)) : 0;
   const minSpending = monthlyData.length > 0 ? Math.min(...monthlyData.map((m) => m.total)) : 0;
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+  // ─── 2. Full historical yearly & monthly summary ───
+  const yearlySummary = useMemo(() => {
+    const yearMap = new Map<number, {
+      year: number;
+      total: number;
+      count: number;
+    }>();
+
+    filteredExpenses.forEach((exp) => {
+      if (!exp.date) return;
+      const parts = exp.date.split("-");
+      if (parts.length !== 3) return;
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      if (isNaN(year) || isNaN(month) || month < 0 || month > 11) return;
+
+      let yData = yearMap.get(year);
+      if (!yData) {
+        yData = { year, total: 0, count: 0 };
+        yearMap.set(year, yData);
+      }
+      yData.total += exp.amount;
+      yData.count += 1;
+    });
+
+    // Sort years descending (most recent first)
+    const sortedYears = Array.from(yearMap.keys()).sort((a, b) => b - a);
+
+    return sortedYears.map((year) => {
+      const yData = yearMap.get(year)!;
+      const monthsList: {
+        monthIndex: number;
+        monthName: string;
+        shortMonth: string;
+        fullMonth: string;
+        total: number;
+        count: number;
+      }[] = [];
+
+      // Check all months (December down to January)
+      for (let m = 11; m >= 0; m--) {
+        const monthExpenses = getExpensesByMonth(filteredExpenses, year, m);
+        if (monthExpenses.length > 0) {
+          const total = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+          monthsList.push({
+            monthIndex: m,
+            monthName: getMonthName(m),
+            shortMonth: getShortMonthName(m),
+            fullMonth: `${getMonthName(m)} ${year}`,
+            total,
+            count: monthExpenses.length,
+          });
+        }
+      }
+
+      return {
+        year,
+        total: yData.total,
+        count: yData.count,
+        months: monthsList,
+      };
+    });
+  }, [filteredExpenses]);
+
+  // Auto-expand the most recent year initially
+  useEffect(() => {
+    if (yearlySummary.length > 0) {
+      setExpandedYears((prev) => {
+        if (Object.keys(prev).length === 0) {
+          return { [yearlySummary[0].year]: true };
+        }
+        return prev;
+      });
+    }
+  }, [yearlySummary]);
+
+  const toggleYear = (year: number) => {
+    setExpandedYears((prev) => ({
+      ...prev,
+      [year]: !prev[year],
+    }));
+  };
+
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { fullMonth: string; count: number } }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg">
@@ -151,7 +238,7 @@ export const TrendsView: React.FC = () => {
         })}
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards (Last 12 Months) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -176,14 +263,14 @@ export const TrendsView: React.FC = () => {
         </Card>
       </motion.div>
 
-      {/* Line Chart */}
+      {/* Line Chart (Last 12 Months) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
         <Card className="p-4">
-          <h3 className="font-semibold mb-4">Monthly Spending</h3>
+          <h3 className="font-semibold mb-4">Monthly Spending (Last 12 Months)</h3>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={monthlyData}>
@@ -227,39 +314,162 @@ export const TrendsView: React.FC = () => {
         </Card>
       </motion.div>
 
-      {/* Monthly Breakdown */}
+      {/* Monthly Breakdown by Year */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
         className="mt-6"
       >
-        <h3 className="font-semibold mb-4">Monthly Summary</h3>
-        <div className="space-y-2">
-          {[...monthlyData].reverse().map((month, index) => (
-            <Card key={month.fullMonth} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{month.fullMonth}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {month.count} expenses
-                  </p>
-                </div>
-                <p className="font-bold text-lg dirham-symbol">{formatCurrency(month.total)}</p>
-              </div>
-              <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${(month.total / maxSpending) * 100}%`,
-                  }}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
-                  className="h-full gradient-teal rounded-full"
-                />
-              </div>
-            </Card>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">Monthly Summary</h3>
+          {onNavigateToMonth && (
+            <span className="text-xs text-muted-foreground">Tap any month to view details</span>
+          )}
         </div>
+
+        {yearlySummary.length === 0 ? (
+          <Card className="p-6 text-center text-muted-foreground">
+            No expenses found for the selected filter.
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {yearlySummary.map((yearData) => {
+              const isExpanded = !!expandedYears[yearData.year];
+              const maxMonthInYear =
+                yearData.months.length > 0
+                  ? Math.max(...yearData.months.map((m) => m.total))
+                  : 1;
+
+              return (
+                <Card
+                  key={yearData.year}
+                  className="overflow-hidden border border-border/80 bg-card shadow-sm transition-all"
+                >
+                  {/* Year Header Accordion */}
+                  <button
+                    type="button"
+                    onClick={() => toggleYear(yearData.year)}
+                    className="w-full p-4 flex items-center justify-between text-left transition-colors hover:bg-muted/40 focus:outline-none select-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          isExpanded
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg text-foreground tracking-tight">
+                          {yearData.year}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {yearData.count} {yearData.count === 1 ? "expense" : "expenses"} • {yearData.months.length} {yearData.months.length === 1 ? "month" : "months"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-bold text-base md:text-lg dirham-symbol text-foreground">
+                          {formatCurrency(yearData.total)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                          Yearly Total
+                        </p>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-muted-foreground"
+                      >
+                        <ChevronDown className="h-5 w-5" />
+                      </motion.div>
+                    </div>
+                  </button>
+
+                  {/* Expanded Months List */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 pt-0 border-t border-border/40 space-y-2 bg-muted/15">
+                          {yearData.months.map((month, index) => {
+                            const percentage =
+                              maxMonthInYear > 0 ? (month.total / maxMonthInYear) * 100 : 0;
+                            return (
+                              <div
+                                key={month.fullMonth}
+                                onClick={() =>
+                                  onNavigateToMonth?.(yearData.year, month.monthIndex)
+                                }
+                                className={cn(
+                                  "p-3 rounded-lg border border-border/50 bg-card transition-all",
+                                  onNavigateToMonth
+                                    ? "cursor-pointer hover:border-primary/50 hover:bg-primary/[0.04] active:scale-[0.99] group shadow-xs"
+                                    : ""
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                                        {month.monthName}
+                                      </p>
+                                      {onNavigateToMonth && (
+                                        <span className="text-[10px] text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                                          View in Monthly &rarr;
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {month.count} {month.count === 1 ? "expense" : "expenses"}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-sm md:text-base dirham-symbol text-foreground">
+                                      {formatCurrency(month.total)}
+                                    </p>
+                                    {onNavigateToMonth && (
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Progress bar inside month */}
+                                <div className="mt-2 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${percentage}%` }}
+                                    transition={{
+                                      delay: 0.05 + index * 0.03,
+                                      duration: 0.4,
+                                    }}
+                                    className="h-full gradient-teal rounded-full"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </motion.div>
     </div>
   );

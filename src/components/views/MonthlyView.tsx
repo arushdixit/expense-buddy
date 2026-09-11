@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Filter, FilterX } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
@@ -39,15 +39,29 @@ import { Expense } from "@/lib/data";
 
 interface MonthlyViewProps {
   onEdit?: (expense: Expense) => void;
+  initialMonth?: number;
+  initialYear?: number;
 }
 
-export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit }) => {
+export const MonthlyView: React.FC<MonthlyViewProps> = ({ onEdit, initialMonth, initialYear }) => {
   const { expenses, customCategories } = useExpenses();
   const now = new Date();
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
-  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(initialMonth !== undefined ? initialMonth : now.getMonth());
+  const [currentYear, setCurrentYear] = useState(initialYear !== undefined ? initialYear : now.getFullYear());
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialMonth !== undefined) {
+      setCurrentMonth(initialMonth);
+    }
+  }, [initialMonth]);
+
+  useEffect(() => {
+    if (initialYear !== undefined) {
+      setCurrentYear(initialYear);
+    }
+  }, [initialYear]);
 
   const allCategories = [...categories, ...customCategories];
 
