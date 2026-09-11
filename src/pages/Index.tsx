@@ -8,12 +8,11 @@ import { MonthlyView } from "@/components/views/MonthlyView";
 import { CompareView } from "@/components/views/CompareView";
 import { TrendsView } from "@/components/views/TrendsView";
 import { ImportView } from "@/components/views/ImportView";
-import { CoverageView } from "@/components/views/CoverageView";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expense } from "@/lib/data";
 
-// Detect which card an expense belongs to (matching logic in CoverageView)
+// Detect which card an expense belongs to
 const getExpenseCard = (noteText: string, subcatText: string): string | null => {
   const noteUpper = (noteText || "").toUpperCase();
   const subcatUpper = (subcatText || "").toUpperCase();
@@ -163,8 +162,6 @@ const Index: React.FC = () => {
         return <DashboardView onEdit={handleEdit} />;
       case "monthly":
         return <MonthlyView onEdit={handleEdit} />;
-      case "coverage":
-        return <CoverageView onNavigateToImport={() => setActiveTab("import")} />;
       case "compare":
         return <CompareView />;
       case "trends":

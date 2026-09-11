@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExpenses } from "@/context/ExpenseContext";
-import { ParsedTransaction, addStatementRecord } from "@/lib/statementParser";
+import { ParsedTransaction } from "@/lib/statementParser";
 import { parseWioCsvText } from "@/lib/wioParser";
 import { categories, formatCurrency, Expense, getCategoryById } from "@/lib/data";
 
@@ -271,19 +271,6 @@ export const ImportView: React.FC = () => {
     }
 
     try {
-      if (selectedList.length > 0) {
-        const minTxDate = selectedList.reduce((min, tx) => tx.date < min ? tx.date : min, selectedList[0].date);
-        // Use actual statement period dates from the PDF if the parser extracted them.
-        // Fall back to min/max transaction dates only if not available.
-        const statementStart = selectedList[0].statement_start_date || minTxDate;
-        const statementDate = selectedList[0].statement_date || null;
-        const maxTxDate = selectedList.reduce((max, tx) => tx.date > max ? tx.date : max, selectedList[0].date);
-        const endDate = statementDate || maxTxDate;
-        const card = selectedList[0].card || "HSBC";
-        addStatementRecord(card, statementStart, endDate, uploadedFileName, selectedList);
-      }
-
-
       // Map view categories back to db category ids
       const payload: Omit<Expense, "id">[] = selectedList.map(tx => {
         const matched = allCategoriesList.find(c => c.id === tx.category);
