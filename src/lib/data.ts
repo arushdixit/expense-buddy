@@ -73,7 +73,7 @@ export const categories: Category[] = [
     name: "Luxury",
     icon: Diamond,
     color: "hsl(var(--chart-luxury))",
-    subcategories: ["Refund"],
+    subcategories: ["Bags", "Refund"],
   },
   {
     id: "grooming",

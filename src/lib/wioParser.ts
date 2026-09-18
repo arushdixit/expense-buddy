@@ -53,6 +53,8 @@ export function categorizeTransaction(
   if (descLower.includes("mbta")) return { category: "Travel", subcategory: "Transit" };
   if (descLower.includes("vfs")) return { category: "Travel", subcategory: "Visa" };
   if (descLower.includes("driving") || descLower.includes("license")) return { category: "Misc", subcategory: "License" };
+  if (descLower.includes("paypal")) return { category: "Luxury", subcategory: isRefund ? "Refund" : "Bags" };
+  if (descLower.includes("aivi")) return { category: "Shopping", subcategory: isRefund ? "Refund" : "Clothes" };
 
   // Defaults
   let category = "Shopping";
@@ -154,9 +156,6 @@ export function categorizeTransaction(
   } else if (descLower.includes("temu")) {
     category = "Shopping";
     subcategory = "Temu";
-  } else if (descLower.includes("paypal")) {
-    category = "Shopping";
-    subcategory = "Rep Ladies";
   } else if (["skincare", "boots", "sephora"].some(k => descLower.includes(k))) {
     category = "Shopping";
     subcategory = "Skincare";
@@ -175,7 +174,7 @@ export function categorizeTransaction(
   } else if (descLower.includes("desco")) {
     category = "Shopping";
     subcategory = "Household";
-  } else if (["zara", "namshi", "h&m", "h and m", "6th street", "alshaya", "alsahaya", "futtaim", "calvin", "macy", "ounass", "coach", "rami and tommy", "kaswa"].some(k => descLower.includes(k))) {
+  } else if (["zara", "namshi", "h&m", "h and m", "6th street", "alshaya", "alsahaya", "futtaim", "calvin", "macy", "ounass", "coach", "rami and tommy", "kaswa", "aivi"].some(k => descLower.includes(k))) {
     category = "Shopping";
     subcategory = "Clothes";
   }

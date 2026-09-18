@@ -44,7 +44,7 @@ _ORPHAN_NUM_RE = re.compile(r'(\s+\d[\d,]*\.\d{2})+\s*$')
 _MULTI_SPACE_RE = re.compile(r'\s{2,}')
 
 # Transactions whose descriptions match any of these are silently dropped
-_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL", "PAYMENT RECEIVED", "OUTSTANDING")
+_SKIP_KEYWORDS = ("DAILY CASHBACK", "CASHBACK", "BILL PAYMENT", "RVSL", "PAYMENT RECEIVED", "OUTSTANDING", "CREDIT CARD PAYMENT")
 
 _FOREIGN_AMT_RE = re.compile(
     r'\b(AUD|BHD|CAD|CHF|CNY|DKK|EUR|GBP|HKD|INR|JPY|KWD|MXN|NOK|NZD|OMR|QAR|SAR|SEK|SGD|THB|TRY|USD|ZAR)\b\s*(-?\d+[\d,]*\.\d{2})|(-?\d+[\d,]*\.\d{2})\s*\b(AUD|BHD|CAD|CHF|CNY|DKK|EUR|GBP|HKD|INR|JPY|KWD|MXN|NOK|NZD|OMR|QAR|SAR|SEK|SGD|THB|TRY|USD|ZAR)\b',
@@ -184,6 +184,10 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         return "Travel", "Visa"
     if "driving" in desc_lower or "license" in desc_lower:
         return "Misc", "License"
+    if "paypal" in desc_lower:
+        return "Luxury", ("Refund" if is_refund else "Bags")
+    if "aivi" in desc_lower:
+        return "Shopping", ("Refund" if is_refund else "Clothes")
         
     # Defaults
     category = "Shopping"
@@ -286,10 +290,6 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         category = "Shopping"
         subcategory = "Temu"
         
-    elif "paypal" in desc_lower:
-        category = "Shopping"
-        subcategory = "Rep Ladies"
-        
     elif any(x in desc_lower for x in ["skincare", "boots", "sephora"]):
         category = "Shopping"
         subcategory = "Skincare"
@@ -314,7 +314,7 @@ def categorize(desc: str, amt: float, is_refund: bool, is_foreign: bool = False)
         category = "Shopping"
         subcategory = "Household"
 
-    elif any(x in desc_lower for x in ["zara", "namshi", "h&m", "h and m", "6th street", "alshaya", "alsahaya", "futtaim", "calvin", "macy", "ounass", "coach", "rami and tommy", "kaswa"]):
+    elif any(x in desc_lower for x in ["zara", "namshi", "h&m", "h and m", "6th street", "alshaya", "alsahaya", "futtaim", "calvin", "macy", "ounass", "coach", "rami and tommy", "kaswa", "aivi"]):
         category = "Shopping"
         subcategory = "Clothes"
 
@@ -972,7 +972,10 @@ def parse_sib_pdf(doc) -> list[dict]:
                     orig_val = float(orig_amt_str.replace(',', ''))
                     
                     is_refund = billed_val > 0
-                    amt_val = abs(billed_val)
+                    if is_refund:
+                        amt_val = -abs(billed_val)
+                    else:
+                        amt_val = abs(billed_val)
                     orig_amt_val = abs(orig_val)
                     
                     d_day, d_month = tx_d_str.split('/')
